@@ -14,7 +14,7 @@ import tflib.ops.deconv2d
 import tflib.save_images
 import tflib.cifar10
 import tflib.inception_score
-import tflib.plot
+#import tflib.plot
 
 # Download CIFAR-10 (Python version) at
 # https://www.cs.toronto.edu/~kriz/cifar.html and fill in the path to the
