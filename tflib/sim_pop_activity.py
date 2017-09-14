@@ -71,27 +71,7 @@ def get_stats(num_samples=2**13,num_bins=64, num_neurons=32, correlation=0.5,\
     corr_mat = corr_mat/num_samples
     return mean_spike_count, std_spike_count, corr_mat, autocorrelogram_mat
 
-def spike_trains_gaussian_seq(firing_rate=0.1, num_bins=32, num_neurons=8):
-    noise = 0.01*firing_rate
-    margin = 14 #num bins from the middle one that the response peaks will span (see line 389)
-    std_resp = 4 #std of the gaussian defining the firing rates
-        
-    t = np.arange(num_bins)
-    
-    peaks1 = np.linspace(int(num_bins/2)-margin,int(num_bins/2)+margin,num_neurons)
-   
-    sample =np.zeros((num_neurons,num_bins))
-    for ind in range(num_neurons):
-        fr = firing_rate*np.exp(-(t-peaks1[ind])**2/std_resp**2) + np.random.normal(0,noise,(1,num_bins))
-        fr[fr<0] = 0
-        r = fr > np.random.random(fr.shape)
-        r = r.astype(float)
-        r[r>0] = 1
-            
-        sample[ind,:] = r
-        
-    return sample
-    
+  
 def refractory_period(refr_per, r, firing_rate):
     #print('imposing refractory period of ' + str(refr_per))    
     margin_length = 2*np.shape(r)[1]
