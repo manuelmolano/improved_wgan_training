@@ -1,4 +1,3 @@
-import numpy as np
 import tensorflow as tf
 
 import locale
@@ -33,16 +32,20 @@ def param(name, *args, **kwargs):
         result = _param_aliases[result]
     return result
 
+
 def params_with_name(name):
     return [p for n,p in list(_params.items()) if name in n]
 
+
 def delete_all_params():
     _params.clear()
+
 
 def alias_params(replace_dict):
     for old,new in list(replace_dict.items()):
         # print "aliasing {} to {}".format(old,new)
         _param_aliases[old] = new
+
 
 def delete_param_aliases():
     _param_aliases.clear()
