@@ -16,21 +16,13 @@ matplotlib.use('Agg')
 from functools import wraps
 import sys
 sys.path.append(os.getcwd())
-from tflib import plot, save_images, sim_pop_activity, params_with_name
+from tflib import plot, save_images, sim_pop_activity, params_with_name, analysis
 from tflib.ops import linear, act_funct
 from tensorflow.python.framework import ops as options
-import matplotlib.pyplot as plt
-import matplotlib
 
 
 options.reset_default_graph()
 
-left  = 0.125  # the left side of the subplots of the figure
-right = 0.9    # the right side of the subplots of the figure
-bottom = 0.1   # the bottom of the subplots of the figure
-top = 0.9      # the top of the subplots of the figure
-wspace = 0.4   # the amount of width reserved for blank space between subplots
-hspace = 0.4   # the amount of height reserved for white space between subplots
 def compatibility_decorator(f):
   @wraps(f)
   def wrapper(*args, **kwds):
@@ -144,32 +136,9 @@ class WGAN(object):
     num_neurons=self.num_neurons, corr=config.correlation, group_size=config.group_size, refr_per=config.ref_period,firing_rates_mat=firing_rates_mat)
     
     #compute pop activity statistics
-    mean_spike_count, std_spike_count, corr_mat, ac = sim_pop_activity.get_stats(num_samples=config.num_samples, num_bins=self.num_bins,\
+    real_samples = sim_pop_activity.get_samples(num_samples=config.num_samples, num_bins=self.num_bins,\
     num_neurons=self.num_neurons, correlation=config.correlation, group_size=config.group_size, refr_per=config.ref_period,firing_rates_mat=firing_rates_mat)
-    
-    index = np.linspace(-10,10,2*10+1)
-    #figure for all training error across epochs (supp. figure 2)
-    f,sbplt = plt.subplots(1,3,figsize=(8, 8),dpi=250)
-    matplotlib.rcParams.update({'font.size': 8})
-    plt.subplots_adjust(left=left, bottom=bottom, right=right, top=top, wspace=wspace, hspace=hspace)
-    sbplt[0].plot(index, ac)
-    sbplt[0].set_title('Autocorrelogram')
-    sbplt[0].set_xlabel('time (ms)')
-    sbplt[0].set_ylabel('number of spikes')
-    sbplt[1].plot(mean_spike_count)
-    sbplt[1].set_title('spk-counts')
-    sbplt[1].set_xlabel('neuron')
-    sbplt[1].set_ylabel('firing probability')
-    map_aux = sbplt[2].imshow(corr_mat,interpolation='none')
-    f.colorbar(map_aux,ax=sbplt[2])
-    sbplt[2].set_title('correlation mat')
-    sbplt[2].set_xlabel('neuron')
-    sbplt[2].set_ylabel('neuron')
-    f.savefig(self.sample_dir+'original_stats.svg',dpi=600, bbox_inches='tight')
-    plt.close(f)
-    data = {'mean':mean_spike_count,'std':std_spike_count,'acf':ac}
-    
-    np.savez(self.sample_dir + '/original stats.npz', **data)
+    analysis.get_stats(X=real_samples, num_neurons=self.num_neurons, folder=self.sample_dir, name='real')
     
     
     # Save a batch of ground-truth samples
@@ -203,8 +172,6 @@ class WGAN(object):
           _dev_disc_cost = self.sess.run(self.disc_cost, feed_dict={self.inputs: images}) 
           dev_disc_costs.append(_dev_disc_cost)
         plot.plot(self.sample_dir,'dev disc cost', np.mean(dev_disc_costs))
-    
-        self.generate_image(iteration)
         self.save(iteration)
             
             
@@ -238,6 +205,24 @@ class WGAN(object):
     
     return output
  
+  def binarize(self, samples, threshold=None):
+    '''
+    Returns binarized samples by thresholding with `threshold`. If `threshold` is `None` then the
+    elements of `samples` are used as probabilities for drawing Bernoulli variates.
+    '''
+    if threshold is not None:
+      binarized_samples = samples > threshold
+    else:
+      #use samples as probabilities for drawing Bernoulli random variates
+      binarized_samples = samples > np.random.random(samples.shape)
+    return binarized_samples.astype(float)  
+  
+  
+  def get_samples(self, num_samples=2**13):  
+    noise = tf.constant(np.random.normal(size=(num_samples, 128)).astype('float32'))
+    fake_samples = self.FCGenerator(num_samples, noise=noise)
+    return fake_samples  
+  
   @property
   def model_dir(self):
     return "{}_{}_{}".format(
@@ -252,7 +237,6 @@ class WGAN(object):
   def load(self, training_stage=''):
     print(" [*] Reading checkpoints...")
     #checkpoint_dir = os.path.join(checkpoint_dir, FOLDER)
-    print(self.checkpoint_dir)
     ckpt = tf.train.get_checkpoint_state(self.checkpoint_dir)
     if ckpt and ckpt.model_checkpoint_path:
       if training_stage=='':
@@ -284,14 +268,4 @@ class WGAN(object):
       for (images,) in self.train_gen():
         yield images  
     
-  def binarize(self, samples, threshold=None):
-    '''
-    Returns binarized samples by thresholding with `threshold`. If `threshold` is `None` then the
-    elements of `samples` are used as probabilities for drawing Bernoulli variates.
-    '''
-    if threshold is not None:
-      binarized_samples = samples > threshold
-    else:
-      #use samples as probabilities for drawing Bernoulli random variates
-      binarized_samples = samples > np.random.random(samples.shape)
-    return binarized_samples.astype(float)  
+ 

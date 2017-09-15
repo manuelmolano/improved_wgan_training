@@ -16,6 +16,7 @@ Created on Thu Feb 23 11:27:20 2017
 import os
 import pprint
 from model import WGAN
+from tflib import analysis, sim_pop_activity
 #from utils import pp, get_samples_autocorrelogram, get_samples
 
 
@@ -80,15 +81,20 @@ def main(_):
       #import or generate data
       wgan.train(FLAGS)
     else:
-      if not wgan.load(FLAGS.checkpoint_dir,FLAGS.training_stage):
+      if not wgan.load(FLAGS.training_stage):
         raise Exception("[!] Train a model first, then run test mode")      
 
   
     # Below is the code for visualization
     #plot statistics
-    get_samples_autocorrelogram(sess, wgan,'fake',FLAGS,0,0)
+    real_samples = sim_pop_activity.get_samples(num_samples=FLAGS.num_samples, num_bins=self.num_bins,\
+    num_neurons=self.num_neurons, correlation=FLAGS.correlation, group_size=FLAGS.group_size, refr_per=FLAGS.ref_period,firing_rates_mat=firing_rates_mat)
+    fake_samples = wgan.get_samples(num_samples=2**13)
+    fake_samples = fake_samples.eval(session=sess)
+    fake_samples = wgan.binarize(samples=fake_samples)    
+    analysis.get_stats(X=fake_samples.T, num_neurons=FLAGS.num_neurons, folder=FLAGS.sample_dir, name='fake')
     #plot some generated samples
-    get_samples(sess, wgan,FLAGS.sample_dir)
+    #get_samples(sess, wgan,FLAGS.sample_dir)
     
 
 if __name__ == '__main__':
