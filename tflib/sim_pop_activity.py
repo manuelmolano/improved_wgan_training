@@ -53,8 +53,8 @@ def get_samples(num_samples=2**13,num_bins=64, num_neurons=32, correlation=0.5,\
     X = np.zeros((num_neurons*num_bins,num_samples))
     
     for ind in range(num_samples):
-        sample = spike_trains_corr(num_neurons=num_neurons,num_bins=num_bins,\
-                    group_size=group_size,firing_rates_mat=firing_rates_mat,refr_per=refr_per)
+        sample = spike_trains_corr(num_neurons=num_neurons,num_bins=num_bins, correlation=correlation,\
+                    group_size=group_size, firing_rates_mat=firing_rates_mat, refr_per=refr_per)
         X[:,ind] = sample.reshape((num_neurons*num_bins,-1))[:,0]
      
     return X
