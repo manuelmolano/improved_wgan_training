@@ -16,9 +16,19 @@ matplotlib.use('Agg')
 from functools import wraps
 import sys
 sys.path.append(os.getcwd())
-from tflib import plot, save_images, sim_pop_activity, params_with_name, analysis
+from tflib import plot, sim_pop_activity, params_with_name, analysis
 from tflib.ops import linear, act_funct
 from tensorflow.python.framework import ops as options
+import matplotlib.pyplot as plt
+import matplotlib
+
+left  = 0.125  # the left side of the subplots of the figure
+right = 0.9    # the right side of the subplots of the figure
+bottom = 0.1   # the bottom of the subplots of the figure
+top = 0.9      # the top of the subplots of the figure
+wspace = 0.4   # the amount of width reserved for blank space between subplots
+hspace = 0.4   # the amount of height reserved for white space between subplots
+
 
 
 options.reset_default_graph()
@@ -132,25 +142,25 @@ class WGAN(object):
     self.load()
     # Dataset iterator
     firing_rates_mat = config.firing_rate+2*(np.random.random(int(self.num_neurons/config.group_size),)-0.5)*config.firing_rate/2
-    self.train_gen, self.dev_gen = sim_pop_activity.load(num_samples=config.num_samples, batch_size=self.batch_size, dim=self.num_bins,\
-    num_neurons=self.num_neurons, corr=config.correlation, group_size=config.group_size, refr_per=config.ref_period,firing_rates_mat=firing_rates_mat)
+#    self.train_gen, self.dev_gen = sim_pop_activity.load(num_samples=config.num_samples, batch_size=self.batch_size, dim=self.num_bins,\
+#    num_neurons=self.num_neurons, corr=config.correlation, group_size=config.group_size, refr_per=config.ref_period,firing_rates_mat=firing_rates_mat)
     
-    #compute pop activity statistics
+    #get real samples and compute statistics
     real_samples = sim_pop_activity.get_samples(num_samples=config.num_samples, num_bins=self.num_bins,\
     num_neurons=self.num_neurons, correlation=config.correlation, group_size=config.group_size, refr_per=config.ref_period,firing_rates_mat=firing_rates_mat)
     analysis.get_stats(X=real_samples, num_neurons=self.num_neurons, folder=self.sample_dir, name='real')
-    
-    
-    # Save a batch of ground-truth samples
-    _x = next(self.inf_train_gen())
-    _x_r = self.sess.run(self.inputs, feed_dict={self.inputs: _x})
-    _x_r = self.binarize(_x_r)
-    save_images.save_images(_x_r.reshape((self.batch_size, self.num_neurons, self.num_bins)), self.sample_dir+'samples_groundtruth.png')
-
-  
+    #get dev samples
+    dev_samples = sim_pop_activity.get_samples(num_samples=int(config.num_samples/4), num_bins=self.num_bins,\
+    num_neurons=self.num_neurons, correlation=config.correlation, group_size=config.group_size, refr_per=config.ref_period,firing_rates_mat=firing_rates_mat)
     #start training
     start_time = time.time()
-    gen = self.inf_train_gen()
+    counter_batch = 0
+    epoch = 0
+    iter_index = []
+    spk_count_mean_error = []
+    spk_count_std_error = []
+    acf_error_mat = []
+    corr_error_mat = []
     for iteration in xrange(config.num_iter):
       # Train generator
       if iteration > 0:
@@ -159,28 +169,63 @@ class WGAN(object):
       # Train critic
       disc_iters = config.critic_iters
       for i in range(disc_iters):
-        _data = next(gen)
+        _data = real_samples[:,counter_batch*config.batch_size:(counter_batch+1)*config.batch_size].T
         _disc_cost, _ = self.sess.run([self.disc_cost, self.d_optim], feed_dict={self.inputs: _data})
-          
+        if counter_batch== int(real_samples.shape[1]/self.batch_size)-1:
+            counter_batch = 0
+            epoch += 1
+        else:
+            counter_batch += 1
     
-      plot.plot(self.sample_dir,'train disc cost', _disc_cost)
+      plot.plot(self.sample_dir,'train disc cost', -_disc_cost)
       plot.plot(self.sample_dir,'time', time.time() - start_time)
     
-      if (iteration < 5) or iteration % 200 == 199:
+      if (iteration < 1) or iteration % 1000 == 999:
+        print('epoch ' + str(epoch))
         dev_disc_costs = []
-        for (images,) in self.dev_gen():
+        for ind_dev in range(int(dev_samples.shape[1]/self.batch_size)):
+          images = dev_samples[:,ind_dev*config.batch_size:(ind_dev+1)*config.batch_size].T
           _dev_disc_cost = self.sess.run(self.disc_cost, feed_dict={self.inputs: images}) 
           dev_disc_costs.append(_dev_disc_cost)
-        plot.plot(self.sample_dir,'dev disc cost', np.mean(dev_disc_costs))
+        plot.plot(self.sample_dir,'dev disc cost', -np.mean(dev_disc_costs))
         self.save(iteration)
-            
-            
-      if (iteration < 5) or (iteration % 200 == 199):
+        fake_samples = self.get_samples(num_samples=2**13)
+        fake_samples = fake_samples.eval(session=self.sess)
+        fake_samples = self.binarize(samples=fake_samples)    
+        acf_error, mean_error, std_error, corr_error = analysis.get_stats(X=fake_samples.T, num_neurons=config.num_neurons, folder=config.sample_dir, name='fake'+str(iteration)) 
+        iter_index.append(iteration)
+        spk_count_mean_error.append(mean_error)
+        spk_count_std_error.append(std_error)
+        acf_error_mat.append(acf_error)
+        corr_error_mat.append(corr_error)
+        #figure to plot fitting errors
+        f,sbplt = plt.subplots(2,2,figsize=(8, 8),dpi=250)
+        matplotlib.rcParams.update({'font.size': 8})
+        plt.subplots_adjust(left=left, bottom=bottom, right=right, top=top, wspace=wspace, hspace=hspace)
+        sbplt[0][0].plot(iter_index,spk_count_mean_error)
+        sbplt[0][0].set_title('spk-count mean error')
+        sbplt[0][0].set_xlabel('iterations')
+        sbplt[0][0].set_ylabel('L1 error')
+        sbplt[0][1].plot(iter_index,spk_count_std_error)
+        sbplt[0][1].set_title('spk-count std error')
+        sbplt[0][1].set_xlabel('iterations')
+        sbplt[0][1].set_ylabel('L1 error')
+        sbplt[1][0].plot(iter_index,acf_error_mat)
+        sbplt[1][0].set_title('AC error')
+        sbplt[1][0].set_xlabel('iterations')
+        sbplt[1][0].set_ylabel('L1 error')
+        sbplt[1][1].plot(iter_index,corr_error_mat)
+        sbplt[1][1].set_title('corr error')
+        sbplt[1][1].set_xlabel('iterations')
+        sbplt[1][1].set_ylabel('L1 error')
+        f.savefig(self.sample_dir+'fitting_errors.svg',dpi=600, bbox_inches='tight')
+        plt.close(f)
         plot.flush(self.sample_dir)
     
       plot.tick()        
         
-          
+      
+       
           
   # Discriminator
   def FCDiscriminator(self,inputs, FC_DIM=512, n_layers=3):
@@ -258,14 +303,8 @@ class WGAN(object):
       print(" [*] Failed to find a checkpoint")
       return False          
 
-  def generate_image(self,iteration):
-    samples = self.sess.run(self.all_fixed_noise_samples)
-    samples = self.binarize(samples)     
-    save_images.save_images(samples.reshape((self.batch_size, self.num_neurons, self.num_bins)), self.sample_dir+'samples_{}.png'.format(iteration))
+ 
     
-  def inf_train_gen(self):
-    while True:
-      for (images,) in self.train_gen():
-        yield images  
+ 
     
  

@@ -18,8 +18,9 @@ hspace = 0.4   # the amount of height reserved for white space between subplots
 
 
 
-def get_stats(X, num_neurons, folder, name):  
-    print(X.shape)                      
+def get_stats(X, num_neurons, folder, name): 
+    if name!='real':
+        original_data = np.load(folder + '/stats_real.npz')    
     lag = 10
     num_samples = X.shape[1]
     spike_count = np.zeros((num_neurons,num_samples))
@@ -41,27 +42,52 @@ def get_stats(X, num_neurons, folder, name):
     corr_mat = corr_mat/num_samples
     index = np.linspace(-10,10,2*10+1)
     #figure for all training error across epochs (supp. figure 2)
-    f,sbplt = plt.subplots(1,3,figsize=(8, 8),dpi=250)
+    f,sbplt = plt.subplots(2,2,figsize=(8, 8),dpi=250)
     matplotlib.rcParams.update({'font.size': 8})
     plt.subplots_adjust(left=left, bottom=bottom, right=right, top=top, wspace=wspace, hspace=hspace)
-    sbplt[0].plot(index, autocorrelogram_mat)
-    sbplt[0].set_title('Autocorrelogram')
-    sbplt[0].set_xlabel('time (ms)')
-    sbplt[0].set_ylabel('number of spikes')
-    sbplt[1].plot(mean_spike_count)
-    sbplt[1].set_title('spk-counts')
-    sbplt[1].set_xlabel('neuron')
-    sbplt[1].set_ylabel('firing probability')
-    map_aux = sbplt[2].imshow(corr_mat,interpolation='none')
-    f.colorbar(map_aux,ax=sbplt[2])
-    sbplt[2].set_title('correlation mat')
-    sbplt[2].set_xlabel('neuron')
-    sbplt[2].set_ylabel('neuron')
-    f.savefig(folder+'original_stats'+name+'.svg',dpi=600, bbox_inches='tight')
+    sbplt[0][0].plot(index, autocorrelogram_mat)
+    if name!='real':
+        sbplt[0][0].plot(index, original_data['acf'])
+        acf_error = np.sum(np.abs(autocorrelogram_mat-original_data['acf']))
+    sbplt[0][0].set_title('Autocorrelogram')
+    sbplt[0][0].set_xlabel('time (ms)')
+    sbplt[0][0].set_ylabel('number of spikes')
+    sbplt[0][1].plot(mean_spike_count)
+    if name!='real':
+        sbplt[0][1].plot(original_data['mean'])
+        mean_error = np.sum(np.abs(mean_spike_count-original_data['mean']))
+        std_error = np.sum(np.abs(std_spike_count-original_data['std']))
+    sbplt[0][1].set_title('spk-counts')
+    sbplt[0][1].set_xlabel('neuron')
+    sbplt[0][1].set_ylabel('firing probability')
+    map_aux = sbplt[1][0].imshow(corr_mat,interpolation='nearest')
+    f.colorbar(map_aux,ax=sbplt[1][0])
+    sbplt[1][0].set_title('sim. correlation mat')
+    sbplt[1][0].set_xlabel('neuron')
+    sbplt[1][0].set_ylabel('neuron')
+    if name!='real':
+        map_aux = sbplt[1][1].imshow(original_data['corr_mat'],interpolation='nearest')
+        f.colorbar(map_aux,ax=sbplt[1][1])
+        sbplt[1][1].set_title('real correlation mat')
+        sbplt[1][1].set_xlabel('neuron')
+        sbplt[1][1].set_ylabel('neuron')
+        corr_error = np.sum(np.abs(corr_mat-original_data['corr_mat']).flatten())
+    else:       
+        sample = X[:,ind].reshape((num_neurons,-1))
+        sbplt[1][1].imshow(sample,interpolation='nearest')
+        sbplt[1][1].set_title('sample')
+        sbplt[1][1].set_xlabel('time (ms)')
+        sbplt[1][1].set_ylabel('neurons')
+    f.savefig(folder+'stats_'+name+'.svg',dpi=600, bbox_inches='tight')
     plt.close(f)
-    data = {'mean':mean_spike_count,'std':std_spike_count,'acf':autocorrelogram_mat}
+    if name=='real':
+        data = {'mean':mean_spike_count,'std':std_spike_count,'acf':autocorrelogram_mat,'corr_mat':corr_mat,'samples':X}
+        np.savez(folder + '/stats_'+name+'.npz', **data)    
+    else:
+        data = {'mean':mean_spike_count,'std':std_spike_count,'acf':autocorrelogram_mat}
+        np.savez(folder + '/stats_'+name+'.npz', **data)            
+        return acf_error, mean_error, std_error, corr_error
     
-    np.savez(folder + '/original stats'+name+'.npz', **data)    
     
     
     

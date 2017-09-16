@@ -16,14 +16,14 @@ Created on Thu Feb 23 11:27:20 2017
 import os
 import pprint
 from model import WGAN
-from tflib import analysis, sim_pop_activity
+from tflib import analysis#, sim_pop_activity
 #from utils import pp, get_samples_autocorrelogram, get_samples
 
 
 import tensorflow as tf
 LAMBDA = 10 # Gradient penalty lambda hyperparameter
 flags = tf.app.flags
-flags.DEFINE_integer("num_iter", 20000, "Epoch to train [50]")
+flags.DEFINE_integer("num_iter", 300000, "Epoch to train [50]")
 flags.DEFINE_float("learning_rate", 1e-4, "Learning rate for adam [1e-4]")
 flags.DEFINE_float("beta1", 0., "Momentum term of adam [0.]")
 flags.DEFINE_float("beta2", 0.9, "Momentum term of adam [0.9]")
@@ -87,8 +87,8 @@ def main(_):
   
     # Below is the code for visualization
     #plot statistics
-    real_samples = sim_pop_activity.get_samples(num_samples=FLAGS.num_samples, num_bins=self.num_bins,\
-    num_neurons=self.num_neurons, correlation=FLAGS.correlation, group_size=FLAGS.group_size, refr_per=FLAGS.ref_period,firing_rates_mat=firing_rates_mat)
+    #real_samples = sim_pop_activity.get_samples(num_samples=FLAGS.num_samples, num_bins=self.num_bins,\
+    #num_neurons=self.num_neurons, correlation=FLAGS.correlation, group_size=FLAGS.group_size, refr_per=FLAGS.ref_period,firing_rates_mat=firing_rates_mat)
     fake_samples = wgan.get_samples(num_samples=2**13)
     fake_samples = fake_samples.eval(session=sess)
     fake_samples = wgan.binarize(samples=fake_samples)    
