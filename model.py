@@ -108,7 +108,6 @@ class WGAN(object):
   def train(self, config):
     """Train DCGAN"""
     #define optimizer
-    #optimizer
     self.g_optim = tf.train.AdamOptimizer(learning_rate=config.learning_rate, beta1=config.beta1, beta2=config.beta2).minimize(self.gen_cost,
                                       var_list=params_with_name('Generator'), colocate_gradients_with_ops=True)
     self.d_optim = tf.train.AdamOptimizer(learning_rate=config.learning_rate, beta1=config.beta1, beta2=config.beta2).minimize(self.disc_cost,
@@ -137,16 +136,14 @@ class WGAN(object):
     self.samples_for_stats = self.FCGenerator(config.num_samples)
     
     #start training
-    start_time = time.time()
     counter_batch = 0
     epoch = 0
     #fitting errors
-    iter_index = []
-    spk_count_mean_error = []
-    spk_count_std_error = []
-    acf_error_mat = []
-    corr_error_mat = []
+    f,sbplt = plt.subplots(2,2,figsize=(8, 8),dpi=250)
+    matplotlib.rcParams.update({'font.size': 8})
+    plt.subplots_adjust(left=left, bottom=bottom, right=right, top=top, wspace=wspace, hspace=hspace)
     for iteration in range(config.num_iter):
+      start_time = time.time()
       # Train generator (only after the critic has been trained, at least once)
       if iteration > 0:
          _ = self.sess.run(self.g_optim)
@@ -187,27 +184,19 @@ class WGAN(object):
         fake_samples = self.binarize(samples=fake_samples)    
         acf_error, mean_error, std_error, corr_error = analysis.get_stats(X=fake_samples.T, num_neurons=config.num_neurons, folder=config.sample_dir, name='fake'+str(iteration)) 
         #plot the fitting errors
-        iter_index.append(iteration)
-        spk_count_mean_error.append(mean_error)
-        spk_count_std_error.append(std_error)
-        acf_error_mat.append(acf_error)
-        corr_error_mat.append(corr_error)
-        f,sbplt = plt.subplots(2,2,figsize=(8, 8),dpi=250)
-        matplotlib.rcParams.update({'font.size': 8})
-        plt.subplots_adjust(left=left, bottom=bottom, right=right, top=top, wspace=wspace, hspace=hspace)
-        sbplt[0][0].plot(iter_index,spk_count_mean_error)
+        sbplt[0][0].plot(iteration,mean_error,'+b')
         sbplt[0][0].set_title('spk-count mean error')
         sbplt[0][0].set_xlabel('iterations')
         sbplt[0][0].set_ylabel('L1 error')
-        sbplt[0][1].plot(iter_index,spk_count_std_error)
+        sbplt[0][1].plot(iteration,std_error,'+b')
         sbplt[0][1].set_title('spk-count std error')
         sbplt[0][1].set_xlabel('iterations')
         sbplt[0][1].set_ylabel('L1 error')
-        sbplt[1][0].plot(iter_index,acf_error_mat)
+        sbplt[1][0].plot(iteration,acf_error,'+b')
         sbplt[1][0].set_title('AC error')
         sbplt[1][0].set_xlabel('iterations')
         sbplt[1][0].set_ylabel('L1 error')
-        sbplt[1][1].plot(iter_index,corr_error_mat)
+        sbplt[1][1].plot(iteration,corr_error,'+b')
         sbplt[1][1].set_title('corr error')
         sbplt[1][1].set_xlabel('iterations')
         sbplt[1][1].set_ylabel('L1 error')
@@ -260,9 +249,8 @@ class WGAN(object):
     fake_samples = self.sess.run(self.samples_for_stats) #this samples need to be evaluated or run 
     return fake_samples  
   
-  @property    
   #this is to save the network parameters  
-  def save(self, step):
+  def save(self, step=0):
     model_name = "WGAN.model"
     self.saver.save(self.sess,os.path.join(self.checkpoint_dir, model_name),global_step=step)
     
