@@ -10,7 +10,6 @@ import os
 import time
 import tensorflow as tf
 import numpy as np
-from six.moves import xrange
 import matplotlib
 matplotlib.use('Agg')
 from functools import wraps
@@ -20,8 +19,8 @@ from tflib import plot, sim_pop_activity, params_with_name, analysis
 from tflib.ops import linear, act_funct
 from tensorflow.python.framework import ops as options
 import matplotlib.pyplot as plt
-import matplotlib
 
+#parameters used for (some) figures
 left  = 0.125  # the left side of the subplots of the figure
 right = 0.9    # the right side of the subplots of the figure
 bottom = 0.1   # the bottom of the subplots of the figure
@@ -29,8 +28,7 @@ top = 0.9      # the top of the subplots of the figure
 wspace = 0.4   # the amount of width reserved for blank space between subplots
 hspace = 0.4   # the amount of height reserved for white space between subplots
 
-
-
+#not sure this is necessary
 options.reset_default_graph()
 
 def compatibility_decorator(f):
@@ -51,7 +49,6 @@ class WGAN(object):
                checkpoint_dir=None,
                sample_dir=None):
     """
-
     Args:
       sess: TensorFlow session
       batch_size: The size of batch. Should be specified before training.
@@ -63,19 +60,19 @@ class WGAN(object):
       kernel_n: (optional) number of minibatch discrimination kernels. [20] Corresponds to 'B' in Salimans2016, where B=100.
       kernel_d: (optional) dimensionality of minibatch discrimination kernels. [20] Corresponds to 'C' in Salimans2016, where C=50.
     """
-    self.sess = sess
-    self.is_grayscale = True
     
+    self.sess = sess   
     self.batch_size = batch_size
-    self.lambd = lambd
-    #dimensions' sizes
+    self.lambd = lambd #for the gradient penalization
     self.num_neurons = num_neurons
     self.num_bins = num_bins
-    self.output_dim = self.num_neurons*self.num_bins
-    self.z_dim = z_dim
+    self.output_dim = self.num_neurons*self.num_bins #number of bins per samples
+    self.z_dim = z_dim #latent space dimension
 
+    #folders
     self.checkpoint_dir = checkpoint_dir
     self.sample_dir = sample_dir
+    
     self.build_model()
 
   def build_model(self):
@@ -105,14 +102,7 @@ class WGAN(object):
     gradient_penalty = tf.reduce_mean((slopes-1.)**2)
     self.disc_cost += self.lambd*gradient_penalty
 
-       
-    #get all variables
-    t_vars = tf.trainable_variables()
-    #keep D and G variables
-    self.d_vars = [var for var in t_vars if 'discriminator' in var.name]
-    self.g_vars = [var for var in t_vars if 'generator' in var.name]
-
-    #save training
+    #this is to save the networks parameters
     self.saver = tf.train.Saver(max_to_keep=1000)
 
   def train(self, config):
@@ -124,81 +114,82 @@ class WGAN(object):
     self.d_optim = tf.train.AdamOptimizer(learning_rate=config.learning_rate, beta1=config.beta1, beta2=config.beta2).minimize(self.disc_cost,
                                        var_list=params_with_name('Discriminator.'), colocate_gradients_with_ops=True)
 
-    
     #initizialize variables              
     try:
       tf.global_variables_initializer().run()
     except:
       tf.initialize_all_variables().run()
-
       
-   
-    # For generating samples
-    fixed_noise = tf.constant(np.random.normal(size=(self.batch_size, 128)).astype('float32'))
-    self.all_fixed_noise_samples = self.FCGenerator(self.batch_size, noise=fixed_noise)     
-    
-    
     #try to load trained parameters
     self.load()
-    # Dataset iterator
-    firing_rates_mat = config.firing_rate+2*(np.random.random(int(self.num_neurons/config.group_size),)-0.5)*config.firing_rate/2
-#    self.train_gen, self.dev_gen = sim_pop_activity.load(num_samples=config.num_samples, batch_size=self.batch_size, dim=self.num_bins,\
-#    num_neurons=self.num_neurons, corr=config.correlation, group_size=config.group_size, refr_per=config.ref_period,firing_rates_mat=firing_rates_mat)
     
-    #get real samples and compute statistics
+    #get real samples
+    firing_rates_mat = config.firing_rate+2*(np.random.random(int(self.num_neurons/config.group_size),)-0.5)*config.firing_rate/2    
     real_samples = sim_pop_activity.get_samples(num_samples=config.num_samples, num_bins=self.num_bins,\
     num_neurons=self.num_neurons, correlation=config.correlation, group_size=config.group_size, refr_per=config.ref_period,firing_rates_mat=firing_rates_mat)
+    #save original statistics
     analysis.get_stats(X=real_samples, num_neurons=self.num_neurons, folder=self.sample_dir, name='real')
     #get dev samples
     dev_samples = sim_pop_activity.get_samples(num_samples=int(config.num_samples/4), num_bins=self.num_bins,\
     num_neurons=self.num_neurons, correlation=config.correlation, group_size=config.group_size, refr_per=config.ref_period,firing_rates_mat=firing_rates_mat)
+    
     #start training
     start_time = time.time()
     counter_batch = 0
     epoch = 0
+    #fitting errors
     iter_index = []
     spk_count_mean_error = []
     spk_count_std_error = []
     acf_error_mat = []
     corr_error_mat = []
-    for iteration in xrange(config.num_iter):
-      # Train generator
+    for iteration in range(config.num_iter):
+      # Train generator (only after the critic has been trained, at least once)
       if iteration > 0:
          _ = self.sess.run(self.g_optim)
 
       # Train critic
       disc_iters = config.critic_iters
       for i in range(disc_iters):
+        #get batch and trained critic
         _data = real_samples[:,counter_batch*config.batch_size:(counter_batch+1)*config.batch_size].T
         _disc_cost, _ = self.sess.run([self.disc_cost, self.d_optim], feed_dict={self.inputs: _data})
-        if counter_batch== int(real_samples.shape[1]/self.batch_size)-1:
+        #if we have reached the end of the real samples set, we start over and increment the number of epochs
+        if counter_batch==int(real_samples.shape[1]/self.batch_size)-1:
             counter_batch = 0
             epoch += 1
         else:
             counter_batch += 1
     
+      #plot the  critics loss and the iteration time
       plot.plot(self.sample_dir,'train disc cost', -_disc_cost)
       plot.plot(self.sample_dir,'time', time.time() - start_time)
     
       if (iteration < 1) or iteration % 1000 == 999:
         print('epoch ' + str(epoch))
+        #this is to evaluate whether the discriminator has overfit 
         dev_disc_costs = []
         for ind_dev in range(int(dev_samples.shape[1]/self.batch_size)):
           images = dev_samples[:,ind_dev*config.batch_size:(ind_dev+1)*config.batch_size].T
           _dev_disc_cost = self.sess.run(self.disc_cost, feed_dict={self.inputs: images}) 
           dev_disc_costs.append(_dev_disc_cost)
+        #plot the dev loss  
         plot.plot(self.sample_dir,'dev disc cost', -np.mean(dev_disc_costs))
+        
+        #save the network parameters
         self.save(iteration)
+        
+        #get simulated samples, calculate their statistics and compare them with the original ones
         fake_samples = self.get_samples(num_samples=2**13)
         fake_samples = fake_samples.eval(session=self.sess)
         fake_samples = self.binarize(samples=fake_samples)    
         acf_error, mean_error, std_error, corr_error = analysis.get_stats(X=fake_samples.T, num_neurons=config.num_neurons, folder=config.sample_dir, name='fake'+str(iteration)) 
+        #plot the fitting errors
         iter_index.append(iteration)
         spk_count_mean_error.append(mean_error)
         spk_count_std_error.append(std_error)
         acf_error_mat.append(acf_error)
         corr_error_mat.append(corr_error)
-        #figure to plot fitting errors
         f,sbplt = plt.subplots(2,2,figsize=(8, 8),dpi=250)
         matplotlib.rcParams.update({'font.size': 8})
         plt.subplots_adjust(left=left, bottom=bottom, right=right, top=top, wspace=wspace, hspace=hspace)
@@ -262,18 +253,14 @@ class WGAN(object):
       binarized_samples = samples > np.random.random(samples.shape)
     return binarized_samples.astype(float)  
   
-  
+  #draw samples from the generator
   def get_samples(self, num_samples=2**13):  
     noise = tf.constant(np.random.normal(size=(num_samples, 128)).astype('float32'))
-    fake_samples = self.FCGenerator(num_samples, noise=noise)
+    fake_samples = self.FCGenerator(num_samples, noise=noise) #this samples need to be evaluated or run 
     return fake_samples  
   
-  @property
-  def model_dir(self):
-    return "{}_{}_{}".format(
-        self.dataset_name, self.batch_size,
-        self.output_height)
-      
+  @property    
+  #this is to save the network parameters  
   def save(self, step):
     model_name = "WGAN.model"
     self.saver.save(self.sess,os.path.join(self.checkpoint_dir, model_name),global_step=step)
@@ -285,9 +272,9 @@ class WGAN(object):
     ckpt = tf.train.get_checkpoint_state(self.checkpoint_dir)
     if ckpt and ckpt.model_checkpoint_path:
       if training_stage=='':
-          #it should be possible to select a particular checkpoint by using ckpt.all_model_checkpoint_paths
           ckpt_name = os.path.basename(ckpt.model_checkpoint_path)
       else:
+          #here we select a particular checkpoint by using ckpt.all_model_checkpoint_paths
           index = ckpt.all_model_checkpoint_paths[0].find('WGAN.model')
           index = ckpt.all_model_checkpoint_paths[0].find('-',index)
           for ind_ckpt in range(len(ckpt.all_model_checkpoint_paths)):

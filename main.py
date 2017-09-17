@@ -47,9 +47,10 @@ flags.DEFINE_float("lambd", 10, "parameter gradient penalization")
 FLAGS = flags.FLAGS
 pp = pprint.PrettyPrinter()
 def main(_):
-  
+  #print parameters
   pp.pprint(flags.FLAGS.__flags)
   
+  #folders
   FLAGS.sample_dir = 'samples/' + 'dataset_' + FLAGS.dataset + '_num_samples_' + str(FLAGS.num_samples) +\
   '_num_neurons_' + str(FLAGS.num_neurons) + '_num_bins_' + str(FLAGS.num_bins)\
   + '_ref_period_' + str(FLAGS.ref_period) + '_firing_rate_' + str(FLAGS.firing_rate) + '_correlation_' + str(FLAGS.correlation) +\
@@ -78,24 +79,17 @@ def main(_):
         sample_dir=FLAGS.sample_dir)
 
     if FLAGS.is_train:
-      #import or generate data
       wgan.train(FLAGS)
     else:
       if not wgan.load(FLAGS.training_stage):
         raise Exception("[!] Train a model first, then run test mode")      
 
-  
-    # Below is the code for visualization
-    #plot statistics
-    #real_samples = sim_pop_activity.get_samples(num_samples=FLAGS.num_samples, num_bins=self.num_bins,\
-    #num_neurons=self.num_neurons, correlation=FLAGS.correlation, group_size=FLAGS.group_size, refr_per=FLAGS.ref_period,firing_rates_mat=firing_rates_mat)
+
+    #get samples and their statistics
     fake_samples = wgan.get_samples(num_samples=2**13)
     fake_samples = fake_samples.eval(session=sess)
     fake_samples = wgan.binarize(samples=fake_samples)    
-    analysis.get_stats(X=fake_samples.T, num_neurons=FLAGS.num_neurons, folder=FLAGS.sample_dir, name='fake')
-    #plot some generated samples
-    #get_samples(sess, wgan,FLAGS.sample_dir)
-    
+    _,_,_,_ = analysis.get_stats(X=fake_samples.T, num_neurons=FLAGS.num_neurons, folder=FLAGS.sample_dir, name='fake')
 
 if __name__ == '__main__':
   tf.app.run()
