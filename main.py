@@ -87,7 +87,6 @@ def main(_):
 
     #get samples and their statistics
     fake_samples = wgan.get_samples(num_samples=2**13)
-    fake_samples = fake_samples.eval(session=sess)
     fake_samples = wgan.binarize(samples=fake_samples)    
     _,_,_,_ = analysis.get_stats(X=fake_samples.T, num_neurons=FLAGS.num_neurons, folder=FLAGS.sample_dir, name='fake')
 

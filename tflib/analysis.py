@@ -8,6 +8,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
 
+#parameters for figure
 left  = 0.125  # the left side of the subplots of the figure
 right = 0.9    # the right side of the subplots of the figure
 bottom = 0.1   # the bottom of the subplots of the figure
@@ -16,9 +17,12 @@ wspace = 0.4   # the amount of width reserved for blank space between subplots
 hspace = 0.4   # the amount of height reserved for white space between subplots
 
 
-
-
 def get_stats(X, num_neurons, folder, name): 
+    '''
+    compute spike trains spikes: spk-count mean and std, autocorrelogram and correlation mat
+    if name!='real' then it compares the above stats with the original ones 
+    
+    '''
     if name!='real':
         original_data = np.load(folder + '/stats_real.npz')    
     lag = 10

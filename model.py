@@ -125,13 +125,16 @@ class WGAN(object):
     
     #get real samples
     firing_rates_mat = config.firing_rate+2*(np.random.random(int(self.num_neurons/config.group_size),)-0.5)*config.firing_rate/2    
-    real_samples = sim_pop_activity.get_samples(num_samples=config.num_samples, num_bins=self.num_bins,\
+    self.real_samples = sim_pop_activity.get_samples(num_samples=config.num_samples, num_bins=self.num_bins,\
     num_neurons=self.num_neurons, correlation=config.correlation, group_size=config.group_size, refr_per=config.ref_period,firing_rates_mat=firing_rates_mat)
     #save original statistics
-    analysis.get_stats(X=real_samples, num_neurons=self.num_neurons, folder=self.sample_dir, name='real')
+    analysis.get_stats(X=self.real_samples, num_neurons=self.num_neurons, folder=self.sample_dir, name='real')
     #get dev samples
     dev_samples = sim_pop_activity.get_samples(num_samples=int(config.num_samples/4), num_bins=self.num_bins,\
     num_neurons=self.num_neurons, correlation=config.correlation, group_size=config.group_size, refr_per=config.ref_period,firing_rates_mat=firing_rates_mat)
+    
+    #samples we will draw from the generator to calculate stats
+    self.samples_for_stats = self.FCGenerator(config.num_samples)
     
     #start training
     start_time = time.time()
@@ -152,10 +155,10 @@ class WGAN(object):
       disc_iters = config.critic_iters
       for i in range(disc_iters):
         #get batch and trained critic
-        _data = real_samples[:,counter_batch*config.batch_size:(counter_batch+1)*config.batch_size].T
+        _data = self.real_samples[:,counter_batch*config.batch_size:(counter_batch+1)*config.batch_size].T
         _disc_cost, _ = self.sess.run([self.disc_cost, self.d_optim], feed_dict={self.inputs: _data})
         #if we have reached the end of the real samples set, we start over and increment the number of epochs
-        if counter_batch==int(real_samples.shape[1]/self.batch_size)-1:
+        if counter_batch==int(self.real_samples.shape[1]/self.batch_size)-1:
             counter_batch = 0
             epoch += 1
         else:
@@ -181,7 +184,6 @@ class WGAN(object):
         
         #get simulated samples, calculate their statistics and compare them with the original ones
         fake_samples = self.get_samples(num_samples=2**13)
-        fake_samples = fake_samples.eval(session=self.sess)
         fake_samples = self.binarize(samples=fake_samples)    
         acf_error, mean_error, std_error, corr_error = analysis.get_stats(X=fake_samples.T, num_neurons=config.num_neurons, folder=config.sample_dir, name='fake'+str(iteration)) 
         #plot the fitting errors
@@ -255,8 +257,7 @@ class WGAN(object):
   
   #draw samples from the generator
   def get_samples(self, num_samples=2**13):  
-    noise = tf.constant(np.random.normal(size=(num_samples, 128)).astype('float32'))
-    fake_samples = self.FCGenerator(num_samples, noise=noise) #this samples need to be evaluated or run 
+    fake_samples = self.sess.run(self.samples_for_stats) #this samples need to be evaluated or run 
     return fake_samples  
   
   @property    
