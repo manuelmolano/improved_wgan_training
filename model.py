@@ -47,20 +47,7 @@ class WGAN(object):
   def __init__(self, sess, batch_size=64, lambd=10,
                num_neurons=4, z_dim=128, num_bins=32,
                checkpoint_dir=None,
-               sample_dir=None):
-    """
-    Args:
-      sess: TensorFlow session
-      batch_size: The size of batch. Should be specified before training.
-      z_dim: (optional) Dimension of dim for Z. [100]
-      gf_dim: (optional) Dimension of gen filters in first conv layer. [64]
-      df_dim: (optional) Dimension of discrim filters in first conv layer. [64]
-      gfc_dim: (optional) Dimension of gen units for for fully connected layer. [1024]
-      dfc_dim: (optional) Dimension of discrim units for fully connected layer. [1024]
-      kernel_n: (optional) number of minibatch discrimination kernels. [20] Corresponds to 'B' in Salimans2016, where B=100.
-      kernel_d: (optional) dimensionality of minibatch discrimination kernels. [20] Corresponds to 'C' in Salimans2016, where C=50.
-    """
-    
+               sample_dir=None):    
     self.sess = sess   
     self.batch_size = batch_size
     self.lambd = lambd #for the gradient penalization
