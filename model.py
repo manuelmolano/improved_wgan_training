@@ -153,7 +153,7 @@ class WGAN(object):
       plot.plot(self.sample_dir,'train disc cost', -_disc_cost)
       plot.plot(self.sample_dir,'time', time.time() - start_time)
     
-      if (iteration < 1) or iteration % 1000 == 999:
+      if (iteration < 1) or iteration % 50000 == 49999:
         print('epoch ' + str(epoch))
         #this is to evaluate whether the discriminator has overfit 
         dev_disc_costs = []
