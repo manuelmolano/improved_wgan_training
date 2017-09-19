@@ -111,13 +111,14 @@ class WGAN(object):
     
     #get real samples
     firing_rates_mat = config.firing_rate+2*(np.random.random(int(self.num_neurons/config.group_size),)-0.5)*config.firing_rate/2    
+    correlations_mat = config.correlation+2*(np.random.random(int(self.num_neurons/config.group_size),)-0.5)*config.correlation/2    
     self.real_samples = sim_pop_activity.get_samples(num_samples=config.num_samples, num_bins=self.num_bins,\
-    num_neurons=self.num_neurons, correlation=config.correlation, group_size=config.group_size, refr_per=config.ref_period,firing_rates_mat=firing_rates_mat)
+    num_neurons=self.num_neurons, correlations_mat=correlations_mat, group_size=config.group_size, refr_per=config.ref_period,firing_rates_mat=firing_rates_mat)
     #save original statistics
     analysis.get_stats(X=self.real_samples, num_neurons=self.num_neurons, folder=self.sample_dir, name='real')
     #get dev samples
     dev_samples = sim_pop_activity.get_samples(num_samples=int(config.num_samples/4), num_bins=self.num_bins,\
-    num_neurons=self.num_neurons, correlation=config.correlation, group_size=config.group_size, refr_per=config.ref_period,firing_rates_mat=firing_rates_mat)
+    num_neurons=self.num_neurons, correlations_mat=correlations_mat, group_size=config.group_size, refr_per=config.ref_period,firing_rates_mat=firing_rates_mat)
     
     #samples we will draw from the generator to calculate stats
     self.samples_for_stats = self.FCGenerator(config.num_samples)

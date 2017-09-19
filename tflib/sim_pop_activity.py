@@ -30,11 +30,12 @@ def load(num_samples=2**13, batch_size=64, dim=32,num_neurons=32,corr=0.5,group_
     )
 
 
-def spike_trains_corr(num_bins=64, num_neurons=32, correlation=0.5,\
+def spike_trains_corr(num_bins=64, num_neurons=32, correlations_mat=np.zeros((16,))+0.5,\
                         group_size=2,refr_per=2,firing_rates_mat=np.zeros((32,))+0.2):
     X = np.zeros((num_neurons,num_bins)) 
-    q = np.sqrt(correlation)
+    
     for ind in range(int(num_neurons/group_size)):
+        q = np.sqrt(correlations_mat[ind])
         spike_trains = (np.zeros((group_size,num_bins)) + firing_rates_mat[ind]) > np.random.random((group_size,num_bins))
         reference = (np.zeros((1,num_bins)) + firing_rates_mat[ind]) > np.random.random((1,num_bins))
         reference = refractory_period(refr_per,reference,firing_rates_mat[ind])
@@ -48,12 +49,12 @@ def spike_trains_corr(num_bins=64, num_neurons=32, correlation=0.5,\
     assert np.sum(np.isnan(X.flatten()))==0
     return X
 
-def get_samples(num_samples=2**13,num_bins=64, num_neurons=32, correlation=0.5,\
-                        group_size=2,refr_per=2,firing_rates_mat=np.zeros((32,))+0.2):                        
+def get_samples(num_samples=2**13,num_bins=64, num_neurons=32, correlations_mat=np.zeros((16,))+0.5,\
+                        group_size=2,refr_per=2,firing_rates_mat=np.zeros((16,))+0.2):                        
     X = np.zeros((num_neurons*num_bins,num_samples))
     
     for ind in range(num_samples):
-        sample = spike_trains_corr(num_neurons=num_neurons,num_bins=num_bins, correlation=correlation,\
+        sample = spike_trains_corr(num_neurons=num_neurons,num_bins=num_bins, correlations_mat=correlations_mat,\
                     group_size=group_size, firing_rates_mat=firing_rates_mat, refr_per=refr_per)
         X[:,ind] = sample.reshape((num_neurons*num_bins,-1))[:,0]
      
