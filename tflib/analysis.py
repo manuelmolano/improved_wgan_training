@@ -94,9 +94,6 @@ def get_stats(X, num_neurons, folder, name):
     
     
     
-    
-    
-    
 def autocorrelogram(r,lag):
     #get autocorrelogram
     margin = np.zeros((r.shape[0],lag))
