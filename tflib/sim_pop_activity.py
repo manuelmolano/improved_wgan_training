@@ -4,7 +4,7 @@ Created on Mon Sep 11 11:31:05 2017
 
 @author: manuel
 """
-
+import time
 import numpy as np
 #import matplotlib.pyplot as plt
 #import time
@@ -63,17 +63,25 @@ def get_samples(num_samples=2**13,num_bins=64, num_neurons=32, correlations_mat=
 def get_aproximate_probs(num_samples=2**13,num_bins=64, num_neurons=32, correlations_mat=np.zeros((16,))+0.5,\
                         group_size=2,refr_per=2,firing_rates_mat=np.zeros((16,))+0.2):
     X = np.zeros((num_neurons*num_bins,num_samples))
+    start_time = time.time()
     for ind in range(num_samples):
+        if ind%10000==0:
+            print(str(ind) + ' time ' + str(time.time() - start_time))
         sample = spike_trains_corr(num_neurons=num_neurons,num_bins=num_bins, correlations_mat=correlations_mat,\
                     group_size=group_size, firing_rates_mat=firing_rates_mat, refr_per=refr_per)
         X[:,ind] = sample.reshape((num_neurons*num_bins,-1))[:,0]
+    
     
     r_unique = np.vstack({tuple(row) for row in X.T}).T
     num_samples = np.shape(r_unique)[1]#200
     samples = r_unique[:,0:num_samples]
     numerical_prob = np.zeros((num_samples,))
+    print('number of unique samples: '+str(num_samples))
+    start_time = time.time()
     for ind in range(num_samples):
-        sample = samples[:,ind] 
+        if ind%1000==0:
+            print(str(ind) + ' time ' + str(time.time() - start_time))
+        sample = samples[:,ind].reshape((samples.shape[0],1)) 
         sample_mat = np.tile(sample,(1,np.shape(X)[1]))
         compare_mat = np.sum(np.abs(X-sample_mat),axis=0)
         numerical_prob[ind] = np.count_nonzero(compare_mat==0)/np.shape(X)[1]  
