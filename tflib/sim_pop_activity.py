@@ -72,21 +72,9 @@ def get_aproximate_probs(num_samples=2**13,num_bins=64, num_neurons=32, correlat
         X[:,ind] = sample.reshape((num_neurons*num_bins,-1))[:,0]
     
     
-    r_unique = np.vstack({tuple(row) for row in X.T}).T
-    num_samples = np.shape(r_unique)[1]#200
-    samples = r_unique[:,0:num_samples]
-    numerical_prob = np.zeros((num_samples,))
-    print('number of unique samples: '+str(num_samples))
-    start_time = time.time()
-    for ind in range(num_samples):
-        if ind%1000==0:
-            print(str(ind) + ' time ' + str(time.time() - start_time))
-        sample = samples[:,ind].reshape((samples.shape[0],1)) 
-        sample_mat = np.tile(sample,(1,np.shape(X)[1]))
-        compare_mat = np.sum(np.abs(X-sample_mat),axis=0)
-        numerical_prob[ind] = np.count_nonzero(compare_mat==0)/np.shape(X)[1]  
+    r_unique = np.unique(X,axis=1,return_counts=True)
 
-    return samples, numerical_prob
+    return r_unique
     
     
 def refractory_period(refr_per, r, firing_rate):
