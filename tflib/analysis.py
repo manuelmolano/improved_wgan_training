@@ -28,22 +28,25 @@ def get_stats(X, num_neurons, folder, name):
     lag = 10
     num_samples = X.shape[1]
     spike_count = np.zeros((num_neurons,num_samples))
-    corr_mat = np.zeros((num_neurons,num_neurons))
+    corr_mat = np.zeros((1,num_neurons**2))
+    #this is to count the number of times we are adding a value to each corr_mat value (sometimes we get a NaN value and we don't add anything)
+    counting_mat = np.zeros((1,num_neurons**2))
     autocorrelogram_mat = np.zeros(2*lag+1)
     
     for ind in range(num_samples):
         sample = X[:,ind].reshape((num_neurons,-1))
         spike_count[:,ind] = np.sum(sample,axis=1)
-        corr_aux =  np.corrcoef(sample)
-        corr_aux[np.isnan(corr_aux)] = 0
-        corr_mat += corr_aux
+        corr_aux =  np.corrcoef(sample).flatten().reshape((1,num_neurons**2))
+        corr_mat = np.nansum(np.concatenate((corr_mat,corr_aux),axis=0),axis=0).reshape(1,num_neurons**2)
+        counting_mat = np.nansum(np.concatenate((counting_mat,~np.isnan(corr_aux)),axis=0),axis=0).reshape(1,num_neurons**2)
         autocorrelogram_mat += autocorrelogram(sample,lag=lag)
-    
+
+    corr_mat = corr_mat/counting_mat    
+    corr_mat = corr_mat.reshape(num_neurons,num_neurons)
     mean_spike_count = np.mean(spike_count,axis=1)
     std_spike_count = np.std(spike_count,axis=1)
     autocorrelogram_mat = autocorrelogram_mat/np.max(autocorrelogram_mat)
     autocorrelogram_mat[lag] = 0
-    corr_mat = corr_mat/num_samples
     index = np.linspace(-10,10,2*10+1)
     #figure for all training error across epochs (supp. figure 2)
     f,sbplt = plt.subplots(2,2,figsize=(8, 8),dpi=250)
