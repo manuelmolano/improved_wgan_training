@@ -14,6 +14,7 @@ Created on Thu Feb 23 11:27:20 2017
 """
 
 import os
+import numpy as np
 import pprint
 from model import WGAN
 from tflib import analysis#, sim_pop_activity
@@ -86,9 +87,12 @@ def main(_):
 
 
     #get samples and their statistics
-    fake_samples = wgan.get_samples(num_samples=2**13)
+    fake_samples = wgan.get_samples(num_samples=2**14)
+    fake_samples = fake_samples.eval(session=sess)
     fake_samples = wgan.binarize(samples=fake_samples)    
     _,_,_,_ = analysis.get_stats(X=fake_samples.T, num_neurons=FLAGS.num_neurons, folder=FLAGS.sample_dir, name='fake')
+    _,_,_,_ = analysis.evaluate_approx_distribution(X=fake_samples.T, folder=FLAGS.sample_dir, num_samples_theoretical_distr=2**15,num_bins=FLAGS.num_bins, num_neurons=FLAGS.num_neurons,\
+                        group_size=FLAGS.group_size,refr_per=FLAGS.ref_period)
 
 if __name__ == '__main__':
   tf.app.run()

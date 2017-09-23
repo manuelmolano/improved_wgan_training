@@ -55,7 +55,7 @@ class WGAN(object):
     self.num_bins = num_bins
     self.output_dim = self.num_neurons*self.num_bins #number of bins per samples
     self.z_dim = z_dim #latent space dimension
-
+    
     #folders
     self.checkpoint_dir = checkpoint_dir
     self.sample_dir = sample_dir
@@ -115,13 +115,11 @@ class WGAN(object):
     self.real_samples = sim_pop_activity.get_samples(num_samples=config.num_samples, num_bins=self.num_bins,\
     num_neurons=self.num_neurons, correlations_mat=correlations_mat, group_size=config.group_size, refr_per=config.ref_period,firing_rates_mat=firing_rates_mat)
     #save original statistics
-    analysis.get_stats(X=self.real_samples, num_neurons=self.num_neurons, folder=self.sample_dir, name='real')
+    analysis.get_stats(X=self.real_samples, num_neurons=self.num_neurons, folder=self.sample_dir, name='real',firing_rate_mat=firing_rates_mat, correlation_mat=correlations_mat)
     #get dev samples
     dev_samples = sim_pop_activity.get_samples(num_samples=int(config.num_samples/4), num_bins=self.num_bins,\
     num_neurons=self.num_neurons, correlations_mat=correlations_mat, group_size=config.group_size, refr_per=config.ref_period,firing_rates_mat=firing_rates_mat)
     
-    #samples we will draw from the generator to calculate stats
-    self.samples_for_stats = self.FCGenerator(config.num_samples)
     
     #start training
     counter_batch = 0
@@ -169,6 +167,7 @@ class WGAN(object):
         
         #get simulated samples, calculate their statistics and compare them with the original ones
         fake_samples = self.get_samples(num_samples=2**13)
+        fake_samples = fake_samples.eval(session=self.sess)
         fake_samples = self.binarize(samples=fake_samples)    
         acf_error, mean_error, std_error, corr_error = analysis.get_stats(X=fake_samples.T, num_neurons=config.num_neurons, folder=config.sample_dir, name='fake'+str(iteration)) 
         #plot the fitting errors
@@ -233,8 +232,9 @@ class WGAN(object):
     return binarized_samples.astype(float)  
   
   #draw samples from the generator
-  def get_samples(self, num_samples=2**13):  
-    fake_samples = self.sess.run(self.samples_for_stats) #this samples need to be evaluated or run 
+  def get_samples(self, num_samples=2**13): 
+    noise = tf.constant(np.random.normal(size=(num_samples, 128)).astype('float32'))
+    fake_samples = self.FCGenerator(num_samples, noise=noise)
     return fake_samples  
   
   #this is to save the network parameters  
