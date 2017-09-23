@@ -9,27 +9,6 @@ import numpy as np
 #import matplotlib.pyplot as plt
 #import time
 
-def make_generator(n_samples, batch_size, dim, num_neurons, corr, group_size, refr_per, firing_rates_mat):
-    epoch_count = [1]
-    def get_epoch():
-        images = np.zeros((batch_size, num_neurons*dim), dtype='int32')
-        samples = list(range(n_samples))
-        epoch_count[0] += 1
-        for n, i in enumerate(samples):
-            image = spike_trains_corr(num_bins=dim, num_neurons=num_neurons,\
-            correlation=corr,group_size=group_size,refr_per=refr_per,firing_rates_mat=firing_rates_mat)
-            images[n % batch_size,:] = image.flatten()
-            if n > 0 and n % batch_size == 0:
-                yield (images,)
-    return get_epoch
-
-def load(num_samples=2**13, batch_size=64, dim=32,num_neurons=32,corr=0.5,group_size=2,refr_per=2,firing_rates_mat=np.zeros((32,))+0.2):
-    return (
-        make_generator(num_samples, batch_size,dim,num_neurons,corr,group_size,refr_per,firing_rates_mat),
-        make_generator(int(num_samples/4), batch_size,dim,num_neurons,corr,group_size,refr_per,firing_rates_mat)
-    )
-
-
 def spike_trains_corr(num_bins=64, num_neurons=32, correlations_mat=np.zeros((16,))+0.5,\
                         group_size=2,refr_per=2,firing_rates_mat=np.zeros((32,))+0.2):
     X = np.zeros((num_neurons,num_bins)) 
@@ -73,7 +52,10 @@ def get_aproximate_probs(num_samples=2**13,num_bins=64, num_neurons=32, correlat
     
     
     r_unique = np.unique(X,axis=1,return_counts=True)
-
+   
+    
+    assert abs(np.sum(r_unique[1])-num_samples)<0.00000001
+    
     return r_unique
     
     
