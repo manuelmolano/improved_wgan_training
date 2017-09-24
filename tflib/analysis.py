@@ -9,6 +9,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
 from tflib import sim_pop_activity
+import time
 
 #parameters for figure
 left  = 0.125  # the left side of the subplots of the figure
@@ -98,8 +99,8 @@ def get_stats(X, num_neurons, folder, name, firing_rate_mat=None,correlation_mat
         return acf_error, mean_error, std_error, corr_error
     
     
-def evaluate_approx_distribution(X, folder, num_samples_theoretical_distr=2**15,num_bins=10, num_neurons=4, correlations_mat=np.zeros((4,))+0.3,\
-                        group_size=2,refr_per=2,firing_rates_mat=np.zeros((16,))+0.25): 
+def evaluate_approx_distribution(X, folder, num_samples_theoretical_distr=2**15,num_bins=10, num_neurons=4,\
+                        group_size=2,refr_per=2): 
     '''
     compute spike trains spikes: spk-count mean and std, autocorrelogram and correlation mat
     if name!='real' then it compares the above stats with the original ones 
@@ -107,29 +108,163 @@ def evaluate_approx_distribution(X, folder, num_samples_theoretical_distr=2**15,
     '''
     #get freqs of real samples
     original_data = np.load(folder + '/stats_real.npz')        
-    real_samples = original_data['samples']
-    aux = np.unique(real_samples,axis=1,return_counts=True)
-    real_samples_probs = aux[1]/np.sum(aux[1])
-    real_samples_unique = aux[0]
+    real_samples = original_data['samples']    
     
-    #get freqs of simulated samples
-    aux = np.unique(X,axis=1,return_counts=True)
-    sim_samples_probs = aux[1]/np.sum(aux[1])
-    sim_samples_unique = aux[0]
-    
-    #get numerical probabilities
-    if os.path.exists(folder + '/numerical_probs.npz'):
-        num_probs = np.load(folder + '/numerical_probs.npz')        
-        num_probs = num_probs['num_probs']
+    if os.path.exists(folder+'/probs_ns_' + str(X.shape[1]) + '_ns_gt_' + str(num_samples_theoretical_distr) + '.npz'):
+        probs = np.load(folder+'/probs_ns_' + str(X.shape[1]) + '_ns_gt_' + str(num_samples_theoretical_distr) + '.npz')
+        sim_samples_freqs = probs['sim_samples_freqs']        
+        numerical_prob = probs['numerical_prob']
+        freq_in_training_dataset = probs['freq_in_training_dataset']
+        num_impossible_samples = probs['num_impossible_samples']
+        surr_samples_freqs = probs['surr_samples_freqs']
+        freq_in_training_dataset_surrogates = probs['freq_in_training_dataset_surrogates']
+        numerical_prob_surrogates = probs['numerical_prob_surrogates']
+        num_impossible_samples_surrogates = probs['num_impossible_samples_surrogates']
     else:
-        num_probs = sim_pop_activity.get_aproximate_probs(num_samples=num_samples_theoretical_distr,num_bins=num_bins, num_neurons=num_neurons, correlations_mat=original_data['correlation_mat'],\
-                        group_size=group_size,refr_per=refr_per,firing_rates_mat=original_data['firing_rate_mat'])
-        numerical_probs = {'num_probs':num_probs}
-        np.savez(folder + '/numerical_probs.npz',**numerical_probs)
+        #get numerical probabilities
+        if os.path.exists(folder + '/numerical_probs_ns_'+str(num_samples_theoretical_distr)+'.npz'):
+            num_probs = np.load(folder + '/numerical_probs_ns_'+str(num_samples_theoretical_distr)+'.npz')        
+            num_probs = num_probs['num_probs']
+        else:
+            num_probs = sim_pop_activity.get_aproximate_probs(num_samples=num_samples_theoretical_distr,num_bins=num_bins, num_neurons=num_neurons, correlations_mat=original_data['correlation_mat'],\
+                            group_size=group_size,refr_per=refr_per,firing_rates_mat=original_data['firing_rate_mat'])
+            numerical_probs = {'num_probs':num_probs}
+            np.savez(folder + '/numerical_probs_ns_'+str(num_samples_theoretical_distr)+'.npz',**numerical_probs)
+        
+        samples_theoretical_probs = num_probs[0]
+        #probabilites obtain from a large dataset    
+        theoretical_probs = num_probs[1]/np.sum(num_probs[1])
+        freq_in_training_dataset, numerical_prob, sim_samples_freqs = comparison_to_original_and_gt_datasets(samples=X, real_samples=real_samples,\
+                ground_truth_samples=samples_theoretical_probs, ground_truth_probs=theoretical_probs)
+        num_impossible_samples = np.count_nonzero(numerical_prob==0)
+        #we will now perform the same calculation for dataset extracted from the original distribution        
+        num_surr = 100   
+        freq_in_training_dataset_surrogates = np.zeros((num_surr*X.shape[1],)) 
+        numerical_prob_surrogates = np.zeros((num_surr*X.shape[1],))
+        surr_samples_freqs = np.zeros((num_surr*X.shape[1],))
+        num_impossible_samples_surrogates =  np.zeros((num_surr, ))
+        counter = 0
+        for ind_surr in range(num_surr+1):
+            if ind_surr%10==0:
+                print(ind_surr)
+            if ind_surr==num_surr:
+                surrogate= real_samples
+                np.random.shuffle(surrogate.T)
+                surrogate = surrogate[:,0:np.min((X.shape[1],surrogate.shape[1]))]
+            else:
+                surrogate = sim_pop_activity.get_samples(num_samples=X.shape[1], num_bins=num_bins,\
+                    num_neurons=num_neurons, correlations_mat=original_data['correlation_mat'], group_size=group_size, refr_per=refr_per,firing_rates_mat=original_data['firing_rate_mat'])
+            
+            #get freqs of simulated samples
+            aux = np.unique(surrogate,axis=1,return_counts=True)
+            #surr_samples_freqs = aux[1]/np.sum(aux[1])
+            surr_samples_unique = aux[0]    
+                
+            freq_in_training_dataset_aux, numerical_prob_aux, samples_freqs_aux = comparison_to_original_and_gt_datasets(samples=surr_samples_unique, real_samples=real_samples,\
+                ground_truth_samples=samples_theoretical_probs, ground_truth_probs=theoretical_probs)
+            
+            if ind_surr==num_surr:
+                assert not any(freq_in_training_dataset_aux==0)
+            else:
+                freq_in_training_dataset_surrogates[counter:counter+len(freq_in_training_dataset_aux)] = freq_in_training_dataset_aux
+                numerical_prob_surrogates[counter:counter+len(freq_in_training_dataset_aux)] = numerical_prob_aux
+                surr_samples_freqs[counter:counter+len(freq_in_training_dataset_aux)] = samples_freqs_aux
+                num_impossible_samples_surrogates[ind_surr] = np.count_nonzero(numerical_prob_aux==0)
+                counter += len(freq_in_training_dataset_aux)
+        
+        freq_in_training_dataset_surrogates = freq_in_training_dataset_surrogates[0:counter]
+        numerical_prob_surrogates = numerical_prob_surrogates[0:counter]
+        surr_samples_freqs = surr_samples_freqs[0:counter]
+        probs = {'sim_samples_freqs':sim_samples_freqs, 'freq_in_training_dataset':freq_in_training_dataset, 'numerical_prob':numerical_prob, 'num_impossible_samples':num_impossible_samples,\
+                'surr_samples_freqs':surr_samples_freqs, 'freq_in_training_dataset_surrogates':freq_in_training_dataset_surrogates, 'numerical_prob_surrogates': numerical_prob_surrogates, 'num_impossible_samples_surrogates': num_impossible_samples_surrogates}
+        
+        np.savez(folder+'/probs_ns_' + str(X.shape[1]) + '_ns_gt_' + str(num_samples_theoretical_distr) + '.npz',**probs)
+        
+        
     
-    samples_theoretical_probs = num_probs[0]
-    #probabilites obtain from a large dataset    
-    theoretical_probs = num_probs[1]/np.sum(num_probs[1])
+    print(len(freq_in_training_dataset))    
+    print(np.count_nonzero(freq_in_training_dataset==0))
+    print(np.count_nonzero(numerical_prob==0))
+    f,sbplt = plt.subplots(2,2,figsize=(8, 8),dpi=250)
+    matplotlib.rcParams.update({'font.size': 8})
+    plt.subplots_adjust(left=left, bottom=bottom, right=right, top=top, wspace=wspace, hspace=hspace)  
+    sbplt[0][0].loglog(sim_samples_freqs[(numerical_prob!=0) & (freq_in_training_dataset!=0)],numerical_prob[(numerical_prob!=0) & (freq_in_training_dataset!=0)],'xr',basex=10)
+    sbplt[0][0].loglog(freq_in_training_dataset[(numerical_prob!=0) & (freq_in_training_dataset!=0)],numerical_prob[(numerical_prob!=0) & (freq_in_training_dataset!=0)],'+b',basex=10)
+    equal_line =   np.linspace(0.00005,0.005,10000)
+    sbplt[0][0].loglog(equal_line,equal_line,basex=10)
+    sbplt[0][0].set_xlabel('frequencies of samples in real dataset')
+    sbplt[0][0].set_ylabel('theoretical probabilities')
+    sbplt[0][0].set_title(str(np.sum(sim_samples_freqs[freq_in_training_dataset!=0])))  
+    sbplt[0][1].hist(num_impossible_samples_surrogates)
+    sbplt[0][1].plot(np.count_nonzero(numerical_prob==0)*np.ones((10,1)),np.arange(10),'r')
+    sbplt[0][1].set_xlabel('num of impossible samples')
+    sbplt[0][1].set_ylabel('frequency')
+    
+    
+    #get rid of samples already present in the original dataset
+    surr_samples_freqs = np.delete(surr_samples_freqs,np.nonzero(freq_in_training_dataset_surrogates==0))
+    numerical_prob_surrogates = np.delete(numerical_prob_surrogates,np.nonzero(freq_in_training_dataset_surrogates==0))
+    
+    #get rid of the freqs for which the numerical prob is zero (so we can compute the logs)
+    surr_samples_freqs = np.delete(surr_samples_freqs,np.nonzero(numerical_prob_surrogates==0))
+    numerical_prob_surrogates = np.delete(numerical_prob_surrogates,np.nonzero(numerical_prob_surrogates==0))
+    
+    #compute the logs of the probs and freq
+    surr_samples_freqs_log = np.log10(surr_samples_freqs)
+    numerical_prob_surrogates_log = np.log10(numerical_prob_surrogates) 
+    
+    #now we want to get the bins for the hist2d
+    aux = np.unique(surr_samples_freqs_log)
+    bin_size = 100*np.min(np.diff(aux))
+    edges_x = np.unique(np.concatenate((aux-bin_size/2,aux+bin_size/2)))   
+    print(bin_size)
+    edges_y = np.linspace(np.min(numerical_prob_surrogates_log)-0.1,np.max(numerical_prob_surrogates_log)+0.1,10)
+    my_cmap = plt.cm.gray
+    _,_,_,Image = sbplt[1][1].hist2d(surr_samples_freqs_log,numerical_prob_surrogates_log,bins=[edges_x, edges_y],cmap = my_cmap)#
+    plt.colorbar(Image)
+    
+    #now we do the same as for the surrogate real datasets but for the generated dataset
+    #get rid of samples already present in the original dataset
+    sim_samples_freqs = sim_samples_freqs[freq_in_training_dataset==0]
+    numerical_prob = numerical_prob[freq_in_training_dataset==0]
+    
+    #get rid of the freqs for which the numerical prob is zero (so we can compute the logs)
+    sim_samples_freqs = sim_samples_freqs[numerical_prob==0]
+    numerical_prob = numerical_prob[numerical_prob==0]
+    
+    #compute the logs of the probs and freq
+    sim_samples_freqs_log = np.log10(sim_samples_freqs)
+    numerical_prob_log = np.log10(numerical_prob)
+    #transalate ticks to the 10^x format      
+    sbplt[1][1].plot(sim_samples_freqs_log,numerical_prob_log,'xr',markersize=2)
+    ticks = sbplt[1][1].get_xticks()
+    labels = []
+    for ind_tck in range(len(ticks)):
+        labels.append('$10^{'+str(ticks[ind_tck]) +'}$')
+   
+    sbplt[1][1].set_xticklabels(labels)
+    
+    ticks = sbplt[1][1].get_yticks()
+    labels = []
+    for ind_tck in range(len(ticks)):
+        labels.append('$10^{'+str(ticks[ind_tck]) +'}$')
+   
+    sbplt[1][1].set_yticklabels(labels)    
+    
+    
+    f.savefig(folder+'probs.svg',dpi=600, bbox_inches='tight')
+    plt.close(f)
+    
+
+def comparison_to_original_and_gt_datasets(samples, real_samples, ground_truth_samples, ground_truth_probs):
+    #get freqs of simulated samples
+    aux = np.unique(samples,axis=1,return_counts=True)
+    sim_samples_probs = aux[1]/np.sum(aux[1])
+    sim_samples_unique = aux[0]    
+    #get freqs of original samples
+    aux = np.unique(real_samples,axis=1,return_counts=True)
+    original_samples_probs = aux[1]/np.sum(aux[1])
+    original_samples = aux[0]
     #generated samples that are not in the original training dataset
     #if zero, the generated samples was not present in the original dataset; 
     #if different from zero it stores the frequency with which the sample occurs in the original dataset
@@ -138,32 +273,23 @@ def evaluate_approx_distribution(X, folder, num_samples_theoretical_distr=2**15,
     #if zero, the generated samples was not present in the large dataset; 
     #if different from zero it stores the frequency with which the sample occurs 
     numerical_prob = np.zeros((sim_samples_unique.shape[1],))
+    start_time = time.time()
     for ind_s in range(sim_samples_unique.shape[1]):
+        if ind_s%1000==0:
+            print(str(ind_s) + ' time ' + str(time.time() - start_time))
         sample = sim_samples_unique[:,ind_s].reshape((sim_samples_unique.shape[0],1))
-        #get numerical prob
-        compare_mat = np.sum(np.abs(samples_theoretical_probs-sample),axis=0)
-        if np.count_nonzero(compare_mat==0)==1:
-            numerical_prob[ind_s] = theoretical_probs[np.nonzero(compare_mat==0)]
-        else: 
-            assert np.count_nonzero(compare_mat==0)==0 
-        #check whether the sample was in the original dataset
-        compare_mat = np.sum(np.abs(real_samples_unique-sample),axis=0)
-        if np.count_nonzero(compare_mat==0)==1:
-            prob_in_training_dataset[ind_s] = real_samples_probs[np.nonzero(compare_mat==0)]
-        else: 
-            assert np.count_nonzero(compare_mat==0)==0 
-    
-    f,sbplt = plt.subplots(2,2,figsize=(8, 8),dpi=250)
-    matplotlib.rcParams.update({'font.size': 8})
-    plt.subplots_adjust(left=left, bottom=bottom, right=right, top=top, wspace=wspace, hspace=hspace)  
-    print((numerical_prob!=0) & (prob_in_training_dataset!=0))
-    sbplt[0][0].loglog(sim_samples_probs[(numerical_prob!=0) & (prob_in_training_dataset!=0)],numerical_prob[(numerical_prob!=0) & (prob_in_training_dataset!=0)],'xr',basex=10)
-    sbplt[0][0].loglog(prob_in_training_dataset[(numerical_prob!=0) & (prob_in_training_dataset!=0)],numerical_prob[(numerical_prob!=0) & (prob_in_training_dataset!=0)],'+b',basex=10)
-    equal_line =   np.linspace(0.0005,0.05,10000)
-    sbplt[0][0].loglog(equal_line,equal_line,basex=10)
-    sbplt[0][0].set_xlabel('frequencies of samples in real dataset')
-    sbplt[0][0].set_ylabel('theoretical probabilities')
-    sbplt[0][0].set_title(str(np.sum(sim_samples_probs[prob_in_training_dataset!=0])))    
+        #check whether the sample is in the ground truth dataset and if so get prob
+        looking_for_sample = np.equal(ground_truth_samples.T,sample.T).all(1)
+        if any(looking_for_sample):
+            numerical_prob[ind_s] = ground_truth_probs[looking_for_sample]
+        
+        #check whether the sample is in the original dataset and if so get prob
+        looking_for_sample = np.equal(original_samples.T,sample.T).all(1)
+        if any(looking_for_sample):
+            prob_in_training_dataset[ind_s] = original_samples_probs[looking_for_sample]
+       
+            
+    return prob_in_training_dataset, numerical_prob, sim_samples_probs        
     
 def autocorrelogram(r,lag):
     #get autocorrelogram
