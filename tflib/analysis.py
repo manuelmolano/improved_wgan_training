@@ -20,7 +20,7 @@ wspace = 0.4   # the amount of width reserved for blank space between subplots
 hspace = 0.4   # the amount of height reserved for white space between subplots
 
 
-def get_stats(X, num_neurons, folder, name, firing_rate_mat=None,correlation_mat=None): 
+def get_stats(X, num_neurons, num_bins, folder, name, firing_rate_mat=None,correlation_mat=None, activity_peaks=None): 
     '''
     compute spike trains spikes: spk-count mean and std, autocorrelogram and correlation mat
     if name!='real' then it compares the above stats with the original ones 
@@ -35,7 +35,7 @@ def get_stats(X, num_neurons, folder, name, firing_rate_mat=None,correlation_mat
     #this is to count the number of times we are adding a value to each corr_mat value (sometimes we get a NaN value and we don't add anything)
     counting_mat = np.zeros((1,num_neurons**2))
     autocorrelogram_mat = np.zeros(2*lag+1)
-    
+    firing_average_time_course = np.zeros((num_neurons,num_bins))
     for ind in range(num_samples):
         sample = X[:,ind].reshape((num_neurons,-1))
         spike_count[:,ind] = np.sum(sample,axis=1)
@@ -43,6 +43,7 @@ def get_stats(X, num_neurons, folder, name, firing_rate_mat=None,correlation_mat
         corr_mat = np.nansum(np.concatenate((corr_mat,corr_aux),axis=0),axis=0).reshape(1,num_neurons**2)
         counting_mat = np.nansum(np.concatenate((counting_mat,~np.isnan(corr_aux)),axis=0),axis=0).reshape(1,num_neurons**2)
         autocorrelogram_mat += autocorrelogram(sample,lag=lag)
+        firing_average_time_course += sample
 
     corr_mat = corr_mat/counting_mat    
     corr_mat = corr_mat.reshape(num_neurons,num_neurons)
@@ -50,9 +51,10 @@ def get_stats(X, num_neurons, folder, name, firing_rate_mat=None,correlation_mat
     std_spike_count = np.std(spike_count,axis=1)
     autocorrelogram_mat = autocorrelogram_mat/np.max(autocorrelogram_mat)
     autocorrelogram_mat[lag] = 0
+    firing_average_time_course = firing_average_time_course/num_samples
     index = np.linspace(-10,10,2*10+1)
     #figure for all training error across epochs (supp. figure 2)
-    f,sbplt = plt.subplots(2,2,figsize=(8, 8),dpi=250)
+    f,sbplt = plt.subplots(2,3,figsize=(8, 8),dpi=250)
     matplotlib.rcParams.update({'font.size': 8})
     plt.subplots_adjust(left=left, bottom=bottom, right=right, top=top, wspace=wspace, hspace=hspace)
     sbplt[0][0].plot(index, autocorrelogram_mat)
@@ -62,19 +64,19 @@ def get_stats(X, num_neurons, folder, name, firing_rate_mat=None,correlation_mat
     sbplt[0][0].set_title('Autocorrelogram')
     sbplt[0][0].set_xlabel('time (ms)')
     sbplt[0][0].set_ylabel('number of spikes')
-    sbplt[0][1].plot(mean_spike_count)
+    sbplt[1][0].plot(mean_spike_count)
     if name!='real':
-        sbplt[0][1].plot(original_data['mean'])
+        sbplt[1][0].plot(original_data['mean'])
         mean_error = np.sum(np.abs(mean_spike_count-original_data['mean']))
         std_error = np.sum(np.abs(std_spike_count-original_data['std']))
-    sbplt[0][1].set_title('spk-counts')
-    sbplt[0][1].set_xlabel('neuron')
-    sbplt[0][1].set_ylabel('firing probability')
-    map_aux = sbplt[1][0].imshow(corr_mat,interpolation='nearest')
-    f.colorbar(map_aux,ax=sbplt[1][0])
-    sbplt[1][0].set_title('sim. correlation mat')
+    sbplt[1][0].set_title('spk-counts')
     sbplt[1][0].set_xlabel('neuron')
-    sbplt[1][0].set_ylabel('neuron')
+    sbplt[1][0].set_ylabel('firing probability')
+    map_aux = sbplt[0][1].imshow(corr_mat,interpolation='nearest')
+    f.colorbar(map_aux,ax=sbplt[0][1])
+    sbplt[0][1].set_title('sim. correlation mat')
+    sbplt[0][1].set_xlabel('neuron')
+    sbplt[0][1].set_ylabel('neuron')
     if name!='real':
         map_aux = sbplt[1][1].imshow(original_data['corr_mat'],interpolation='nearest')
         f.colorbar(map_aux,ax=sbplt[1][1])
@@ -88,15 +90,30 @@ def get_stats(X, num_neurons, folder, name, firing_rate_mat=None,correlation_mat
         sbplt[1][1].set_title('sample')
         sbplt[1][1].set_xlabel('time (ms)')
         sbplt[1][1].set_ylabel('neurons')
+        
+    map_aux = sbplt[0][2].imshow(firing_average_time_course,interpolation='nearest')
+    f.colorbar(map_aux,ax=sbplt[0][2])
+    sbplt[0][2].set_title('sim firing time course')
+    sbplt[0][2].set_xlabel('neuron')
+    sbplt[0][2].set_ylabel('time (ms)')
+    if name!='real':
+        map_aux = sbplt[1][2].imshow(original_data['firing_average_time_course'],interpolation='nearest')
+        f.colorbar(map_aux,ax=sbplt[1][2])
+        sbplt[1][2].set_title('real firing time course')
+        sbplt[1][2].set_xlabel('neuron')
+        sbplt[1][2].set_ylabel('time (ms)')
+        time_course_error = np.sum(np.abs(firing_average_time_course-original_data['firing_average_time_course']).flatten())    
+    
     f.savefig(folder+'stats_'+name+'.svg',dpi=600, bbox_inches='tight')
     plt.close(f)
     if name=='real':
-        data = {'mean':mean_spike_count,'std':std_spike_count,'acf':autocorrelogram_mat,'corr_mat':corr_mat,'samples':X,'firing_rate_mat':firing_rate_mat,'correlation_mat':correlation_mat}
+        data = {'mean':mean_spike_count, 'std':std_spike_count, 'acf':autocorrelogram_mat, 'corr_mat':corr_mat, 'samples':X,\
+        'firing_rate_mat':firing_rate_mat, 'correlation_mat':correlation_mat, 'activity_peaks':activity_peaks, 'firing_average_time_course':firing_average_time_course}
         np.savez(folder + '/stats_'+name+'.npz', **data)    
     else:
-        data = {'mean':mean_spike_count,'std':std_spike_count,'acf':autocorrelogram_mat}
+        data = {'mean':mean_spike_count, 'std':std_spike_count, 'acf':autocorrelogram_mat, 'corr_mat':corr_mat, 'firing_average_time_course':firing_average_time_course}
         np.savez(folder + '/stats_'+name+'.npz', **data)            
-        return acf_error, mean_error, std_error, corr_error
+        return acf_error, mean_error, std_error, corr_error, time_course_error
     
     
 def evaluate_approx_distribution(X, folder, num_samples_theoretical_distr=2**15,num_bins=10, num_neurons=4,\
@@ -131,14 +148,17 @@ def evaluate_approx_distribution(X, folder, num_samples_theoretical_distr=2**15,
             numerical_probs = {'num_probs':num_probs}
             np.savez(folder + '/numerical_probs_ns_'+str(num_samples_theoretical_distr)+'.npz',**numerical_probs)
         
+        #samples
         samples_theoretical_probs = num_probs[0]
         #probabilites obtain from a large dataset    
         theoretical_probs = num_probs[1]/np.sum(num_probs[1])
+        #get the freq of simulated samples in the original dataset, in the ground truth dataset and in the simulated dataset itself
         freq_in_training_dataset, numerical_prob, sim_samples_freqs = comparison_to_original_and_gt_datasets(samples=X, real_samples=real_samples,\
                 ground_truth_samples=samples_theoretical_probs, ground_truth_probs=theoretical_probs)
+        #'impossible' samples: samples for which the theoretical prob is 0
         num_impossible_samples = np.count_nonzero(numerical_prob==0)
-        #we will now perform the same calculation for dataset extracted from the original distribution        
-        num_surr = 100   
+        #we will now perform the same calculation for several datasets extracted from the ground truth distribution        
+        num_surr = 100  
         freq_in_training_dataset_surrogates = np.zeros((num_surr*X.shape[1],)) 
         numerical_prob_surrogates = np.zeros((num_surr*X.shape[1],))
         surr_samples_freqs = np.zeros((num_surr*X.shape[1],))
@@ -148,22 +168,19 @@ def evaluate_approx_distribution(X, folder, num_samples_theoretical_distr=2**15,
             if ind_surr%10==0:
                 print(ind_surr)
             if ind_surr==num_surr:
+                #as a control, the last surrogate is the original dataset itself
                 surrogate= real_samples
                 np.random.shuffle(surrogate.T)
                 surrogate = surrogate[:,0:np.min((X.shape[1],surrogate.shape[1]))]
             else:
                 surrogate = sim_pop_activity.get_samples(num_samples=X.shape[1], num_bins=num_bins,\
                     num_neurons=num_neurons, correlations_mat=original_data['correlation_mat'], group_size=group_size, refr_per=refr_per,firing_rates_mat=original_data['firing_rate_mat'])
-            
-            #get freqs of simulated samples
-            aux = np.unique(surrogate,axis=1,return_counts=True)
-            #surr_samples_freqs = aux[1]/np.sum(aux[1])
-            surr_samples_unique = aux[0]    
                 
-            freq_in_training_dataset_aux, numerical_prob_aux, samples_freqs_aux = comparison_to_original_and_gt_datasets(samples=surr_samples_unique, real_samples=real_samples,\
+            freq_in_training_dataset_aux, numerical_prob_aux, samples_freqs_aux = comparison_to_original_and_gt_datasets(samples=surrogate, real_samples=real_samples,\
                 ground_truth_samples=samples_theoretical_probs, ground_truth_probs=theoretical_probs)
             
             if ind_surr==num_surr:
+                num_impossible_samples_original = np.count_nonzero(numerical_prob_aux==0)
                 assert not any(freq_in_training_dataset_aux==0)
             else:
                 freq_in_training_dataset_surrogates[counter:counter+len(freq_in_training_dataset_aux)] = freq_in_training_dataset_aux
@@ -176,27 +193,26 @@ def evaluate_approx_distribution(X, folder, num_samples_theoretical_distr=2**15,
         numerical_prob_surrogates = numerical_prob_surrogates[0:counter]
         surr_samples_freqs = surr_samples_freqs[0:counter]
         probs = {'sim_samples_freqs':sim_samples_freqs, 'freq_in_training_dataset':freq_in_training_dataset, 'numerical_prob':numerical_prob, 'num_impossible_samples':num_impossible_samples,\
-                'surr_samples_freqs':surr_samples_freqs, 'freq_in_training_dataset_surrogates':freq_in_training_dataset_surrogates, 'numerical_prob_surrogates': numerical_prob_surrogates, 'num_impossible_samples_surrogates': num_impossible_samples_surrogates}
+                'surr_samples_freqs':surr_samples_freqs, 'freq_in_training_dataset_surrogates':freq_in_training_dataset_surrogates, 'numerical_prob_surrogates': numerical_prob_surrogates,\
+                'num_impossible_samples_surrogates': num_impossible_samples_surrogates}
         
         np.savez(folder+'/probs_ns_' + str(X.shape[1]) + '_ns_gt_' + str(num_samples_theoretical_distr) + '.npz',**probs)
         
         
     
-    print(len(freq_in_training_dataset))    
-    print(np.count_nonzero(freq_in_training_dataset==0))
-    print(np.count_nonzero(numerical_prob==0))
     f,sbplt = plt.subplots(2,2,figsize=(8, 8),dpi=250)
     matplotlib.rcParams.update({'font.size': 8})
     plt.subplots_adjust(left=left, bottom=bottom, right=right, top=top, wspace=wspace, hspace=hspace)  
     sbplt[0][0].loglog(sim_samples_freqs[(numerical_prob!=0) & (freq_in_training_dataset!=0)],numerical_prob[(numerical_prob!=0) & (freq_in_training_dataset!=0)],'xr',basex=10)
     sbplt[0][0].loglog(freq_in_training_dataset[(numerical_prob!=0) & (freq_in_training_dataset!=0)],numerical_prob[(numerical_prob!=0) & (freq_in_training_dataset!=0)],'+b',basex=10)
-    equal_line =   np.linspace(0.00005,0.005,10000)
+    equal_line = np.linspace(0.00005,0.005,10000)
     sbplt[0][0].loglog(equal_line,equal_line,basex=10)
     sbplt[0][0].set_xlabel('frequencies of samples in real dataset')
     sbplt[0][0].set_ylabel('theoretical probabilities')
     sbplt[0][0].set_title(str(np.sum(sim_samples_freqs[freq_in_training_dataset!=0])))  
     sbplt[0][1].hist(num_impossible_samples_surrogates)
-    sbplt[0][1].plot(np.count_nonzero(numerical_prob==0)*np.ones((10,1)),np.arange(10),'r')
+    sbplt[0][1].plot(num_impossible_samples*np.ones((10,1)),np.arange(10),'r')
+    sbplt[0][1].plot(num_impossible_samples_original*np.ones((10,1)),np.arange(10),'g')
     sbplt[0][1].set_xlabel('num of impossible samples')
     sbplt[0][1].set_ylabel('frequency')
     
@@ -265,18 +281,19 @@ def comparison_to_original_and_gt_datasets(samples, real_samples, ground_truth_s
     aux = np.unique(real_samples,axis=1,return_counts=True)
     original_samples_probs = aux[1]/np.sum(aux[1])
     original_samples = aux[0]
-    #generated samples that are not in the original training dataset
-    #if zero, the generated samples was not present in the original dataset; 
+    #simulated samples that are not in the original dataset
+    #if zero, the simulated sample is not present in the original dataset; 
     #if different from zero it stores the frequency with which the sample occurs in the original dataset
     prob_in_training_dataset = np.zeros((sim_samples_unique.shape[1],)) 
-    #generated samples that are not in the large dataset and thus have theoretical prob = 0
-    #if zero, the generated samples was not present in the large dataset; 
+    #generated samples that are not in the ground truth dataset and thus have theoretical prob = 0
+    #if zero, the simulated sample is not present in the ground truth dataset; 
     #if different from zero it stores the frequency with which the sample occurs 
     numerical_prob = np.zeros((sim_samples_unique.shape[1],))
     start_time = time.time()
     for ind_s in range(sim_samples_unique.shape[1]):
         if ind_s%1000==0:
             print(str(ind_s) + ' time ' + str(time.time() - start_time))
+        #get sample
         sample = sim_samples_unique[:,ind_s].reshape((sim_samples_unique.shape[0],1))
         #check whether the sample is in the ground truth dataset and if so get prob
         looking_for_sample = np.equal(ground_truth_samples.T,sample.T).all(1)

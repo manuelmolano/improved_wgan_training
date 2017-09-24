@@ -10,7 +10,9 @@ import numpy as np
 #import time
 
 def spike_trains_corr(num_bins=64, num_neurons=32, correlations_mat=np.zeros((16,))+0.5,\
-                        group_size=2,refr_per=2,firing_rates_mat=np.zeros((32,))+0.2):
+                        group_size=2,refr_per=2,firing_rates_mat=np.zeros((32,))+0.2,activity_peaks=np.zeros((16,))+32):
+    std_resp = 5
+    noise = np.mean(firing_rates_mat)/5
     X = np.zeros((num_neurons,num_bins)) 
     
     for ind in range(int(num_neurons/group_size)):
@@ -23,18 +25,22 @@ def spike_trains_corr(num_bins=64, num_neurons=32, correlations_mat=np.zeros((16
         spike_trains[same_state] = reference[same_state]
         spike_trains = refractory_period(refr_per,spike_trains,firing_rates_mat[ind])
         X[ind*group_size:(ind+1)*group_size,:] = spike_trains
-    
-    X = X.astype(float)
+
+    #here we use the activity peaks to modulate the firing of neurons    
+    t = np.arange(num_bins).reshape(1,num_bins)
+    prob_firing = np.exp(-(t-activity_peaks)**2/std_resp**2) + noise
+    X = X*prob_firing
+    X = X > np.random.random(X.shape)
     assert np.sum(np.isnan(X.flatten()))==0
-    return X
+    return X.astype(float)
 
 def get_samples(num_samples=2**13,num_bins=64, num_neurons=32, correlations_mat=np.zeros((16,))+0.5,\
-                        group_size=2,refr_per=2,firing_rates_mat=np.zeros((16,))+0.2):                        
+                        group_size=2,refr_per=2,firing_rates_mat=np.zeros((16,))+0.2,activity_peaks=np.zeros((16,))+32):                        
     X = np.zeros((num_neurons*num_bins,num_samples))
     
     for ind in range(num_samples):
         sample = spike_trains_corr(num_neurons=num_neurons,num_bins=num_bins, correlations_mat=correlations_mat,\
-                    group_size=group_size, firing_rates_mat=firing_rates_mat, refr_per=refr_per)
+                    group_size=group_size, firing_rates_mat=firing_rates_mat, refr_per=refr_per, activity_peaks=activity_peaks)
         X[:,ind] = sample.reshape((num_neurons*num_bins,-1))[:,0]
      
     return X

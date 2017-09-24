@@ -112,13 +112,19 @@ class WGAN(object):
     #get real samples
     firing_rates_mat = config.firing_rate+2*(np.random.random(int(self.num_neurons/config.group_size),)-0.5)*config.firing_rate/2    
     correlations_mat = config.correlation+2*(np.random.random(int(self.num_neurons/config.group_size),)-0.5)*config.correlation/2    
+    aux = np.arange(int(self.num_neurons/config.group_size))
+    activity_peaks = [[x]*config.group_size for x in aux]#np.random.randint(0,high=self.num_bins,size=(1,self.num_neurons)).reshape(self.num_neurons,1)
+    activity_peaks = np.asarray(activity_peaks)
+    activity_peaks = activity_peaks.flatten()
+    activity_peaks = activity_peaks*config.group_size*self.num_bins/self.num_neurons
+    activity_peaks = activity_peaks.reshape(self.num_neurons,1)
     self.real_samples = sim_pop_activity.get_samples(num_samples=config.num_samples, num_bins=self.num_bins,\
-    num_neurons=self.num_neurons, correlations_mat=correlations_mat, group_size=config.group_size, refr_per=config.ref_period,firing_rates_mat=firing_rates_mat)
+    num_neurons=self.num_neurons, correlations_mat=correlations_mat, group_size=config.group_size, refr_per=config.ref_period,firing_rates_mat=firing_rates_mat, activity_peaks=activity_peaks)
     #save original statistics
-    analysis.get_stats(X=self.real_samples, num_neurons=self.num_neurons, folder=self.sample_dir, name='real',firing_rate_mat=firing_rates_mat, correlation_mat=correlations_mat)
+    analysis.get_stats(X=self.real_samples, num_neurons=self.num_neurons, num_bins=self.num_bins, folder=self.sample_dir, name='real',firing_rate_mat=firing_rates_mat, correlation_mat=correlations_mat, activity_peaks=activity_peaks)
     #get dev samples
     dev_samples = sim_pop_activity.get_samples(num_samples=int(config.num_samples/4), num_bins=self.num_bins,\
-    num_neurons=self.num_neurons, correlations_mat=correlations_mat, group_size=config.group_size, refr_per=config.ref_period,firing_rates_mat=firing_rates_mat)
+    num_neurons=self.num_neurons, correlations_mat=correlations_mat, group_size=config.group_size, refr_per=config.ref_period,firing_rates_mat=firing_rates_mat, activity_peaks=activity_peaks)
     
     
     #start training
@@ -169,14 +175,14 @@ class WGAN(object):
         fake_samples = self.get_samples(num_samples=2**13)
         fake_samples = fake_samples.eval(session=self.sess)
         fake_samples = self.binarize(samples=fake_samples)    
-        acf_error, mean_error, std_error, corr_error = analysis.get_stats(X=fake_samples.T, num_neurons=config.num_neurons, folder=config.sample_dir, name='fake'+str(iteration)) 
+        acf_error, mean_error, _, corr_error, time_course_error = analysis.get_stats(X=fake_samples.T, num_neurons=config.num_neurons,num_bins=config.num_bins, folder=config.sample_dir, name='fake'+str(iteration)) 
         #plot the fitting errors
         sbplt[0][0].plot(iteration,mean_error,'+b')
         sbplt[0][0].set_title('spk-count mean error')
         sbplt[0][0].set_xlabel('iterations')
         sbplt[0][0].set_ylabel('L1 error')
-        sbplt[0][1].plot(iteration,std_error,'+b')
-        sbplt[0][1].set_title('spk-count std error')
+        sbplt[0][1].plot(iteration,time_course_error,'+b')
+        sbplt[0][1].set_title('time course error')
         sbplt[0][1].set_xlabel('iterations')
         sbplt[0][1].set_ylabel('L1 error')
         sbplt[1][0].plot(iteration,acf_error,'+b')
