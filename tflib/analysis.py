@@ -144,7 +144,7 @@ def evaluate_approx_distribution(X, folder, num_samples_theoretical_distr=2**15,
             num_probs = num_probs['num_probs']
         else:
             num_probs = sim_pop_activity.get_aproximate_probs(num_samples=num_samples_theoretical_distr,num_bins=num_bins, num_neurons=num_neurons, correlations_mat=original_data['correlation_mat'],\
-                            group_size=group_size,refr_per=refr_per,firing_rates_mat=original_data['firing_rate_mat'])
+                            group_size=group_size,refr_per=refr_per,firing_rates_mat=original_data['firing_rate_mat'], activity_peaks=original_data['activity_peaks'])
             numerical_probs = {'num_probs':num_probs}
             np.savez(folder + '/numerical_probs_ns_'+str(num_samples_theoretical_distr)+'.npz',**numerical_probs)
         
@@ -158,7 +158,7 @@ def evaluate_approx_distribution(X, folder, num_samples_theoretical_distr=2**15,
         #'impossible' samples: samples for which the theoretical prob is 0
         num_impossible_samples = np.count_nonzero(numerical_prob==0)
         #we will now perform the same calculation for several datasets extracted from the ground truth distribution        
-        num_surr = 100  
+        num_surr = 1000  
         freq_in_training_dataset_surrogates = np.zeros((num_surr*X.shape[1],)) 
         numerical_prob_surrogates = np.zeros((num_surr*X.shape[1],))
         surr_samples_freqs = np.zeros((num_surr*X.shape[1],))
@@ -174,7 +174,8 @@ def evaluate_approx_distribution(X, folder, num_samples_theoretical_distr=2**15,
                 surrogate = surrogate[:,0:np.min((X.shape[1],surrogate.shape[1]))]
             else:
                 surrogate = sim_pop_activity.get_samples(num_samples=X.shape[1], num_bins=num_bins,\
-                    num_neurons=num_neurons, correlations_mat=original_data['correlation_mat'], group_size=group_size, refr_per=refr_per,firing_rates_mat=original_data['firing_rate_mat'])
+                    num_neurons=num_neurons, correlations_mat=original_data['correlation_mat'], group_size=group_size, refr_per=refr_per,\
+                    firing_rates_mat=original_data['firing_rate_mat'], activity_peaks=original_data['activity_peaks'])
                 
             freq_in_training_dataset_aux, numerical_prob_aux, samples_freqs_aux = comparison_to_original_and_gt_datasets(samples=surrogate, real_samples=real_samples,\
                 ground_truth_samples=samples_theoretical_probs, ground_truth_probs=theoretical_probs)
@@ -233,7 +234,6 @@ def evaluate_approx_distribution(X, folder, num_samples_theoretical_distr=2**15,
     aux = np.unique(surr_samples_freqs_log)
     bin_size = 100*np.min(np.diff(aux))
     edges_x = np.unique(np.concatenate((aux-bin_size/2,aux+bin_size/2)))   
-    print(bin_size)
     edges_y = np.linspace(np.min(numerical_prob_surrogates_log)-0.1,np.max(numerical_prob_surrogates_log)+0.1,10)
     my_cmap = plt.cm.gray
     _,_,_,Image = sbplt[1][1].hist2d(surr_samples_freqs_log,numerical_prob_surrogates_log,bins=[edges_x, edges_y],cmap = my_cmap)#
@@ -294,7 +294,7 @@ def comparison_to_original_and_gt_datasets(samples, real_samples, ground_truth_s
         if ind_s%1000==0:
             print(str(ind_s) + ' time ' + str(time.time() - start_time))
         #get sample
-        sample = sim_samples_unique[:,ind_s].reshape((sim_samples_unique.shape[0],1))
+        sample = sim_samples_unique[:,ind_s].reshape(sim_samples_unique.shape[0],1)
         #check whether the sample is in the ground truth dataset and if so get prob
         looking_for_sample = np.equal(ground_truth_samples.T,sample.T).all(1)
         if any(looking_for_sample):
