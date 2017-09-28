@@ -14,7 +14,7 @@ Created on Thu Feb 23 11:27:20 2017
 """
 
 import os
-import numpy as np
+#import numpy as np
 import pprint
 from model import WGAN
 from tflib import analysis#, sim_pop_activity
@@ -34,7 +34,8 @@ flags.DEFINE_boolean("is_train", False, "True for training, False for testing [F
 flags.DEFINE_integer("training_step", 200, "number of batches between weigths and performance saving")
 flags.DEFINE_string("training_stage", '', "stage of the training used for the GAN")
 #parameter set specifiying data
-flags.DEFINE_string("dataset", "uniform", "type of neural activity")
+flags.DEFINE_string("dataset", "simulated", "type of neural activity. It can be simulated  or retina")
+flags.DEFINE_string("data_instance", "1", "if data==retina, this allows chosing the data instance")
 flags.DEFINE_integer("num_samples", 2**13, "number of samples")
 flags.DEFINE_integer("num_neurons", 4, "number of neurons in the population")
 flags.DEFINE_integer("num_bins", 32, "number of bins (ms) for each sample")
@@ -52,12 +53,18 @@ def main(_):
   pp.pprint(flags.FLAGS.__flags)
   
   #folders
-  FLAGS.sample_dir = 'samples/' + 'dataset_' + FLAGS.dataset + '_num_samples_' + str(FLAGS.num_samples) +\
-  '_num_neurons_' + str(FLAGS.num_neurons) + '_num_bins_' + str(FLAGS.num_bins)\
-  + '_ref_period_' + str(FLAGS.ref_period) + '_firing_rate_' + str(FLAGS.firing_rate) + '_correlation_' + str(FLAGS.correlation) +\
-  '_group_size_' + str(FLAGS.group_size)  + '_critic_iters_' + str(FLAGS.critic_iters) + '_lambda_' + str(FLAGS.lambd) +\
-  '_iteration_' + FLAGS.iteration + '/'
-   
+  if FLAGS.dataset=='simulated':
+      FLAGS.sample_dir = 'samples/' + 'dataset_' + FLAGS.dataset + '_num_samples_' + str(FLAGS.num_samples) +\
+      '_num_neurons_' + str(FLAGS.num_neurons) + '_num_bins_' + str(FLAGS.num_bins)\
+      + '_ref_period_' + str(FLAGS.ref_period) + '_firing_rate_' + str(FLAGS.firing_rate) + '_correlation_' + str(FLAGS.correlation) +\
+      '_group_size_' + str(FLAGS.group_size)  + '_critic_iters_' + str(FLAGS.critic_iters) + '_lambda_' + str(FLAGS.lambd) +\
+      '_iteration_' + FLAGS.iteration + '/'
+  elif FLAGS.dataset=='retina':
+     FLAGS.sample_dir = 'samples/' + 'dataset_' + FLAGS.dataset + '_instance_' + FLAGS.data_instance +\
+      '_num_neurons_' + str(FLAGS.num_neurons) + '_num_bins_' + str(FLAGS.num_bins) +\
+       '_critic_iters_' + str(FLAGS.critic_iters) + '_lambda_' + str(FLAGS.lambd) +\
+      '_iteration_' + FLAGS.iteration + '/'
+      
   FLAGS.checkpoint_dir = FLAGS.sample_dir + 'checkpoint/'
 
   if not os.path.exists(FLAGS.checkpoint_dir):
@@ -90,9 +97,10 @@ def main(_):
     fake_samples = wgan.get_samples(num_samples=FLAGS.num_samples)
     fake_samples = fake_samples.eval(session=sess)
     fake_samples = wgan.binarize(samples=fake_samples)    
-    #_,_,_,_ = analysis.get_stats(X=fake_samples.T, num_neurons=FLAGS.num_neurons, num_bins= FLAGS.num_bins, folder=FLAGS.sample_dir, name='fake')
-    analysis.evaluate_approx_distribution(X=fake_samples.T, folder=FLAGS.sample_dir, num_samples_theoretical_distr=2**21,num_bins=FLAGS.num_bins, num_neurons=FLAGS.num_neurons,\
-                        group_size=FLAGS.group_size,refr_per=FLAGS.ref_period)
+    _,_,_,_ = analysis.get_stats(X=fake_samples.T, num_neurons=FLAGS.num_neurons, num_bins= FLAGS.num_bins, folder=FLAGS.sample_dir, name='fake')
+    if FLAGS.data=='simulated':
+        analysis.evaluate_approx_distribution(X=fake_samples.T, folder=FLAGS.sample_dir, num_samples_theoretical_distr=2**21,num_bins=FLAGS.num_bins, num_neurons=FLAGS.num_neurons,\
+                            group_size=FLAGS.group_size,refr_per=FLAGS.ref_period)
 
 if __name__ == '__main__':
   tf.app.run()

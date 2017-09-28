@@ -15,7 +15,7 @@ matplotlib.use('Agg')
 from functools import wraps
 import sys
 sys.path.append(os.getcwd())
-from tflib import plot, sim_pop_activity, params_with_name, analysis
+from tflib import plot, sim_pop_activity, params_with_name, analysis, retinal_data
 from tflib.ops import linear, act_funct
 from tensorflow.python.framework import ops as options
 import matplotlib.pyplot as plt
@@ -110,21 +110,27 @@ class WGAN(object):
     self.load()
     
     #get real samples
-    firing_rates_mat = config.firing_rate+2*(np.random.random(int(self.num_neurons/config.group_size),)-0.5)*config.firing_rate/2    
-    correlations_mat = config.correlation+2*(np.random.random(int(self.num_neurons/config.group_size),)-0.5)*config.correlation/2    
-    aux = np.arange(int(self.num_neurons/config.group_size))
-    activity_peaks = [[x]*config.group_size for x in aux]#np.random.randint(0,high=self.num_bins,size=(1,self.num_neurons)).reshape(self.num_neurons,1)
-    activity_peaks = np.asarray(activity_peaks)
-    activity_peaks = activity_peaks.flatten()
-    activity_peaks = activity_peaks*config.group_size*self.num_bins/self.num_neurons
-    activity_peaks = activity_peaks.reshape(self.num_neurons,1)
-    self.real_samples = sim_pop_activity.get_samples(num_samples=config.num_samples, num_bins=self.num_bins,\
-    num_neurons=self.num_neurons, correlations_mat=correlations_mat, group_size=config.group_size, refr_per=config.ref_period,firing_rates_mat=firing_rates_mat, activity_peaks=activity_peaks)
-    #save original statistics
-    analysis.get_stats(X=self.real_samples, num_neurons=self.num_neurons, num_bins=self.num_bins, folder=self.sample_dir, name='real',firing_rate_mat=firing_rates_mat, correlation_mat=correlations_mat, activity_peaks=activity_peaks)
-    #get dev samples
-    dev_samples = sim_pop_activity.get_samples(num_samples=int(config.num_samples/4), num_bins=self.num_bins,\
-    num_neurons=self.num_neurons, correlations_mat=correlations_mat, group_size=config.group_size, refr_per=config.ref_period,firing_rates_mat=firing_rates_mat, activity_peaks=activity_peaks)
+    if config.dataset=='simulated':
+        firing_rates_mat = config.firing_rate+2*(np.random.random(int(self.num_neurons/config.group_size),)-0.5)*config.firing_rate/2    
+        correlations_mat = config.correlation+2*(np.random.random(int(self.num_neurons/config.group_size),)-0.5)*config.correlation/2    
+        aux = np.arange(int(self.num_neurons/config.group_size))
+        activity_peaks = [[x]*config.group_size for x in aux]#np.random.randint(0,high=self.num_bins,size=(1,self.num_neurons)).reshape(self.num_neurons,1)
+        activity_peaks = np.asarray(activity_peaks)
+        activity_peaks = activity_peaks.flatten()
+        activity_peaks = activity_peaks*config.group_size*self.num_bins/self.num_neurons
+        activity_peaks = activity_peaks.reshape(self.num_neurons,1)
+        self.real_samples = sim_pop_activity.get_samples(num_samples=config.num_samples, num_bins=self.num_bins,\
+        num_neurons=self.num_neurons, correlations_mat=correlations_mat, group_size=config.group_size, refr_per=config.ref_period,firing_rates_mat=firing_rates_mat, activity_peaks=activity_peaks)
+        #get dev samples
+        dev_samples = sim_pop_activity.get_samples(num_samples=int(config.num_samples/4), num_bins=self.num_bins,\
+        num_neurons=self.num_neurons, correlations_mat=correlations_mat, group_size=config.group_size, refr_per=config.ref_period,firing_rates_mat=firing_rates_mat, activity_peaks=activity_peaks)
+        #save original statistics
+        analysis.get_stats(X=self.real_samples, num_neurons=self.num_neurons, num_bins=self.num_bins, folder=self.sample_dir, name='real',firing_rate_mat=firing_rates_mat, correlation_mat=correlations_mat, activity_peaks=activity_peaks)
+    elif config.dataset=='retina':
+        self.real_samples = retinal_data.get_samples(num_bins=self.num_bins, instance=config.data_instance)
+        #save original statistics
+        analysis.get_stats(X=self.real_samples, num_neurons=self.num_neurons, num_bins=self.num_bins, folder=self.sample_dir, name='real')
+    
     
     
     #start training
@@ -159,14 +165,15 @@ class WGAN(object):
     
       if (iteration < 1) or iteration % 50000 == 49999:
         print('epoch ' + str(epoch))
-        #this is to evaluate whether the discriminator has overfit 
-        dev_disc_costs = []
-        for ind_dev in range(int(dev_samples.shape[1]/self.batch_size)):
-          images = dev_samples[:,ind_dev*config.batch_size:(ind_dev+1)*config.batch_size].T
-          _dev_disc_cost = self.sess.run(self.disc_cost, feed_dict={self.inputs: images}) 
-          dev_disc_costs.append(_dev_disc_cost)
-        #plot the dev loss  
-        plot.plot(self.sample_dir,'dev disc cost', -np.mean(dev_disc_costs))
+        if config.dataset=='simulated':
+            #this is to evaluate whether the discriminator has overfit 
+            dev_disc_costs = []
+            for ind_dev in range(int(dev_samples.shape[1]/self.batch_size)):
+              images = dev_samples[:,ind_dev*config.batch_size:(ind_dev+1)*config.batch_size].T
+              _dev_disc_cost = self.sess.run(self.disc_cost, feed_dict={self.inputs: images}) 
+              dev_disc_costs.append(_dev_disc_cost)
+            #plot the dev loss  
+            plot.plot(self.sample_dir,'dev disc cost', -np.mean(dev_disc_costs))
         
         #save the network parameters
         self.save(iteration)
