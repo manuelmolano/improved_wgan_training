@@ -127,7 +127,7 @@ class WGAN(object):
         #save original statistics
         analysis.get_stats(X=self.real_samples, num_neurons=self.num_neurons, num_bins=self.num_bins, folder=self.sample_dir, name='real',firing_rate_mat=firing_rates_mat, correlation_mat=correlations_mat, activity_peaks=activity_peaks)
     elif config.dataset=='retina':
-        self.real_samples = retinal_data.get_samples(num_bins=self.num_bins, instance=config.data_instance)
+        self.real_samples = retinal_data.get_samples(num_bins=self.num_bins, num_neurons=self.num_neurons, instance=config.data_instance)
         #save original statistics
         analysis.get_stats(X=self.real_samples, num_neurons=self.num_neurons, num_bins=self.num_bins, folder=self.sample_dir, name='real')
     
@@ -182,7 +182,7 @@ class WGAN(object):
         fake_samples = self.get_samples(num_samples=2**13)
         fake_samples = fake_samples.eval(session=self.sess)
         fake_samples = self.binarize(samples=fake_samples)    
-        acf_error, mean_error, _, corr_error, time_course_error = analysis.get_stats(X=fake_samples.T, num_neurons=config.num_neurons,num_bins=config.num_bins, folder=config.sample_dir, name='fake'+str(iteration)) 
+        acf_error, mean_error, _, corr_error, time_course_error,_ = analysis.get_stats(X=fake_samples.T, num_neurons=config.num_neurons,num_bins=config.num_bins, folder=config.sample_dir, name='fake'+str(iteration)) 
         #plot the fitting errors
         sbplt[0][0].plot(iteration,mean_error,'+b')
         sbplt[0][0].set_title('spk-count mean error')

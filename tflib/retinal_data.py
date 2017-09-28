@@ -17,10 +17,10 @@ import scipy.io as sio
 import matplotlib.pyplot as plt
 #import time
 
-def get_samples(num_bins=1, instance='1'):                        
+def get_samples(num_bins=1, num_neurons=30, instance='1'):                        
     
     
-    mat_contents = sio.loadmat('/home/manuel/generative-neural-models-master/k_pairwise/results/J_and_VK_' + instance + '.mat')    
+    mat_contents = sio.loadmat('/home/manuel/generative-neural-models-master/k_pairwise/results/data_num_neurons_' + str(num_neurons) + '_' + instance + '.mat')    
     data = mat_contents['data']
     
     if num_bins!=1:
