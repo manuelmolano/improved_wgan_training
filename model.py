@@ -182,7 +182,7 @@ class WGAN(object):
         fake_samples = self.get_samples(num_samples=2**13)
         fake_samples = fake_samples.eval(session=self.sess)
         fake_samples = self.binarize(samples=fake_samples)    
-        acf_error, mean_error, _, corr_error, time_course_error,_ = analysis.get_stats(X=fake_samples.T, num_neurons=config.num_neurons,num_bins=config.num_bins, folder=config.sample_dir, name='fake'+str(iteration)) 
+        acf_error, mean_error, corr_error, time_course_error,_ = analysis.get_stats(X=fake_samples.T, num_neurons=config.num_neurons,num_bins=config.num_bins, folder=config.sample_dir, name='fake'+str(iteration)) 
         #plot the fitting errors
         sbplt[0][0].plot(iteration,mean_error,'+b')
         sbplt[0][0].set_title('spk-count mean error')

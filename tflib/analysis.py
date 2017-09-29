@@ -8,7 +8,7 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
-from tflib import sim_pop_activity
+from tflib import sim_pop_activity, retinal_data
 import time
 
 #parameters for figure
@@ -26,45 +26,28 @@ def get_stats(X, num_neurons, num_bins, folder, name, firing_rate_mat=[],correla
     if name!='real' then it compares the above stats with the original ones 
     
     '''
-    get_k_probs = False
+    resave_real_data = False
     if name!='real':
-        original_data = np.load(folder + '/stats_real.npz')    
-        if 'k_probs' not in original_data:        
-            get_k_probs = True
-    lag = 10
-    num_samples = X.shape[1]
-    spike_count = np.zeros((num_neurons,num_samples))
-    X_continuous = np.zeros((num_neurons,num_bins*num_samples))
-    autocorrelogram_mat = np.zeros(2*lag+1)
-    firing_average_time_course = np.zeros((num_neurons,num_bins))
-    if get_k_probs:
-        real_samples_continuous = np.zeros((num_neurons,num_bins*num_samples))
-    for ind in range(num_samples):
-        sample = X[:,ind].reshape((num_neurons,-1))
-        spike_count[:,ind] = np.sum(sample,axis=1)        
-        X_continuous[:,ind*num_bins:(ind+1)*num_bins] = sample
-        autocorrelogram_mat += autocorrelogram(sample,lag=lag)
-        firing_average_time_course += sample
-        if get_k_probs:
-            sample = original_data['samples'][:,ind].reshape(num_neurons,-1)
-            real_samples_continuous[:,ind*num_bins:(ind+1)*num_bins] = sample
-
-    cov_mat =  np.cov(X_continuous)
-    aux = np.histogram(np.sum(X_continuous,axis=0),bins=np.arange(num_neurons+2)-0.5)[0]
-    k_probs = aux/X_continuous.shape[1]
-    if get_k_probs:
-        aux = np.histogram(np.sum(real_samples_continuous,axis=0),bins=np.arange(num_neurons+2)-0.5)[0]
-        k_probs_real = aux/real_samples_continuous.shape[1]
-        cov_mat_real =  np.cov(real_samples_continuous)
-    elif name!='real':
-        k_probs_real = original_data['k_probs']
-        cov_mat_real = original_data['corr_mat']
-        
-    mean_spike_count = np.mean(spike_count,axis=1)
-    std_spike_count = np.std(spike_count,axis=1)
-    autocorrelogram_mat = autocorrelogram_mat/np.max(autocorrelogram_mat)
-    autocorrelogram_mat[lag] = 0
-    firing_average_time_course = firing_average_time_course/num_samples
+        original_data = np.load(folder + '/stats_real.npz')   
+        if any(k not in original_data for k in ("mean","acf","cov_mat","k_probs","lag_cov_mat","firing_average_time_course")):
+            if 'samples' not in original_data:
+                samples = retinal_data.get_samples(num_bins=27, num_neurons=10, instance='1')
+            else:
+                samples = original_data['samples']
+            cov_mat_real, k_probs_real, mean_spike_count_real, autocorrelogram_mat_real, firing_average_time_course_real, lag_cov_mat_real =\
+            get_stats_aux(samples, num_neurons, num_bins)
+            assert np.all(autocorrelogram_mat_real==original_data['acf'])
+            assert np.all(mean_spike_count_real==original_data['mean'])       
+            resave_real_data = True
+        else:
+            mean_spike_count_real, autocorrelogram_mat_real, firing_average_time_course_real, cov_mat_real, k_probs_real, lag_cov_mat_real = \
+            [original_data["mean"], original_data["acf"], original_data["firing_average_time_course"], original_data["cov_mat"], original_data["k_probs"], original_data["lag_cov_mat"]]
+    
+    cov_mat, k_probs, mean_spike_count, autocorrelogram_mat, firing_average_time_course, lag_cov_mat = get_stats_aux(X, num_neurons, num_bins)
+    
+    
+    
+    #PLOT
     index = np.linspace(-10,10,2*10+1)
     #figure for all training error across epochs (supp. figure 2)
     f,sbplt = plt.subplots(2,3,figsize=(8, 8),dpi=250)
@@ -72,24 +55,23 @@ def get_stats(X, num_neurons, num_bins, folder, name, firing_rate_mat=[],correla
     plt.subplots_adjust(left=left, bottom=bottom, right=right, top=top, wspace=wspace, hspace=hspace)
     
     #plot autocorrelogram(s)
-    sbplt[1][1].plot(index, autocorrelogram_mat)
+    sbplt[1][1].plot(index, autocorrelogram_mat,'r')
     if name!='real':
-        sbplt[1][1].plot(index, original_data['acf'])
-        acf_error = np.sum(np.abs(autocorrelogram_mat-original_data['acf']))
+        sbplt[1][1].plot(index, autocorrelogram_mat_real,'b')
+        acf_error = np.sum(np.abs(autocorrelogram_mat-autocorrelogram_mat_real))
     sbplt[1][1].set_title('Autocorrelogram')
     sbplt[1][1].set_xlabel('time (ms)')
     sbplt[1][1].set_ylabel('number of spikes')
     
     #plot mean firing rates
     if name!='real':
-        sbplt[0][0].plot(original_data['mean'],mean_spike_count,'.')
-        sbplt[0][0].plot([0,np.max(original_data['mean'])],[0,np.max(original_data['mean'])])
-        mean_error = np.sum(np.abs(mean_spike_count-original_data['mean']))
-        std_error = np.sum(np.abs(std_spike_count-original_data['std']))
+        sbplt[0][0].plot([0,np.max(mean_spike_count_real)],[0,np.max(mean_spike_count_real)],'k')
+        sbplt[0][0].plot(mean_spike_count_real,mean_spike_count,'.g')
+        mean_error = np.sum(np.abs(mean_spike_count-mean_spike_count_real))
         sbplt[0][0].set_xlabel('mean firing rate expt')
         sbplt[0][0].set_ylabel('mean firing rate model')
     else:
-        sbplt[0][0].plot(mean_spike_count)
+        sbplt[0][0].plot(mean_spike_count,'b')
         sbplt[0][0].set_xlabel('neuron')
         sbplt[0][0].set_ylabel('firing probability')
         
@@ -97,9 +79,9 @@ def get_stats(X, num_neurons, num_bins, folder, name, firing_rate_mat=[],correla
 
     #plot correlations
     if name!='real':
-        sbplt[0][1].plot(cov_mat_real.flatten(),cov_mat.flatten(),'.')
         sbplt[0][1].plot([np.min(cov_mat_real.flatten()),np.max(cov_mat_real.flatten())],\
-                        [np.min(cov_mat_real.flatten()),np.max(cov_mat_real.flatten())])
+                        [np.min(cov_mat_real.flatten()),np.max(cov_mat_real.flatten())],'k')
+        sbplt[0][1].plot(cov_mat_real.flatten(),cov_mat.flatten(),'.g')
         sbplt[0][1].set_title('pairwise correlations')
         sbplt[0][1].set_xlabel('correlations expt')
         sbplt[0][1].set_ylabel('correlations model')
@@ -114,8 +96,8 @@ def get_stats(X, num_neurons, num_bins, folder, name, firing_rate_mat=[],correla
         
     #plot k-statistics
     if name!='real':
-        sbplt[1][0].plot(k_probs_real,k_probs,'.')
-        sbplt[1][0].plot([0,np.max(k_probs_real)],[0,np.max(k_probs_real)])
+        sbplt[1][0].plot([0,np.max(k_probs_real)],[0,np.max(k_probs_real)],'k')        
+        sbplt[1][0].plot(k_probs_real,k_probs,'.g')        
         k_probs_error = np.sum(np.abs(k_probs-k_probs_real))
         sbplt[1][0].set_xlabel('k-probs expt')
         sbplt[1][0].set_ylabel('k-probs model')
@@ -125,36 +107,108 @@ def get_stats(X, num_neurons, num_bins, folder, name, firing_rate_mat=[],correla
         sbplt[1][0].set_ylabel('probability')
         
     sbplt[1][0].set_title('k statistics')        
-        
-    
+      
+    #plot average time course
+    #firing_average_time_course[firing_average_time_course>0.048] = 0.048
     map_aux = sbplt[0][2].imshow(firing_average_time_course,interpolation='nearest')
     f.colorbar(map_aux,ax=sbplt[0][2])
     sbplt[0][2].set_title('sim firing time course')
-    sbplt[0][2].set_xlabel('neuron')
-    sbplt[0][2].set_ylabel('time (ms)')
+    sbplt[0][2].set_xlabel('time (ms)')
+    sbplt[0][2].set_ylabel('neuron')
     if name!='real':
-        map_aux = sbplt[1][2].imshow(original_data['firing_average_time_course'],interpolation='nearest')
+        map_aux = sbplt[1][2].imshow(firing_average_time_course_real,interpolation='nearest')
         f.colorbar(map_aux,ax=sbplt[1][2])
         sbplt[1][2].set_title('real firing time course')
-        sbplt[1][2].set_xlabel('neuron')
-        sbplt[1][2].set_ylabel('time (ms)')
-        time_course_error = np.sum(np.abs(firing_average_time_course-original_data['firing_average_time_course']).flatten())    
+        sbplt[1][2].set_xlabel('time (ms)')
+        sbplt[1][2].set_ylabel('neuron')
+        time_course_error = np.sum(np.abs(firing_average_time_course-firing_average_time_course_real).flatten())    
     
     f.savefig(folder+'stats_'+name+'_II.svg',dpi=600, bbox_inches='tight')
     plt.close(f)
+    
+    if name!='real':   
+        #PLOT LAG COVARIANCES
+        #figure for all training error across epochs (supp. figure 2)
+        f,sbplt = plt.subplots(1,3,figsize=(8, 8),dpi=250)
+        matplotlib.rcParams.update({'font.size': 8})
+        plt.subplots_adjust(left=left, bottom=bottom, right=right, top=top, wspace=wspace, hspace=hspace)    
+        map_aux = sbplt[0].imshow(lag_cov_mat_real,interpolation='nearest')
+        f.colorbar(map_aux,ax=sbplt[0])
+        sbplt[0].set_title('lag correlation mat expt')
+        sbplt[0].set_xlabel('neuron')
+        sbplt[0].set_ylabel('neuron shifted')
+        map_aux = sbplt[1].imshow(lag_cov_mat,interpolation='nearest')
+        f.colorbar(map_aux,ax=sbplt[1])
+        sbplt[1].set_title('lag correlation mat model')
+        sbplt[1].set_xlabel('neuron')
+        sbplt[1].set_ylabel('neuron shifted')
+        sbplt[2].plot([np.min(lag_cov_mat_real.flatten()),np.max(lag_cov_mat_real.flatten())],\
+                        [np.min(lag_cov_mat_real.flatten()),np.max(lag_cov_mat_real.flatten())],'k')        
+        sbplt[2].plot(lag_cov_mat_real,lag_cov_mat,'.g')
+        sbplt[2].set_xlabel('lag cov real')
+        sbplt[2].set_ylabel('lag cov model')
+        f.savefig(folder+'lag_covs_'+name+'_II.svg',dpi=600, bbox_inches='tight')
+        plt.close(f)
+        
     if name=='real' and len(firing_rate_mat)>0:
-        data = {'mean':mean_spike_count, 'std':std_spike_count, 'acf':autocorrelogram_mat, 'corr_mat':cov_mat, 'samples':X, 'k_probs':k_probs,\
+        data = {'mean':mean_spike_count, 'acf':autocorrelogram_mat, 'cov_mat':cov_mat, 'samples':X, 'k_probs':k_probs,'lag_cov_mat':lag_cov_mat,\
         'firing_rate_mat':firing_rate_mat, 'correlation_mat':correlation_mat, 'activity_peaks':activity_peaks, 'firing_average_time_course':firing_average_time_course}
         np.savez(folder + '/stats_'+name+'.npz', **data)    
     else:
-        data = {'mean':mean_spike_count, 'std':std_spike_count, 'acf':autocorrelogram_mat, 'corr_mat':cov_mat, 'k_probs':k_probs, 'firing_average_time_course':firing_average_time_course}
-        np.savez(folder + '/stats_'+name+'.npz', **data)    
+        data = {'mean':mean_spike_count, 'acf':autocorrelogram_mat, 'cov_mat':cov_mat, 'k_probs':k_probs, 'firing_average_time_course':firing_average_time_course}
+        np.savez(folder + '/stats_'+name+'.npz', **data)   
+        if resave_real_data:
+            if 'firing_rate_mat' in original_data:
+                data = {'mean':mean_spike_count_real, 'acf':autocorrelogram_mat_real, 'cov_mat':cov_mat_real, 'samples':samples, 'k_probs':k_probs_real,'lag_cov_mat':lag_cov_mat_real,\
+                'firing_rate_mat':original_data['firing_rate_mat'], 'correlation_mat':original_data['correlation_mat'], 'activity_peaks':original_data['activity_peaks'], \
+                'firing_average_time_course':firing_average_time_course_real}
+            else:
+                data = {'mean':mean_spike_count_real, 'acf':autocorrelogram_mat_real, 'cov_mat':cov_mat_real, 'samples':samples, 'k_probs':k_probs_real,'lag_cov_mat':lag_cov_mat_real,\
+                    'firing_average_time_course':firing_average_time_course_real}
+            np.savez(folder + '/stats_real.npz', **data)     
         if name!='real':        
-            return acf_error, mean_error, std_error, corr_error, time_course_error, k_probs_error
+            return acf_error, mean_error, corr_error, time_course_error, k_probs_error
     
+
+def get_stats_aux(X, num_neurons, num_bins):
+    lag = 10
+    num_samples = X.shape[1]
+    spike_count = np.zeros((num_neurons,num_samples))
+    X_continuous = np.zeros((num_neurons,num_bins*num_samples))
+    autocorrelogram_mat = np.zeros(2*lag+1)
+    firing_average_time_course = np.zeros((num_neurons,num_bins))
+   
+    for ind in range(num_samples):
+        sample = X[:,ind].reshape((num_neurons,-1))
+        spike_count[:,ind] = np.sum(sample,axis=1)        
+        X_continuous[:,ind*num_bins:(ind+1)*num_bins] = sample
+        autocorrelogram_mat += autocorrelogram(sample,lag=lag)
+        firing_average_time_course += sample
+  
+    #covariance mat
+    cov_mat =  np.cov(X_continuous)
+    #k-probs
+    aux = np.histogram(np.sum(X_continuous,axis=0),bins=np.arange(num_neurons+2)-0.5)[0]
+    k_probs = aux/X_continuous.shape[1]   
+    #average firing rate
+    mean_spike_count = np.mean(spike_count,axis=1)
+    #autocorrelogram
+    autocorrelogram_mat = autocorrelogram_mat/np.max(autocorrelogram_mat)
+    autocorrelogram_mat[lag] = 0
+    #average time course
+    firing_average_time_course = firing_average_time_course/num_samples
+    #lag cov mat
+    lag_cov_mat = np.zeros((num_neurons,num_neurons))
+    for ind_n in range(num_neurons):
+        for ind_n2 in range(num_neurons):
+            resp1 = X_continuous[ind_n,0:num_bins*num_samples-1].reshape(1,-1)
+            resp2 = X_continuous[ind_n2,1:num_bins*num_samples].reshape(1,-1)
+            aux = np.cov(np.concatenate((resp1,resp2),axis=0))
+            lag_cov_mat[ind_n,ind_n2] = aux[1,0]
+            
+    return cov_mat, k_probs, mean_spike_count, autocorrelogram_mat, firing_average_time_course, lag_cov_mat
     
-def evaluate_approx_distribution(X, folder, num_samples_theoretical_distr=2**15,num_bins=10, num_neurons=4,\
-                        group_size=2,refr_per=2): 
+def evaluate_approx_distribution(X, folder, num_samples_theoretical_distr=2**15, num_bins=10, num_neurons=4, group_size=2, refr_per=2): 
     '''
     compute spike trains spikes: spk-count mean and std, autocorrelogram and correlation mat
     if name!='real' then it compares the above stats with the original ones 
