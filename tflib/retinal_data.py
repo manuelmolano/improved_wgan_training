@@ -37,7 +37,7 @@ def get_samples(num_bins=27, num_neurons=10, instance='1'):
         
 def load_samples_from_k_pairwise_model(num_samples=2**13, num_bins=27, num_neurons=10, instance='1'):
     mat_contents = sio.loadmat('/home/manuel/generative-neural-models-master/k_pairwise/results/simulated_samples_num_neurons_' + str(num_neurons) + '_' + instance + '.mat')    
-    data = mat_contents['data']
+    data = mat_contents['samples_batch_all']
     
     if num_bins!=1:
         data = data[0:data.shape[0]-data.shape[0]%num_bins,:]
@@ -46,14 +46,13 @@ def load_samples_from_k_pairwise_model(num_samples=2**13, num_bins=27, num_neuro
             sample = data[ind_s*num_bins:(ind_s+1)*num_bins,:].T
             X[:,ind_s] = sample.reshape((num_neurons*num_bins,-1))[:,0] 
     
-        else:
-            X = data.T
+    else:
+        X = data.T
 
 
     assert num_samples<X.shape[1]
-    
     np.random.shuffle(X.T)
-    
+    X = X[:,0:num_samples]
     return X
    
 
