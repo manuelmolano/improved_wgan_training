@@ -110,7 +110,7 @@ class WGAN(object):
     self.load()
     
     #get real samples
-    if config.dataset=='simulated':
+    if config.dataset=='uniform':
         firing_rates_mat = config.firing_rate+2*(np.random.random(int(self.num_neurons/config.group_size),)-0.5)*config.firing_rate/2    
         correlations_mat = config.correlation+2*(np.random.random(int(self.num_neurons/config.group_size),)-0.5)*config.correlation/2    
         aux = np.arange(int(self.num_neurons/config.group_size))
@@ -163,9 +163,9 @@ class WGAN(object):
       plot.plot(self.sample_dir,'train disc cost', -_disc_cost)
       plot.plot(self.sample_dir,'time', time.time() - start_time)
     
-      if (iteration < 1) or iteration % 50000 == 49999:
+      if (iteration == 500) or iteration % 50000 == 49999:
         print('epoch ' + str(epoch))
-        if config.dataset=='simulated':
+        if config.dataset=='uniform':
             #this is to evaluate whether the discriminator has overfit 
             dev_disc_costs = []
             for ind_dev in range(int(dev_samples.shape[1]/self.batch_size)):
