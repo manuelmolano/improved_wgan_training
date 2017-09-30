@@ -20,7 +20,7 @@ wspace = 0.4   # the amount of width reserved for blank space between subplots
 hspace = 0.4   # the amount of height reserved for white space between subplots
 
 
-def get_stats(X, num_neurons, num_bins, folder, name, firing_rate_mat=[],correlation_mat=[], activity_peaks=[]): 
+def get_stats(X, num_neurons, num_bins, folder, name, firing_rate_mat=[],correlation_mat=[], activity_peaks=[], critic_cost=np.nan, instance='1'): 
     '''
     compute spike trains spikes: spk-count mean and std, autocorrelogram and correlation mat
     if name!='real' then it compares the above stats with the original ones 
@@ -31,7 +31,7 @@ def get_stats(X, num_neurons, num_bins, folder, name, firing_rate_mat=[],correla
         original_data = np.load(folder + '/stats_real.npz')   
         if any(k not in original_data for k in ("mean","acf","cov_mat","k_probs","lag_cov_mat","firing_average_time_course")):
             if 'samples' not in original_data:
-                samples = retinal_data.get_samples(num_bins=27, num_neurons=10, instance='1')
+                samples = retinal_data.get_samples(num_bins=num_bins, num_neurons=num_neurons, instance=instance)
             else:
                 samples = original_data['samples']
             cov_mat_real, k_probs_real, mean_spike_count_real, autocorrelogram_mat_real, firing_average_time_course_real, lag_cov_mat_real =\
@@ -155,7 +155,7 @@ def get_stats(X, num_neurons, num_bins, folder, name, firing_rate_mat=[],correla
         'firing_rate_mat':firing_rate_mat, 'correlation_mat':correlation_mat, 'activity_peaks':activity_peaks, 'firing_average_time_course':firing_average_time_course}
         np.savez(folder + '/stats_'+name+'.npz', **data)    
     else:
-        data = {'mean':mean_spike_count, 'acf':autocorrelogram_mat, 'cov_mat':cov_mat, 'k_probs':k_probs, 'firing_average_time_course':firing_average_time_course}
+        data = {'mean':mean_spike_count, 'acf':autocorrelogram_mat, 'cov_mat':cov_mat, 'k_probs':k_probs, 'firing_average_time_course':firing_average_time_course, 'critic_cost':critic_cost}
         np.savez(folder + '/stats_'+name+'.npz', **data)   
         if resave_real_data:
             if 'firing_rate_mat' in original_data:

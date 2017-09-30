@@ -97,12 +97,12 @@ def main(_):
     fake_samples = wgan.get_samples(num_samples=FLAGS.num_samples)
     fake_samples = fake_samples.eval(session=sess)
     fake_samples = wgan.binarize(samples=fake_samples)    
-    _,_,_,_,_ = analysis.get_stats(X=fake_samples.T, num_neurons=FLAGS.num_neurons, num_bins= FLAGS.num_bins, folder=FLAGS.sample_dir, name='fake')
+    _,_,_,_,_ = analysis.get_stats(X=fake_samples.T, num_neurons=FLAGS.num_neurons, num_bins= FLAGS.num_bins, folder=FLAGS.sample_dir, name='fake', instance=FLAGS.data_instance)
 
     if FLAGS.dataset=='retina':
-        k_pairwise_samples = retinal_data.load_samples_from_k_pairwise_model(num_samples=FLAGS.num_samples, num_bins=FLAGS.num_bins, num_neurons=FLAGS.num_neurons, instance='1')    
+        k_pairwise_samples = retinal_data.load_samples_from_k_pairwise_model(num_samples=FLAGS.num_samples, num_bins=FLAGS.num_bins, num_neurons=FLAGS.num_neurons, instance=FLAGS.data_instance)    
         print(k_pairwise_samples.shape)
-        _,_,_,_ ,_ = analysis.get_stats(X=k_pairwise_samples, num_neurons=FLAGS.num_neurons, num_bins= FLAGS.num_bins, folder=FLAGS.sample_dir, name='k_pairwise')
+        _,_,_,_ ,_ = analysis.get_stats(X=k_pairwise_samples, num_neurons=FLAGS.num_neurons, num_bins= FLAGS.num_bins, folder=FLAGS.sample_dir, name='k_pairwise', instance=FLAGS.data_instance)
     if FLAGS.dataset=='uniform' and False:
         analysis.evaluate_approx_distribution(X=fake_samples.T, folder=FLAGS.sample_dir, num_samples_theoretical_distr=2**21,num_bins=FLAGS.num_bins, num_neurons=FLAGS.num_neurons,\
                             group_size=FLAGS.group_size,refr_per=FLAGS.ref_period)

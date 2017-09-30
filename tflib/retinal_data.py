@@ -31,7 +31,6 @@ def get_samples(num_bins=27, num_neurons=10, instance='1'):
             X[:,ind_s] = sample.reshape((num_neurons*num_bins,-1))[:,0] 
     else:
         X = data.T
-
     return X
         
         

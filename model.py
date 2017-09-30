@@ -129,7 +129,7 @@ class WGAN(object):
     elif config.dataset=='retina':
         self.real_samples = retinal_data.get_samples(num_bins=self.num_bins, num_neurons=self.num_neurons, instance=config.data_instance)
         #save original statistics
-        analysis.get_stats(X=self.real_samples, num_neurons=self.num_neurons, num_bins=self.num_bins, folder=self.sample_dir, name='real')
+        analysis.get_stats(X=self.real_samples, num_neurons=self.num_neurons, num_bins=self.num_bins, folder=self.sample_dir, name='real',instance=config.data_instance)
     
     
     
@@ -163,7 +163,7 @@ class WGAN(object):
       plot.plot(self.sample_dir,'train disc cost', -_disc_cost)
       plot.plot(self.sample_dir,'time', time.time() - start_time)
     
-      if (iteration == 500) or iteration % 50000 == 49999:
+      if (iteration == 500) or iteration % 20000 == 19999:
         print('epoch ' + str(epoch))
         if config.dataset=='uniform':
             #this is to evaluate whether the discriminator has overfit 
@@ -182,7 +182,8 @@ class WGAN(object):
         fake_samples = self.get_samples(num_samples=2**13)
         fake_samples = fake_samples.eval(session=self.sess)
         fake_samples = self.binarize(samples=fake_samples)    
-        acf_error, mean_error, corr_error, time_course_error,_ = analysis.get_stats(X=fake_samples.T, num_neurons=config.num_neurons,num_bins=config.num_bins, folder=config.sample_dir, name='fake'+str(iteration)) 
+        acf_error, mean_error, corr_error, time_course_error,_ = analysis.get_stats(X=fake_samples.T, num_neurons=config.num_neurons,\
+            num_bins=config.num_bins, folder=config.sample_dir, name='fake'+str(iteration), critic_cost=-_disc_cost,instance=config.data_instance) 
         #plot the fitting errors
         sbplt[0][0].plot(iteration,mean_error,'+b')
         sbplt[0][0].set_title('spk-count mean error')
