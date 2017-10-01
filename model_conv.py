@@ -214,43 +214,32 @@ class WGAN_conv(object):
   # Discriminator
   def DCGANDiscriminator(self, inputs):
     kernel_width = 2 # in the time dimension
-    output = tf.reshape(inputs, [-1, 1, self.num_neurons, self.num_bins])
-    #need to zeros-pad on the right so the number of bins is not affected
-    output = tf.pad(output, [[0, 0], [0, 0], [0, 0], [0, kernel_width-1]], "CONSTANT")
+    num_features = self.num_neurons
+    #neurons are treated as different channels
+    output = tf.reshape(inputs, [-1, self.num_neurons, 1, self.num_bins])
     conv2d_II.set_weights_stdev(0.02)
     deconv2d.set_weights_stdev(0.02)
     linear.set_weights_stdev(0.02)
     print((output.get_shape()))
     print('0. -------------------------------')
-    output = conv2d_II.Conv2D('Discriminator.1', 1, 2*self.num_neurons, self.num_neurons, kernel_width, output, stride=1)
+    output = conv2d_II.Conv2D('Discriminator.1', self.num_neurons, 2*num_features, 1, kernel_width, output, stride=1)
     output = act_funct.LeakyReLU(output)
-    print((output.get_shape()))
-    #padding
-    output = tf.pad(output, [[0, 0], [0, 0], [0, 0], [0, kernel_width-1]], "CONSTANT")
-    #features become 
-    output = tf.transpose(output, [0, 2, 1, 3])
     print((output.get_shape()))
     print('1. -------------------------------')
-    output = conv2d_II.Conv2D('Discriminator.2', 1, 4*self.num_neurons, 2*self.num_neurons, kernel_width, output, stride=1)
+    output = conv2d_II.Conv2D('Discriminator.2', 2*num_features, 4*num_features, 1, kernel_width, output, stride=1)
     output = act_funct.LeakyReLU(output)
-    print((output.get_shape()))
-    output = tf.pad(output, [[0, 0], [0, 0], [0, 0], [0, kernel_width-1]], "CONSTANT")
-    output = tf.transpose(output, [0, 2, 1, 3])
     print((output.get_shape()))
     print('2. -------------------------------')
-    output = conv2d_II.Conv2D('Discriminator.3', 1, 8*self.num_neurons, 4*self.num_neurons, kernel_width, output, stride=1)
+    output = conv2d_II.Conv2D('Discriminator.3', 4*num_features, 8*num_features, 1, kernel_width, output, stride=1)
     output = act_funct.LeakyReLU(output)
     print((output.get_shape()))
-    output = tf.pad(output, [[0, 0], [0, 0], [0, 0], [0, kernel_width-1]], "CONSTANT")
-    output = tf.transpose(output, [0, 2, 1, 3])
-    print((output.get_shape()))
     print('3. -------------------------------')
-    output = conv2d_II.Conv2D('Discriminator.4', 1, 16*self.num_neurons, 8*self.num_neurons, kernel_width, output, stride=1)
+    output = conv2d_II.Conv2D('Discriminator.4', 8*num_features, 16*num_features, 1, kernel_width, output, stride=1)
     output = act_funct.LeakyReLU(output)
     print((output.get_shape()))
     print('4. -------------------------------')
-    output = tf.reshape(output, [-1, 16*self.num_neurons*self.num_bins])
-    output = linear.Linear('Discriminator.Output', 16*self.num_neurons*self.num_bins, 1, output)
+    output = tf.reshape(output, [-1, 16*num_features*self.num_bins])
+    output = linear.Linear('Discriminator.Output', 16*num_features*self.num_bins, 1, output)
 
     conv2d_II.unset_weights_stdev()
     deconv2d.unset_weights_stdev()
