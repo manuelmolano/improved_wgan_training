@@ -36,30 +36,30 @@ def Conv2D(name, input_dim, output_dim, filter_size1, filter_size2, inputs, he_i
                 size=size
             ).astype('float32')
 
-        fan_in = input_dim * filter_size1*filter_size2
-        fan_out = output_dim * filter_size1*filter_size2 / (stride**2)
-
-        if he_init:
-            filters_stdev = np.sqrt(4./(fan_in+fan_out))
-        else: # Normalized init (Glorot & Bengio)
-            filters_stdev = np.sqrt(2./(fan_in+fan_out))
 
         
-        filter_values = uniform(
-            filters_stdev,
-            (filter_size1, filter_size2, input_dim, output_dim)
-        )
+        if _weights_stdev is not None:
+            filter_values = uniform(_weights_stdev,(filter_size1, filter_size2, input_dim, output_dim))
+        else:
+            fan_in = input_dim * filter_size1*filter_size2
+            fan_out = output_dim * filter_size1*filter_size2 / (stride**2)
 
+            if he_init:
+                filters_stdev = np.sqrt(4./(fan_in+fan_out))
+            else: # Normalized init (Glorot & Bengio)
+                filters_stdev = np.sqrt(2./(fan_in+fan_out))
+
+            filter_values = uniform(filters_stdev,(filter_size1, filter_size2, input_dim, output_dim))
+        
      
         filters = lib.param(name+'.Filters', filter_values)
-
-      
+     
        
         result = tf.nn.conv2d(
             input=inputs, 
             filter=filters, 
             strides=[1, 1, stride, stride],
-            padding='VALID',
+            padding='SAME',
             data_format='NCHW'
         )
 
