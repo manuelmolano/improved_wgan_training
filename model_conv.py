@@ -213,8 +213,8 @@ class WGAN_conv(object):
           
   # Discriminator
   def DCGANDiscriminator(self, inputs):
-    kernel_width = 2 # in the time dimension
-    num_features = self.num_neurons
+    kernel_width = 4 # in the time dimension
+    num_features = 2*self.num_neurons
     #neurons are treated as different channels
     output = tf.reshape(inputs, [-1, self.num_neurons, 1, self.num_bins])
     conv2d_II.set_weights_stdev(0.02)
@@ -222,25 +222,28 @@ class WGAN_conv(object):
     linear.set_weights_stdev(0.02)
     print((output.get_shape()))
     print('0. -------------------------------')
-    output = conv2d_II.Conv2D('Discriminator.1', self.num_neurons, 2*num_features, 1, kernel_width, output, stride=1)
+    output = conv2d_II.Conv2D('Discriminator.1', self.num_neurons, 2*num_features, 1, kernel_width, output, stride=2)
     output = act_funct.LeakyReLU(output)
     print((output.get_shape()))
     print('1. -------------------------------')
-    output = conv2d_II.Conv2D('Discriminator.2', 2*num_features, 4*num_features, 1, kernel_width, output, stride=1)
+    output = conv2d_II.Conv2D('Discriminator.2', 2*num_features, 4*num_features, 1, kernel_width, output, stride=2)
     output = act_funct.LeakyReLU(output)
     print((output.get_shape()))
     print('2. -------------------------------')
-    output = conv2d_II.Conv2D('Discriminator.3', 4*num_features, 8*num_features, 1, kernel_width, output, stride=1)
+    output = conv2d_II.Conv2D('Discriminator.3', 4*num_features, 8*num_features, 1, kernel_width, output, stride=2)
     output = act_funct.LeakyReLU(output)
     print((output.get_shape()))
     print('3. -------------------------------')
-    output = conv2d_II.Conv2D('Discriminator.4', 8*num_features, 16*num_features, 1, kernel_width, output, stride=1)
+    output = conv2d_II.Conv2D('Discriminator.4', 8*num_features, 16*num_features, 1, kernel_width, output, stride=2)
     output = act_funct.LeakyReLU(output)
     print((output.get_shape()))
     print('4. -------------------------------')
-    output = tf.reshape(output, [-1, 16*num_features*self.num_bins])
-    output = linear.Linear('Discriminator.Output', 16*num_features*self.num_bins, 1, output)
-
+    output = tf.reshape(output, [-1, int(16*num_features*self.num_bins/2**4)])
+    print((output.get_shape()))
+    print('5. -------------------------------')
+    output = linear.Linear('Discriminator.Output', int(16*num_features*self.num_bins/2**4), 1, output)
+    print((output.get_shape()))
+    print('6. -------------------------------')
     conv2d_II.unset_weights_stdev()
     deconv2d.unset_weights_stdev()
     linear.unset_weights_stdev()
