@@ -30,7 +30,7 @@ def Deconv2D(name, input_dim, output_dim, filter_size1, filter_size2, inputs, he
     inputs: tensor of shape (batch size, height, width, input_dim)
     returns: tensor of shape (batch size, 2*height, 2*width, output_dim)
     """
-    with tf.name_scope(name) as scope:
+    with tf.name_scope(name):
 
       
         def uniform(stdev, size):
@@ -44,11 +44,6 @@ def Deconv2D(name, input_dim, output_dim, filter_size1, filter_size2, inputs, he
         fan_in = input_dim * filter_size1*filter_size2 / (stride**2)
         fan_out = output_dim * filter_size1*filter_size2
 
-        if he_init:
-            filters_stdev = np.sqrt(4./(fan_in+fan_out))
-        else: # Normalized init (Glorot & Bengio)
-            filters_stdev = np.sqrt(2./(fan_in+fan_out))
-
 
         if _weights_stdev is not None:
             filter_values = uniform(
@@ -56,41 +51,31 @@ def Deconv2D(name, input_dim, output_dim, filter_size1, filter_size2, inputs, he
                 (filter_size1, filter_size2, output_dim, input_dim)
             )
         else:
+            if he_init:
+                filters_stdev = np.sqrt(4./(fan_in+fan_out))
+            else: # Normalized init (Glorot & Bengio)
+                filters_stdev = np.sqrt(2./(fan_in+fan_out))
             filter_values = uniform(
                 filters_stdev,
-                (filter_size1, filter_size2, output_dim, input_dim)
+                (filter_size1, filter_size2, input_dim, output_dim)
             )
 
 
-        filters = lib.param(
-            name+'.Filters',
-            filter_values
-        )
-
-        inputs = tf.transpose(inputs, [0,2,3,1], name='NCHW_to_NHWC')
-
+        filters = lib.param(name+'.Filters', filter_values)
+        
         input_shape = tf.shape(inputs)
-        try: # tf pre-1.0 (top) vs 1.0 (bottom)
-            output_shape = tf.pack([input_shape[0], 2*input_shape[1], 2*input_shape[2], output_dim])
-        except Exception as e:
-            output_shape = tf.stack([input_shape[0], 2*input_shape[1], 2*input_shape[2], output_dim])
+       
 
-        result = tf.nn.conv2d_transpose(
-            value=inputs, 
-            filter=filters,
-            output_shape=output_shape, 
-            strides=[1, 2, 2, 1],
-            padding='SAME'
+        resized_image = tf.image.resize_images(inputs, [1,2*input_shape[2]], method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)        
+        
+        result = tf.nn.conv2d(input=resized_image, filter=filters, strides=[1, 1, 1, 1], padding='SAME')
+
+  
+        _biases = lib.param(
+            name+'.Biases',
+            np.zeros(output_dim, dtype='float32')
         )
-
-        if biases:
-            _biases = lib.param(
-                name+'.Biases',
-                np.zeros(output_dim, dtype='float32')
-            )
-            result = tf.nn.bias_add(result, _biases)
-
-        result = tf.transpose(result, [0,3,1,2], name='NHWC_to_NCHW')
+        result = tf.nn.bias_add(result, _biases)
 
 
         return result
