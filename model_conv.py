@@ -17,8 +17,9 @@ from functools import wraps
 import sys
 sys.path.append(os.getcwd())
 from tflib import plot, sim_pop_activity, params_with_name, analysis, retinal_data
-from tflib.ops import linear, act_funct, conv2d_II, deconv2d
+from tflib.ops import linear, act_funct, conv2d_II, deconv2d_II
 from tensorflow.python.framework import ops as options
+from tensorflow.python.client import timeline
 import matplotlib.pyplot as plt
 
 #parameters used for (some) figures
@@ -67,7 +68,7 @@ class WGAN_conv(object):
     #real samples    
     self.inputs = tf.placeholder(tf.float32, name='real_data', shape=[self.batch_size, self.num_neurons*self.num_bins])
     #fake samples
-    self.sample_inputs = self.FCGenerator(self.batch_size)
+    self.sample_inputs = self.DCGANGenerator(self.batch_size)
     
     #discriminator output
     disc_real = self.DCGANDiscriminator(self.inputs)
@@ -83,6 +84,8 @@ class WGAN_conv(object):
         minval=0.,
         maxval=1.
     )
+    print(self.sample_inputs.get_shape())
+    print(self.inputs.get_shape())
     differences = self.sample_inputs - self.inputs
     interpolates = self.inputs + (alpha*differences)
     gradients = tf.gradients(self.DCGANDiscriminator(interpolates), [interpolates])[0]
@@ -101,11 +104,9 @@ class WGAN_conv(object):
     self.d_optim = tf.train.AdamOptimizer(learning_rate=config.learning_rate, beta1=config.beta1, beta2=config.beta2).minimize(self.disc_cost,
                                        var_list=params_with_name('Discriminator.'), colocate_gradients_with_ops=True)
 
-    #initizialize variables              
-    try:
-      tf.global_variables_initializer().run()
-    except:
-      tf.initialize_all_variables().run()
+    
+    tf.global_variables_initializer().run()
+    
       
     #try to load trained parameters
     self.load()
@@ -218,8 +219,9 @@ class WGAN_conv(object):
     #neurons are treated as different channels
     output = tf.reshape(inputs, [-1, self.num_neurons, 1, self.num_bins])
     conv2d_II.set_weights_stdev(0.02)
-    deconv2d.set_weights_stdev(0.02)
+    deconv2d_II.set_weights_stdev(0.02)
     linear.set_weights_stdev(0.02)
+    print('DISCRIMINATOR. -------------------------------')
     print((output.get_shape()))
     print('0. -------------------------------')
     output = conv2d_II.Conv2D('Discriminator.1', self.num_neurons, 2*num_features, 1, kernel_width, output, stride=2)
@@ -245,23 +247,55 @@ class WGAN_conv(object):
     print((output.get_shape()))
     print('6. -------------------------------')
     conv2d_II.unset_weights_stdev()
-    deconv2d.unset_weights_stdev()
+    deconv2d_II.unset_weights_stdev()
     linear.unset_weights_stdev()
 
     return tf.reshape(output, [-1])
     
   #Generator
-  def FCGenerator(self, n_samples, noise=None, FC_DIM=512):
+  def DCGANGenerator(self, n_samples, noise=None, FC_DIM=512):
+    kernel_width = 4 # in the time dimension
+    num_features = 2*self.num_neurons  
+    conv2d_II.set_weights_stdev(0.02)
+    deconv2d_II.set_weights_stdev(0.02)
+    linear.set_weights_stdev(0.02)
+
     if noise is None:
         noise = tf.random_normal([n_samples, 128])
-    output = act_funct.ReLULayer('Generator.1', 128, FC_DIM, noise)
-    output = act_funct.ReLULayer('Generator.2', FC_DIM, FC_DIM, output)
-    output = act_funct.ReLULayer('Generator.3', FC_DIM, FC_DIM, output)
-    output = act_funct.ReLULayer('Generator.4', FC_DIM, FC_DIM, output)
-    output = linear.Linear('Generator.Out', FC_DIM, self.output_dim, output)
-    
-    output = tf.nn.sigmoid(output)
-    
+        
+    output = linear.Linear('Generator.Input', 128,int(16*num_features*self.num_bins/2**4), noise)
+    print('GENERATOR. -------------------------------')
+    print((output.get_shape()))
+    print('0. -------------------------------')
+    output = tf.reshape(output, [-1, 16*num_features, 1, int(self.num_bins/2**4)])
+    output = act_funct.LeakyReLU(output)
+    print((output.get_shape()))
+    print('1. -------------------------------')
+    output = deconv2d_II.Deconv2D('Generator.1', 16*num_features, 8*num_features, 1, kernel_width, output, num_bins=int(self.num_bins/2**3))
+    output = act_funct.LeakyReLU(output)
+    print((output.get_shape()))
+    print('2. -------------------------------')
+    output = deconv2d_II.Deconv2D('Generator.2', 8*num_features, 4*num_features, 1, kernel_width, output, num_bins=int(self.num_bins/2**2))
+    output = act_funct.LeakyReLU(output)
+    print((output.get_shape()))
+    print('3. -------------------------------')
+    output = deconv2d_II.Deconv2D('Generator.3', 4*num_features, 2*num_features, 1, kernel_width, output, num_bins=int(self.num_bins/2))
+    output = act_funct.LeakyReLU(output)
+    print((output.get_shape()))
+    print('4. -------------------------------')
+    output = deconv2d_II.Deconv2D('Generator.4', 2*num_features, self.num_neurons, 1, kernel_width, output, num_bins=int(self.num_bins))
+    output = act_funct.LeakyReLU(output)
+    print((output.get_shape()))
+    print('5. -------------------------------')
+   
+    output = tf.sigmoid(output)
+
+    conv2d_II.unset_weights_stdev()
+    deconv2d_II.unset_weights_stdev()
+    linear.unset_weights_stdev()
+    output = tf.reshape(output, [-1, self.output_dim])
+    print((output.get_shape()))
+    print('6. -------------------------------')
     return output
  
   def binarize(self, samples, threshold=None):
@@ -279,7 +313,7 @@ class WGAN_conv(object):
   #draw samples from the generator
   def get_samples(self, num_samples=2**13): 
     noise = tf.constant(np.random.normal(size=(num_samples, 128)).astype('float32'))
-    fake_samples = self.FCGenerator(num_samples, noise=noise)
+    fake_samples = self.DCGANGenerator(num_samples, noise=noise)
     return fake_samples  
   
   #this is to save the network parameters  

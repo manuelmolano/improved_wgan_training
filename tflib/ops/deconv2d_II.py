@@ -25,7 +25,7 @@ def unset_weights_stdev():
     global _weights_stdev
     _weights_stdev = None
 
-def Deconv2D(name, input_dim, output_dim, filter_size1, filter_size2, inputs, he_init=True):
+def Deconv2D(name, input_dim, output_dim, filter_size1, filter_size2, inputs, num_bins, he_init=True):
     """
     inputs: tensor of shape (batch size, height, width, input_dim)
     returns: tensor of shape (batch size, 2*height, 2*width, output_dim)
@@ -48,7 +48,7 @@ def Deconv2D(name, input_dim, output_dim, filter_size1, filter_size2, inputs, he
         if _weights_stdev is not None:
             filter_values = uniform(
                 _weights_stdev,
-                (filter_size1, filter_size2, output_dim, input_dim)
+                (filter_size1, filter_size2, input_dim, output_dim)
             )
         else:
             if he_init:
@@ -62,12 +62,15 @@ def Deconv2D(name, input_dim, output_dim, filter_size1, filter_size2, inputs, he
 
 
         filters = lib.param(name+'.Filters', filter_values)
-        
+        inputs = tf.transpose(inputs, [0,2,3,1], name='NCHW_to_NHWC')
         input_shape = tf.shape(inputs)
-       
-
-        resized_image = tf.image.resize_images(inputs, [1,2*input_shape[2]], method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)        
         
+        output_shape = tf.stack([1,  2*input_shape[2]])
+        
+       
+      
+        resized_image = tf.image.resize_images(images=inputs, size=output_shape, method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)        
+       
         result = tf.nn.conv2d(input=resized_image, filter=filters, strides=[1, 1, 1, 1], padding='SAME')
 
   
@@ -76,6 +79,5 @@ def Deconv2D(name, input_dim, output_dim, filter_size1, filter_size2, inputs, he
             np.zeros(output_dim, dtype='float32')
         )
         result = tf.nn.bias_add(result, _biases)
-
-
+        result = tf.transpose(result, [0,3,1,2], name='NHWC_to_NCHW')
         return result
