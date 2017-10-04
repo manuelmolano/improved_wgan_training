@@ -22,15 +22,23 @@ Created on Thu Feb 23 11:27:20 2017
 """
 
 import os
-#import numpy as np
+import numpy as np
 import pprint
 from model_conv import WGAN_conv
 from tflib import analysis, retinal_data#, sim_pop_activity
+import matplotlib.pyplot as plt
+import matplotlib
 #from utils import pp, get_samples_autocorrelogram, get_samples
 
 
 import tensorflow as tf
-LAMBDA = 10 # Gradient penalty lambda hyperparameter
+#parameters used for (some) figures
+left  = 0.125  # the left side of the subplots of the figure
+right = 0.9    # the right side of the subplots of the figure
+bottom = 0.1   # the bottom of the subplots of the figure
+top = 0.9      # the top of the subplots of the figure
+wspace = 0.4   # the amount of width reserved for blank space between subplots
+hspace = 0.4   # the amount of height reserved for white space between subplots
 flags = tf.app.flags
 flags.DEFINE_integer("num_iter", 300000, "Epoch to train [50]")
 flags.DEFINE_float("learning_rate", 1e-4, "Learning rate for adam [1e-4]")
@@ -100,7 +108,36 @@ def main(_):
       if not wgan.load(FLAGS.training_stage):
         raise Exception("[!] Train a model first, then run test mode")      
 
-
+    #get filters
+    my_cmap = plt.cm.gray
+    filters = wgan.get_filters()
+    num_filters = len(filters)
+    num_rows = int(np.ceil(np.sqrt(num_filters)))
+    num_cols = int(np.ceil(np.sqrt(num_filters)))
+    f,sbplt = plt.subplots(8,8,figsize=(8, 8),dpi=250)
+    matplotlib.rcParams.update({'font.size': 8})
+    plt.subplots_adjust(left=left, bottom=bottom, right=right, top=top, wspace=wspace, hspace=hspace)   
+    for ind_f in range(len(filters)):
+      filter_aux = filters[ind_f].eval(session=sess)
+      filter_aux = np.mean(filter_aux[0,:,:,0],axis=0)
+      filter_aux = filter_aux/np.max(np.abs(filter_aux))
+      sbplt[int(np.floor(ind_f/num_rows))][ind_f%num_cols].plot(filter_aux)#imshow(filter_aux, interpolation='nearest', cmap = my_cmap)
+      sbplt[int(np.floor(ind_f/num_rows))][ind_f%num_cols].axis('off')
+      
+    f.savefig(FLAGS.sample_dir+'filters_neurons_dim.svg',dpi=600, bbox_inches='tight')
+    plt.close(f)  
+    f,sbplt = plt.subplots(8,8,figsize=(8, 8),dpi=250)
+    matplotlib.rcParams.update({'font.size': 8})
+    plt.subplots_adjust(left=left, bottom=bottom, right=right, top=top, wspace=wspace, hspace=hspace)   
+    for ind_f in range(len(filters)):
+      filter_aux = filters[ind_f].eval(session=sess)
+      filter_aux = filter_aux[0,:,:,0].T
+      filter_aux = filter_aux/np.max(np.abs(filter_aux))
+      sbplt[int(np.floor(ind_f/num_rows))][ind_f%num_cols].imshow(filter_aux, interpolation='nearest', cmap = my_cmap)
+      sbplt[int(np.floor(ind_f/num_rows))][ind_f%num_cols].axis('off')
+      
+    f.savefig(FLAGS.sample_dir+'filters.svg',dpi=600, bbox_inches='tight')
+    plt.close(f)  
     #get samples and their statistics
     fake_samples = wgan.get_samples(num_samples=FLAGS.num_samples)
     fake_samples = fake_samples.eval(session=sess)
