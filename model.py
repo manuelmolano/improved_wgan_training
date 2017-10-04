@@ -132,7 +132,16 @@ class WGAN(object):
         analysis.get_stats(X=self.real_samples, num_neurons=self.num_neurons, num_bins=self.num_bins, folder=self.sample_dir, name='real',instance=config.data_instance)
     
     
-    
+    #count number of variables
+    total_parameters = 0
+    for variable in tf.trainable_variables():
+        # shape is an array of tf.Dimension
+        shape = variable.get_shape()
+        variable_parameters = 1
+        for dim in shape:
+            variable_parameters *= dim.value
+        total_parameters += variable_parameters
+    print('number of varaibles: ' + str(total_parameters))
     #start training
     counter_batch = 0
     epoch = 0
@@ -145,7 +154,7 @@ class WGAN(object):
       # Train generator (only after the critic has been trained, at least once)
       if iteration > 0:
          _ = self.sess.run(self.g_optim)
-
+      
       # Train critic
       disc_iters = config.critic_iters
       for i in range(disc_iters):
@@ -158,10 +167,10 @@ class WGAN(object):
             epoch += 1
         else:
             counter_batch += 1
-    
+      aux = time.time() - start_time
       #plot the  critics loss and the iteration time
       plot.plot(self.sample_dir,'train disc cost', -_disc_cost)
-      plot.plot(self.sample_dir,'time', time.time() - start_time)
+      plot.plot(self.sample_dir,'time', aux)
     
       if (iteration == 500) or iteration % 20000 == 19999:
         print('epoch ' + str(epoch))

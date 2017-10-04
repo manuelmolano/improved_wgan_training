@@ -25,7 +25,7 @@ def unset_weights_stdev():
     global _weights_stdev
     _weights_stdev = None
 
-def Deconv2D(name, input_dim, output_dim, filter_size1, filter_size2, inputs, num_bins, he_init=True):
+def Deconv2D(name, input_dim, output_dim, filter_size1, filter_size2, inputs, he_init=True):
     """
     inputs: tensor of shape (batch size, height, width, input_dim)
     returns: tensor of shape (batch size, 2*height, 2*width, output_dim)

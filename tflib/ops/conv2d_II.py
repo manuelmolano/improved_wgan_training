@@ -20,7 +20,7 @@ def unset_weights_stdev():
     global _weights_stdev
     _weights_stdev = None
 
-def Conv2D(name, input_dim, output_dim, filter_size1, filter_size2, inputs, he_init=True, stride=1):
+def Conv2D(name, input_dim, output_dim, filter_size1, filter_size2, inputs, he_init=True, stride=1, save_filter=False):
     """
     inputs: tensor of shape (batch size, num channels, height, width)
     mask_type: one of None, 'a', 'b'
@@ -53,7 +53,8 @@ def Conv2D(name, input_dim, output_dim, filter_size1, filter_size2, inputs, he_i
         
      
         filters = lib.param(name+'.Filters', filter_values)
-     
+        if save_filter:
+            filter_summary = tf.split(split_dim=3, num_split=output_dim, value=filters)
        
         result = tf.nn.conv2d(
             input=inputs, 
@@ -71,5 +72,7 @@ def Conv2D(name, input_dim, output_dim, filter_size1, filter_size2, inputs, he_i
 
         result = tf.nn.bias_add(result, _biases, data_format='NCHW')
 
-
-        return result
+        if save_filter:
+            return result, filter_summary
+        else:
+            return result
