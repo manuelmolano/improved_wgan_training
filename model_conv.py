@@ -239,15 +239,15 @@ class WGAN_conv(object):
     output = act_funct.LeakyReLU(output)
     print((output.get_shape()))
     print('1. -------------------------------')
-    output = conv2d_II.Conv2D('Discriminator.2', 2*num_features, 4*num_features, 1, kernel_width, output, stride=2)
+    output, filter_2nd_layer = conv2d_II.Conv2D('Discriminator.2', 2*num_features, 4*num_features, 1, kernel_width, output, stride=2,save_filter=1)
     output = act_funct.LeakyReLU(output)
     print((output.get_shape()))
     print('2. -------------------------------')
-    output = conv2d_II.Conv2D('Discriminator.3', 4*num_features, 8*num_features, 1, kernel_width, output, stride=2)
+    output, filter_3rd_layer = conv2d_II.Conv2D('Discriminator.3', 4*num_features, 8*num_features, 1, kernel_width, output, stride=2,save_filter=1)
     output = act_funct.LeakyReLU(output)
     print((output.get_shape()))
     print('3. -------------------------------')
-    output = conv2d_II.Conv2D('Discriminator.4', 8*num_features, 16*num_features, 1, kernel_width, output, stride=2)
+    output, filter_4th_layer = conv2d_II.Conv2D('Discriminator.4', 8*num_features, 16*num_features, 1, kernel_width, output, stride=2,save_filter=1)
     output = act_funct.LeakyReLU(output)
     print((output.get_shape()))
     print('4. -------------------------------')
@@ -261,7 +261,7 @@ class WGAN_conv(object):
     deconv2d_II.unset_weights_stdev()
     linear.unset_weights_stdev()
 
-    return tf.reshape(output, [-1]), filter_1st_layer
+    return tf.reshape(output, [-1]), [filter_1st_layer, filter_2nd_layer, filter_3rd_layer, filter_4th_layer]
     
   #Generator
   def DCGANGenerator(self, n_samples, noise=None, FC_DIM=512):

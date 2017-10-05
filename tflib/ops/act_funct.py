@@ -9,6 +9,9 @@ from tflib.ops import linear
 def LeakyReLU(x, alpha=0.2):
     return tf.maximum(alpha*x, x)
 
+def ReLU(x):
+    return tf.nn.relu(x)
+
 def ReLULayer(name, n_in, n_out, inputs):
     output = linear.Linear(name+'.Linear', n_in, n_out, inputs, initialization='he')
     return tf.nn.relu(output)

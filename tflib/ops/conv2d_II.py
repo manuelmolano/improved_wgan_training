@@ -53,8 +53,6 @@ def Conv2D(name, input_dim, output_dim, filter_size1, filter_size2, inputs, he_i
         
      
         filters = lib.param(name+'.Filters', filter_values)
-        if save_filter:
-            filter_summary = tf.split(split_dim=3, num_split=output_dim, value=filters)
        
         result = tf.nn.conv2d(
             input=inputs, 
@@ -73,6 +71,6 @@ def Conv2D(name, input_dim, output_dim, filter_size1, filter_size2, inputs, he_i
         result = tf.nn.bias_add(result, _biases, data_format='NCHW')
 
         if save_filter:
-            return result, filter_summary
+            return result, filters
         else:
             return result

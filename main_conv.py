@@ -114,19 +114,22 @@ def main(_):
     num_filters = len(filters)
     num_rows = int(np.ceil(np.sqrt(num_filters)))
     num_cols = int(np.ceil(np.sqrt(num_filters)))
-    f,sbplt = plt.subplots(8,8,figsize=(8, 8),dpi=250)
+    f,sbplt = plt.subplots(num_rows,num_cols,figsize=(8, 8),dpi=250)
     matplotlib.rcParams.update({'font.size': 8})
     plt.subplots_adjust(left=left, bottom=bottom, right=right, top=top, wspace=wspace, hspace=hspace)   
+    #all_filters = np.empty(shape=(num_filters,FLAGS.num_neurons))
     for ind_f in range(len(filters)):
       filter_aux = filters[ind_f].eval(session=sess)
-      filter_aux = np.mean(filter_aux[0,:,:,0],axis=0)
+      filter_aux = np.mean(filter_aux[0,:,:,0],axis=0).reshape((1,FLAGS.num_neurons))
+      #all_filters[ind_f,:] = filter_aux
       filter_aux = filter_aux/np.max(np.abs(filter_aux))
       sbplt[int(np.floor(ind_f/num_rows))][ind_f%num_cols].plot(filter_aux)#imshow(filter_aux, interpolation='nearest', cmap = my_cmap)
       sbplt[int(np.floor(ind_f/num_rows))][ind_f%num_cols].axis('off')
-      
+    
+    #print(np.corrcoef(all_filters.T))
     f.savefig(FLAGS.sample_dir+'filters_neurons_dim.svg',dpi=600, bbox_inches='tight')
     plt.close(f)  
-    f,sbplt = plt.subplots(8,8,figsize=(8, 8),dpi=250)
+    f,sbplt = plt.subplots(num_rows,num_cols,figsize=(8, 8),dpi=250)
     matplotlib.rcParams.update({'font.size': 8})
     plt.subplots_adjust(left=left, bottom=bottom, right=right, top=top, wspace=wspace, hspace=hspace)   
     for ind_f in range(len(filters)):
@@ -135,6 +138,7 @@ def main(_):
       filter_aux = filter_aux/np.max(np.abs(filter_aux))
       sbplt[int(np.floor(ind_f/num_rows))][ind_f%num_cols].imshow(filter_aux, interpolation='nearest', cmap = my_cmap)
       sbplt[int(np.floor(ind_f/num_rows))][ind_f%num_cols].axis('off')
+      
       
     f.savefig(FLAGS.sample_dir+'filters.svg',dpi=600, bbox_inches='tight')
     plt.close(f)  
