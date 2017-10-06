@@ -71,8 +71,8 @@ class WGAN_conv(object):
     self.sample_inputs = self.DCGANGenerator(self.batch_size)
     
     #discriminator output
-    disc_real,_ = self.DCGANDiscriminator(self.inputs)
-    disc_fake,_ = self.DCGANDiscriminator(self.sample_inputs)
+    disc_real = self.DCGANDiscriminator(self.inputs)
+    disc_fake = self.DCGANDiscriminator(self.sample_inputs)
 
     #generator and discriminator cost
     self.gen_cost = -tf.reduce_mean(disc_fake)
@@ -88,7 +88,7 @@ class WGAN_conv(object):
     print(self.inputs.get_shape())
     differences = self.sample_inputs - self.inputs
     interpolates = self.inputs + (alpha*differences)
-    aux,_ = self.DCGANDiscriminator(interpolates)
+    aux = self.DCGANDiscriminator(interpolates)
     gradients = tf.gradients(aux, [interpolates])[0]
     slopes = tf.sqrt(tf.reduce_sum(tf.square(gradients), reduction_indices=[1]))
     gradient_penalty = tf.reduce_mean((slopes-1.)**2)
@@ -176,7 +176,7 @@ class WGAN_conv(object):
       plot.plot(self.sample_dir,'train disc cost', -_disc_cost)
       plot.plot(self.sample_dir,'time', aux)
     
-      if (iteration == 500) or iteration % 20000 == 19999:
+      if (iteration == 500) or iteration % 50000 == 49999 or (iteration >= 499990):
         print('epoch ' + str(epoch))
         if config.dataset=='uniform':
             #this is to evaluate whether the discriminator has overfit 
@@ -226,7 +226,7 @@ class WGAN_conv(object):
   # Discriminator
   def DCGANDiscriminator(self, inputs):
     kernel_width = 4 # in the time dimension
-    num_features = 2*self.num_neurons
+    num_features = self.num_neurons
     #neurons are treated as different channels
     output = tf.reshape(inputs, [-1, self.num_neurons, 1, self.num_bins])
     conv2d_II.set_weights_stdev(0.02)
@@ -235,19 +235,19 @@ class WGAN_conv(object):
     print('DISCRIMINATOR. -------------------------------')
     print((output.get_shape()))
     print('0. -------------------------------')
-    output, filter_1st_layer = conv2d_II.Conv2D('Discriminator.1', self.num_neurons, 2*num_features, 1, kernel_width, output, stride=2,save_filter=1)
+    output = conv2d_II.Conv2D('Discriminator.1', self.num_neurons, 2*num_features, 1, kernel_width, output, stride=2)
     output = act_funct.LeakyReLU(output)
     print((output.get_shape()))
     print('1. -------------------------------')
-    output, filter_2nd_layer = conv2d_II.Conv2D('Discriminator.2', 2*num_features, 4*num_features, 1, kernel_width, output, stride=2,save_filter=1)
+    output = conv2d_II.Conv2D('Discriminator.2', 2*num_features, 4*num_features, 1, kernel_width, output, stride=2)
     output = act_funct.LeakyReLU(output)
     print((output.get_shape()))
     print('2. -------------------------------')
-    output, filter_3rd_layer = conv2d_II.Conv2D('Discriminator.3', 4*num_features, 8*num_features, 1, kernel_width, output, stride=2,save_filter=1)
+    output = conv2d_II.Conv2D('Discriminator.3', 4*num_features, 8*num_features, 1, kernel_width, output, stride=2)
     output = act_funct.LeakyReLU(output)
     print((output.get_shape()))
     print('3. -------------------------------')
-    output, filter_4th_layer = conv2d_II.Conv2D('Discriminator.4', 8*num_features, 16*num_features, 1, kernel_width, output, stride=2,save_filter=1)
+    output = conv2d_II.Conv2D('Discriminator.4', 8*num_features, 16*num_features, 1, kernel_width, output, stride=2)
     output = act_funct.LeakyReLU(output)
     print((output.get_shape()))
     print('4. -------------------------------')
@@ -261,12 +261,54 @@ class WGAN_conv(object):
     deconv2d_II.unset_weights_stdev()
     linear.unset_weights_stdev()
 
-    return tf.reshape(output, [-1]), [filter_1st_layer, filter_2nd_layer, filter_3rd_layer, filter_4th_layer]
+    return tf.reshape(output, [-1])
+  
     
+  def DCGANDiscriminator_sampler(self, inputs):
+    with tf.variable_scope("generator") as scope:
+        scope.reuse_variables()
+        kernel_width = 4 # in the time dimension
+        num_features = self.num_neurons
+        #neurons are treated as different channels
+        output = tf.reshape(inputs, [-1, self.num_neurons, 1, self.num_bins])
+        conv2d_II.set_weights_stdev(0.02)
+        deconv2d_II.set_weights_stdev(0.02)
+        linear.set_weights_stdev(0.02)
+        print('DISCRIMINATOR. -------------------------------')
+        print((output.get_shape()))
+        print('0. -------------------------------')
+        output, filter_1st_layer = conv2d_II.Conv2D('Discriminator.1', self.num_neurons, 2*num_features, 1, kernel_width, output, stride=2,save_filter=1)
+        output_1st_layer = act_funct.LeakyReLU(output)
+        print((output_1st_layer.get_shape()))
+        print('1. -------------------------------')
+        output, filter_2nd_layer = conv2d_II.Conv2D('Discriminator.2', 2*num_features, 4*num_features, 1, kernel_width, output_1st_layer, stride=2,save_filter=1)
+        output_2nd_layer = act_funct.LeakyReLU(output)
+        print((output_2nd_layer.get_shape()))
+        print('2. -------------------------------')
+        output, filter_3rd_layer = conv2d_II.Conv2D('Discriminator.3', 4*num_features, 8*num_features, 1, kernel_width, output_2nd_layer, stride=2,save_filter=1)
+        output_3rd_layer = act_funct.LeakyReLU(output)
+        print((output_3rd_layer.get_shape()))
+        print('3. -------------------------------')
+        output, filter_4th_layer = conv2d_II.Conv2D('Discriminator.4', 8*num_features, 16*num_features, 1, kernel_width, output_3rd_layer, stride=2,save_filter=1)
+        output_4th_layer = act_funct.LeakyReLU(output)
+        print((output_4th_layer.get_shape()))
+        print('4. -------------------------------')
+        output = tf.reshape(output_4th_layer, [-1, int(16*num_features*self.num_bins/2**4)])
+        print((output.get_shape()))
+        print('5. -------------------------------')
+        output = linear.Linear('Discriminator.Output', int(16*num_features*self.num_bins/2**4), 1, output)
+        print((output.get_shape()))
+        print('6. -------------------------------')
+        conv2d_II.unset_weights_stdev()
+        deconv2d_II.unset_weights_stdev()
+        linear.unset_weights_stdev()
+    
+        return tf.reshape(output, [-1]), [filter_1st_layer, filter_2nd_layer, filter_3rd_layer, filter_4th_layer], [output_1st_layer, output_2nd_layer, output_3rd_layer, output_4th_layer]
+  
   #Generator
   def DCGANGenerator(self, n_samples, noise=None, FC_DIM=512):
     kernel_width = 4 # in the time dimension
-    num_features = 2*self.num_neurons  
+    num_features = self.num_neurons  
     conv2d_II.set_weights_stdev(0.02)
     deconv2d_II.set_weights_stdev(0.02)
     linear.set_weights_stdev(0.02)
@@ -329,9 +371,13 @@ class WGAN_conv(object):
 
   def get_filters(self):
       noise = tf.constant(np.random.normal(size=(1, self.output_dim)).astype('float32'))
-      _,filters = self.DCGANDiscriminator(noise)
+      _,filters,_ = self.DCGANDiscriminator_sampler(noise)
       return filters
-      
+  
+  def get_units(self, num_samples):
+      noise = tf.constant(np.random.random(size=(num_samples, self.output_dim)).astype('float32'))
+      output,_,units = self.DCGANDiscriminator_sampler(noise)
+      return output, units    
   
   #this is to save the network parameters  
   def save(self, step=0):

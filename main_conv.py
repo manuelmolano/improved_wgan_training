@@ -22,23 +22,16 @@ Created on Thu Feb 23 11:27:20 2017
 """
 
 import os
-import numpy as np
 import pprint
 from model_conv import WGAN_conv
-from tflib import analysis, retinal_data#, sim_pop_activity
-import matplotlib.pyplot as plt
-import matplotlib
+from tflib import analysis, retinal_data, visualize_filters_and_units#, sim_pop_activity
+
 #from utils import pp, get_samples_autocorrelogram, get_samples
 
 
 import tensorflow as tf
 #parameters used for (some) figures
-left  = 0.125  # the left side of the subplots of the figure
-right = 0.9    # the right side of the subplots of the figure
-bottom = 0.1   # the bottom of the subplots of the figure
-top = 0.9      # the top of the subplots of the figure
-wspace = 0.4   # the amount of width reserved for blank space between subplots
-hspace = 0.4   # the amount of height reserved for white space between subplots
+
 flags = tf.app.flags
 flags.DEFINE_integer("num_iter", 300000, "Epoch to train [50]")
 flags.DEFINE_float("learning_rate", 1e-4, "Learning rate for adam [1e-4]")
@@ -109,39 +102,13 @@ def main(_):
         raise Exception("[!] Train a model first, then run test mode")      
 
     #get filters
-    my_cmap = plt.cm.gray
+    print('get activations -----------------------------------')
+    output,units = wgan.get_units(num_samples=2**12)    
+    visualize_filters_and_units.plot_untis_rf(units,output, sess, FLAGS)
+    print('get filters -----------------------------------')
     filters = wgan.get_filters()
-    num_filters = len(filters)
-    num_rows = int(np.ceil(np.sqrt(num_filters)))
-    num_cols = int(np.ceil(np.sqrt(num_filters)))
-    f,sbplt = plt.subplots(num_rows,num_cols,figsize=(8, 8),dpi=250)
-    matplotlib.rcParams.update({'font.size': 8})
-    plt.subplots_adjust(left=left, bottom=bottom, right=right, top=top, wspace=wspace, hspace=hspace)   
-    #all_filters = np.empty(shape=(num_filters,FLAGS.num_neurons))
-    for ind_f in range(len(filters)):
-      filter_aux = filters[ind_f].eval(session=sess)
-      filter_aux = np.mean(filter_aux[0,:,:,0],axis=0).reshape((1,FLAGS.num_neurons))
-      #all_filters[ind_f,:] = filter_aux
-      filter_aux = filter_aux/np.max(np.abs(filter_aux))
-      sbplt[int(np.floor(ind_f/num_rows))][ind_f%num_cols].plot(filter_aux)#imshow(filter_aux, interpolation='nearest', cmap = my_cmap)
-      sbplt[int(np.floor(ind_f/num_rows))][ind_f%num_cols].axis('off')
+    visualize_filters_and_units.plot_filters(filters, sess, FLAGS)
     
-    #print(np.corrcoef(all_filters.T))
-    f.savefig(FLAGS.sample_dir+'filters_neurons_dim.svg',dpi=600, bbox_inches='tight')
-    plt.close(f)  
-    f,sbplt = plt.subplots(num_rows,num_cols,figsize=(8, 8),dpi=250)
-    matplotlib.rcParams.update({'font.size': 8})
-    plt.subplots_adjust(left=left, bottom=bottom, right=right, top=top, wspace=wspace, hspace=hspace)   
-    for ind_f in range(len(filters)):
-      filter_aux = filters[ind_f].eval(session=sess)
-      filter_aux = filter_aux[0,:,:,0].T
-      filter_aux = filter_aux/np.max(np.abs(filter_aux))
-      sbplt[int(np.floor(ind_f/num_rows))][ind_f%num_cols].imshow(filter_aux, interpolation='nearest', cmap = my_cmap)
-      sbplt[int(np.floor(ind_f/num_rows))][ind_f%num_cols].axis('off')
-      
-      
-    f.savefig(FLAGS.sample_dir+'filters.svg',dpi=600, bbox_inches='tight')
-    plt.close(f)  
     #get samples and their statistics
     fake_samples = wgan.get_samples(num_samples=FLAGS.num_samples)
     fake_samples = fake_samples.eval(session=sess)
@@ -156,5 +123,9 @@ def main(_):
         analysis.evaluate_approx_distribution(X=fake_samples.T, folder=FLAGS.sample_dir, num_samples_theoretical_distr=2**21,num_bins=FLAGS.num_bins, num_neurons=FLAGS.num_neurons,\
                             group_size=FLAGS.group_size,refr_per=FLAGS.ref_period)
 
+
+
+    
+    
 if __name__ == '__main__':
   tf.app.run()
