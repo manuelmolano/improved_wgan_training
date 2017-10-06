@@ -17,7 +17,7 @@ from functools import wraps
 import sys
 sys.path.append(os.getcwd())
 from tflib import plot, sim_pop_activity, params_with_name, analysis, retinal_data
-from tflib.ops import linear, act_funct, conv2d_II, deconv2d_II
+from tflib.ops import linear, act_funct, conv2d_II, deconv2d_II, conv1d_II
 from tensorflow.python.framework import ops as options
 from tensorflow.python.client import timeline
 import matplotlib.pyplot as plt
@@ -47,7 +47,7 @@ if int(tf.__version__.split('.')[0]) < 1:
 
 class WGAN_conv(object):
   def __init__(self, sess, batch_size=64, lambd=10,
-               num_neurons=4, z_dim=128, num_bins=32,
+               num_neurons=4, z_dim=128, num_bins=32, num_layers=4, kernel_width=4, 
                checkpoint_dir=None,
                sample_dir=None):    
     self.sess = sess   
@@ -57,7 +57,9 @@ class WGAN_conv(object):
     self.num_bins = num_bins
     self.output_dim = self.num_neurons*self.num_bins #number of bins per samples
     self.z_dim = z_dim #latent space dimension
-    
+    self.num_layers = num_layers
+    self.width_kernel = kernel_width # in the time dimension
+    self.num_features = num_neurons #num features in the first layer of critic (this number will be duplicated in each succesive layer)
     #folders
     self.checkpoint_dir = checkpoint_dir
     self.sample_dir = sample_dir
@@ -225,36 +227,29 @@ class WGAN_conv(object):
           
   # Discriminator
   def DCGANDiscriminator(self, inputs):
-    kernel_width = 4 # in the time dimension
-    num_features = self.num_neurons
+    kernel_width = self.width_kernel # in the time dimension
+    num_features = self.num_features
     #neurons are treated as different channels
-    output = tf.reshape(inputs, [-1, self.num_neurons, 1, self.num_bins])
+    output = tf.reshape(inputs, [-1, self.num_neurons, self.num_bins])
     conv2d_II.set_weights_stdev(0.02)
     deconv2d_II.set_weights_stdev(0.02)
     linear.set_weights_stdev(0.02)
     print('DISCRIMINATOR. -------------------------------')
     print((output.get_shape()))
     print('0. -------------------------------')
-    output = conv2d_II.Conv2D('Discriminator.1', self.num_neurons, 2*num_features, 1, kernel_width, output, stride=2)
-    output = act_funct.LeakyReLU(output)
-    print((output.get_shape()))
-    print('1. -------------------------------')
-    output = conv2d_II.Conv2D('Discriminator.2', 2*num_features, 4*num_features, 1, kernel_width, output, stride=2)
-    output = act_funct.LeakyReLU(output)
-    print((output.get_shape()))
-    print('2. -------------------------------')
-    output = conv2d_II.Conv2D('Discriminator.3', 4*num_features, 8*num_features, 1, kernel_width, output, stride=2)
-    output = act_funct.LeakyReLU(output)
-    print((output.get_shape()))
-    print('3. -------------------------------')
-    output = conv2d_II.Conv2D('Discriminator.4', 8*num_features, 16*num_features, 1, kernel_width, output, stride=2)
-    output = act_funct.LeakyReLU(output)
-    print((output.get_shape()))
-    print('4. -------------------------------')
-    output = tf.reshape(output, [-1, int(16*num_features*self.num_bins/2**4)])
+    for ind_l in range(self.num_layers):
+        if ind_l==0:
+            output = conv1d_II.Conv1D('Discriminator.'+str(ind_l+1), self.num_neurons, num_features*2**(ind_l+1),kernel_width, output, stride=2)
+        else:
+            output = conv1d_II.Conv1D('Discriminator.'+str(ind_l+1), num_features*2**(ind_l), num_features*2**(ind_l+1), kernel_width, output, stride=2)
+        output = act_funct.LeakyReLU(output)
+        print((output.get_shape()))
+        print(str(ind_l+1)+'. -------------------------------')
+        
+    output = tf.reshape(output, [-1, int(num_features*self.num_bins)])
     print((output.get_shape()))
     print('5. -------------------------------')
-    output = linear.Linear('Discriminator.Output', int(16*num_features*self.num_bins/2**4), 1, output)
+    output = linear.Linear('Discriminator.Output', int(num_features*self.num_bins), 1, output)
     print((output.get_shape()))
     print('6. -------------------------------')
     conv2d_II.unset_weights_stdev()
