@@ -262,43 +262,41 @@ class WGAN_conv(object):
   def DCGANDiscriminator_sampler(self, inputs):
     with tf.variable_scope("generator") as scope:
         scope.reuse_variables()
-        kernel_width = 4 # in the time dimension
-        num_features = self.num_neurons
+        kernel_width = self.width_kernel # in the time dimension
+        num_features = self.num_features
         #neurons are treated as different channels
-        output = tf.reshape(inputs, [-1, self.num_neurons, 1, self.num_bins])
+        output = tf.reshape(inputs, [-1, self.num_neurons, self.num_bins])
         conv2d_II.set_weights_stdev(0.02)
         deconv2d_II.set_weights_stdev(0.02)
         linear.set_weights_stdev(0.02)
         print('DISCRIMINATOR. -------------------------------')
         print((output.get_shape()))
         print('0. -------------------------------')
-        output, filter_1st_layer = conv2d_II.Conv2D('Discriminator.1', self.num_neurons, 2*num_features, 1, kernel_width, output, stride=2,save_filter=1)
-        output_1st_layer = act_funct.LeakyReLU(output)
-        print((output_1st_layer.get_shape()))
-        print('1. -------------------------------')
-        output, filter_2nd_layer = conv2d_II.Conv2D('Discriminator.2', 2*num_features, 4*num_features, 1, kernel_width, output_1st_layer, stride=2,save_filter=1)
-        output_2nd_layer = act_funct.LeakyReLU(output)
-        print((output_2nd_layer.get_shape()))
-        print('2. -------------------------------')
-        output, filter_3rd_layer = conv2d_II.Conv2D('Discriminator.3', 4*num_features, 8*num_features, 1, kernel_width, output_2nd_layer, stride=2,save_filter=1)
-        output_3rd_layer = act_funct.LeakyReLU(output)
-        print((output_3rd_layer.get_shape()))
-        print('3. -------------------------------')
-        output, filter_4th_layer = conv2d_II.Conv2D('Discriminator.4', 8*num_features, 16*num_features, 1, kernel_width, output_3rd_layer, stride=2,save_filter=1)
-        output_4th_layer = act_funct.LeakyReLU(output)
-        print((output_4th_layer.get_shape()))
-        print('4. -------------------------------')
-        output = tf.reshape(output_4th_layer, [-1, int(16*num_features*self.num_bins/2**4)])
+        out_puts_mat = []
+        filters_mat = []
+        for ind_l in range(self.num_layers):
+            if ind_l==0:
+                output, filters = conv1d_II.Conv1D('Discriminator.'+str(ind_l+1), self.num_neurons, num_features*2**(ind_l+1),kernel_width, output, stride=2, save_filter=True)
+            else:
+                output, filters = conv1d_II.Conv1D('Discriminator.'+str(ind_l+1), num_features*2**(ind_l), num_features*2**(ind_l+1), kernel_width, output, stride=2, save_filter=True)
+            output = act_funct.LeakyReLU(output)
+            out_puts_mat.append(output)
+            filters_mat.append(filters)
+            print((output.get_shape()))
+            print(str(ind_l+1)+'. -------------------------------')
+            
+        output = tf.reshape(output, [-1, int(num_features*self.num_bins)])
         print((output.get_shape()))
         print('5. -------------------------------')
-        output = linear.Linear('Discriminator.Output', int(16*num_features*self.num_bins/2**4), 1, output)
+        output = linear.Linear('Discriminator.Output', int(num_features*self.num_bins), 1, output)
         print((output.get_shape()))
         print('6. -------------------------------')
         conv2d_II.unset_weights_stdev()
         deconv2d_II.unset_weights_stdev()
         linear.unset_weights_stdev()
+
     
-        return tf.reshape(output, [-1]), [filter_1st_layer, filter_2nd_layer, filter_3rd_layer, filter_4th_layer], [output_1st_layer, output_2nd_layer, output_3rd_layer, output_4th_layer]
+        return tf.reshape(output, [-1]), filters_mat, out_puts_mat
   
   #Generator
   def DCGANGenerator(self, n_samples, noise=None, FC_DIM=512):
