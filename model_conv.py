@@ -17,9 +17,9 @@ from functools import wraps
 import sys
 sys.path.append(os.getcwd())
 from tflib import plot, sim_pop_activity, params_with_name, analysis, retinal_data
-from tflib.ops import linear, act_funct, conv2d_II, deconv2d_II, conv1d_II
+from tflib.ops import linear, act_funct, conv2d_II, deconv2d_II, conv1d_II, deconv1d_II
 from tensorflow.python.framework import ops as options
-from tensorflow.python.client import timeline
+#from tensorflow.python.client import timeline
 import matplotlib.pyplot as plt
 
 #parameters used for (some) figures
@@ -302,8 +302,8 @@ class WGAN_conv(object):
   
   #Generator
   def DCGANGenerator(self, n_samples, noise=None, FC_DIM=512):
-    kernel_width = 4 # in the time dimension
-    num_features = self.num_neurons  
+    kernel_width = self.width_kernel # in the time dimension
+    num_features = self.num_features
     conv2d_II.set_weights_stdev(0.02)
     deconv2d_II.set_weights_stdev(0.02)
     linear.set_weights_stdev(0.02)
@@ -311,30 +311,20 @@ class WGAN_conv(object):
     if noise is None:
         noise = tf.random_normal([n_samples, 128])
         
-    output = linear.Linear('Generator.Input', 128,int(16*num_features*self.num_bins/2**4), noise)
+    output = linear.Linear('Generator.Input', 128,int(num_features*self.num_bins), noise)
     print('GENERATOR. -------------------------------')
     print((output.get_shape()))
     print('0. -------------------------------')
-    output = tf.reshape(output, [-1, 16*num_features, 1, int(self.num_bins/2**4)])
+    output = tf.reshape(output, [-1, num_features*2**self.num_layers, int(self.num_bins/2**self.num_layers)])
     output = act_funct.LeakyReLU(output)
     print((output.get_shape()))
     print('1. -------------------------------')
-    output = deconv2d_II.Deconv2D('Generator.1', 16*num_features, 8*num_features, 1, kernel_width, output)
-    output = act_funct.LeakyReLU(output)
-    print((output.get_shape()))
-    print('2. -------------------------------')
-    output = deconv2d_II.Deconv2D('Generator.2', 8*num_features, 4*num_features, 1, kernel_width, output)
-    output = act_funct.LeakyReLU(output)
-    print((output.get_shape()))
-    print('3. -------------------------------')
-    output = deconv2d_II.Deconv2D('Generator.3', 4*num_features, 2*num_features, 1, kernel_width, output)
-    output = act_funct.LeakyReLU(output)
-    print((output.get_shape()))
-    print('4. -------------------------------')
-    output = deconv2d_II.Deconv2D('Generator.4', 2*num_features, self.num_neurons, 1, kernel_width, output)
-    output = act_funct.LeakyReLU(output)
-    print((output.get_shape()))
-    print('5. -------------------------------')
+    for ind_l in range(self.num_layers,0,-1):
+        output = deconv1d_II.Deconv1D('Generator.'+str(self.num_layers-ind_l+1), num_features*2**ind_l, num_features*2**(ind_l-1), kernel_width, output, num_bins=int(2**(self.num_layers-ind_l+1)*self.num_bins/2**self.num_layers))
+        output = act_funct.LeakyReLU(output)
+        print((output.get_shape()))
+        print(str(ind_l) + '. -------------------------------')
+      
    
     output = tf.sigmoid(output)
 
@@ -344,6 +334,7 @@ class WGAN_conv(object):
     output = tf.reshape(output, [-1, self.output_dim])
     print((output.get_shape()))
     print('6. -------------------------------')
+    
     return output
  
   def binarize(self, samples, threshold=None):
