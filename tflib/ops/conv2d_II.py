@@ -42,7 +42,7 @@ def Conv2D(name, input_dim, output_dim, filter_size1, filter_size2, inputs, he_i
             filter_values = uniform(_weights_stdev,(filter_size1, filter_size2, input_dim, output_dim))
         else:
             fan_in = input_dim * filter_size1*filter_size2
-            fan_out = output_dim * filter_size1*filter_size2 / (stride**2)
+            fan_out = output_dim * filter_size1*filter_size2 / stride
 
             if he_init:
                 filters_stdev = np.sqrt(4./(fan_in+fan_out))
