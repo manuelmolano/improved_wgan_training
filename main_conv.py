@@ -43,6 +43,8 @@ flags.DEFINE_boolean("is_train", False, "True for training, False for testing [F
 flags.DEFINE_integer("training_step", 200, "number of batches between weigths and performance saving")
 flags.DEFINE_string("training_stage", '', "stage of the training used for the GAN")
 flags.DEFINE_string("num_layers", 4, "number of convolutional layers [4]")
+flags.DEFINE_string("num_features", 4, "features in first layers [4]")
+flags.DEFINE_string("kernel_width", 4, "width of kernel [4]")
 #parameter set specifiying data
 flags.DEFINE_string("dataset", "uniform", "type of neural activity. It can be simulated  or retina")
 flags.DEFINE_string("data_instance", "1", "if data==retina, this allows chosing the data instance")
@@ -68,11 +70,13 @@ def main(_):
       '_num_neurons_' + str(FLAGS.num_neurons) + '_num_bins_' + str(FLAGS.num_bins)\
       + '_ref_period_' + str(FLAGS.ref_period) + '_firing_rate_' + str(FLAGS.firing_rate) + '_correlation_' + str(FLAGS.correlation) +\
       '_group_size_' + str(FLAGS.group_size)  + '_critic_iters_' + str(FLAGS.critic_iters) + '_lambda_' + str(FLAGS.lambd) +\
+      '_num_layers_' + str(FLAGS.num_layers)  + '_num_features_' + str(FLAGS.num_features) + '_kernel_' + str(FLAGS.kernel_width) +\
       '_iteration_' + FLAGS.iteration + '/'
   elif FLAGS.dataset=='retina':
      FLAGS.sample_dir = 'samples CONV/' + 'dataset_' + FLAGS.dataset + '_instance_' + FLAGS.data_instance +\
       '_num_neurons_' + str(FLAGS.num_neurons) + '_num_bins_' + str(FLAGS.num_bins) +\
        '_critic_iters_' + str(FLAGS.critic_iters) + '_lambda_' + str(FLAGS.lambd) +\
+       '_num_layers_' + str(FLAGS.num_layers)  + '_num_features_' + str(FLAGS.num_features) + '_kernel_' + str(FLAGS.kernel_width) +\
       '_iteration_' + FLAGS.iteration + '/'
       
   FLAGS.checkpoint_dir = FLAGS.sample_dir + 'checkpoint/'
@@ -92,6 +96,8 @@ def main(_):
         num_neurons=FLAGS.num_neurons,
         num_bins=FLAGS.num_bins,
         num_layers=FLAGS.num_layers,
+        num_features=FLAGS.num_features,
+        kernel_width=FLAGS.kernel_width,
         lambd=FLAGS.lambd,
         batch_size=FLAGS.batch_size,
         checkpoint_dir=FLAGS.checkpoint_dir,

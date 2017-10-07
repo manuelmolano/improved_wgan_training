@@ -47,7 +47,7 @@ if int(tf.__version__.split('.')[0]) < 1:
 
 class WGAN_conv(object):
   def __init__(self, sess, batch_size=64, lambd=10,
-               num_neurons=4, z_dim=128, num_bins=32, num_layers=4, kernel_width=4, 
+               num_neurons=4, z_dim=128, num_bins=32, num_layers=4, kernel_width=4, num_features=4,
                checkpoint_dir=None,
                sample_dir=None):    
     self.sess = sess   
@@ -59,7 +59,7 @@ class WGAN_conv(object):
     self.z_dim = z_dim #latent space dimension
     self.num_layers = num_layers
     self.width_kernel = kernel_width # in the time dimension
-    self.num_features = num_neurons #num features in the first layer of critic (this number will be duplicated in each succesive layer)
+    self.num_features = num_features #num features in the first layer of critic (this number will be duplicated in each succesive layer)
     #folders
     self.checkpoint_dir = checkpoint_dir
     self.sample_dir = sample_dir
