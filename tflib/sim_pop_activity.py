@@ -12,7 +12,7 @@ import numpy as np
 def spike_trains_corr(num_bins=64, num_neurons=32, correlations_mat=np.zeros((16,))+0.5,\
                         group_size=2,refr_per=2,firing_rates_mat=np.zeros((32,))+0.2,activity_peaks=np.zeros((16,))+32):
     std_resp = 5
-    noise = np.mean(firing_rates_mat)/5
+    noise = np.mean(firing_rates_mat)/2
     X = np.zeros((num_neurons,num_bins)) 
     
     for ind in range(int(num_neurons/group_size)):
