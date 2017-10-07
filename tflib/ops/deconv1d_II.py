@@ -53,10 +53,7 @@ def Deconv1D(name, input_dim, output_dim, filter_size, inputs, num_bins, he_init
 
 
         if _weights_stdev is not None:
-            filter_values = uniform(
-                _weights_stdev,
-                (filter_size, input_dim, output_dim)
-            )
+            filter_values = uniform(_weights_stdev, (filter_size, input_dim, output_dim))
         else:
             if he_init:
                 filters_stdev = np.sqrt(4./(fan_in+fan_out))

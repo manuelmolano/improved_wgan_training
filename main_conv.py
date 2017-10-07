@@ -42,9 +42,9 @@ flags.DEFINE_string("checkpoint_dir", "checkpoint", "Directory name to save the 
 flags.DEFINE_boolean("is_train", False, "True for training, False for testing [False]")
 flags.DEFINE_integer("training_step", 200, "number of batches between weigths and performance saving")
 flags.DEFINE_string("training_stage", '', "stage of the training used for the GAN")
-flags.DEFINE_string("num_layers", 4, "number of convolutional layers [4]")
-flags.DEFINE_string("num_features", 4, "features in first layers [4]")
-flags.DEFINE_string("kernel_width", 4, "width of kernel [4]")
+flags.DEFINE_integer("num_layers", 4, "number of convolutional layers [4]")
+flags.DEFINE_integer("num_features", 4, "features in first layers [4]")
+flags.DEFINE_integer("kernel_width", 4, "width of kernel [4]")
 #parameter set specifiying data
 flags.DEFINE_string("dataset", "uniform", "type of neural activity. It can be simulated  or retina")
 flags.DEFINE_string("data_instance", "1", "if data==retina, this allows chosing the data instance")
