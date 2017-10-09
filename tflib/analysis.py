@@ -416,4 +416,25 @@ def autocorrelogram(r,lag):
     return ac    
     
     
+def plot_samples(samples, samples_binnarized, num_neurons, num_bins, folder):
+    num_rows = 4
+    num_cols = 4
+    f,sbplt = plt.subplots(num_rows,num_cols,figsize=(8, 8),dpi=250)
+    
+    matplotlib.rcParams.update({'font.size': 8})
+    plt.subplots_adjust(left=left, bottom=bottom, right=right, top=top, wspace=wspace, hspace=hspace)
+    for ind_s in range(num_rows*num_cols):
+        sample = samples[:,ind_s].reshape((num_neurons,-1))
+        sample_binnarized = samples_binnarized[:,ind_s].reshape((num_neurons,-1))
+        for ind_n in range(num_neurons):
+#            sbplt.plot(sample[ind_n,:]+2*ind_n,'k')
+#            sbplt.plot(sample_binnarized[ind_n,:]+2*ind_n,'r')
+            sbplt[int(np.floor(ind_s/num_rows))][ind_s%num_cols].plot(sample[ind_n,:]+1.1*ind_n,'k')
+            sbplt[int(np.floor(ind_s/num_rows))][ind_s%num_cols].plot(sample_binnarized[ind_n,:]+1.1*ind_n,'r')
+        #sbplt.axis('off')
+        sbplt[int(np.floor(ind_s/num_rows))][ind_s%num_cols].axis('off')
+    f.savefig(folder+'samples.svg',dpi=600, bbox_inches='tight')
+    plt.close(f)
+    
+    
     
