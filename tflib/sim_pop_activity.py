@@ -11,7 +11,7 @@ import numpy as np
 
 def spike_trains_corr(num_bins=64, num_neurons=32, correlations_mat=np.zeros((16,))+0.5,\
                         group_size=2,refr_per=2,firing_rates_mat=np.zeros((32,))+0.2,activity_peaks=np.zeros((16,))+32):
-    std_resp = 5
+    std_resp = 15
     noise = np.mean(firing_rates_mat)/2
     X = np.zeros((num_neurons,num_bins)) 
     
@@ -28,7 +28,7 @@ def spike_trains_corr(num_bins=64, num_neurons=32, correlations_mat=np.zeros((16
 
     #here we use the activity peaks to modulate the firing of neurons    
     t = np.arange(num_bins).reshape(1,num_bins)
-    prob_firing = np.exp(-(t-activity_peaks)**2/std_resp**2) + noise
+    prob_firing = np.exp(-(t-activity_peaks)**2/std_resp**2) + np.exp(-(t-activity_peaks*2)**2/std_resp**2)/2 + np.exp(-(t-activity_peaks*3.5)**2/std_resp**2)/1.5 + noise
     X = X*prob_firing
     X = X > np.random.random(X.shape)
     assert np.sum(np.isnan(X.flatten()))==0
