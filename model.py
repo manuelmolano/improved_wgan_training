@@ -113,12 +113,13 @@ class WGAN(object):
     if config.dataset=='uniform':
         firing_rates_mat = config.firing_rate+2*(np.random.random(int(self.num_neurons/config.group_size),)-0.5)*config.firing_rate/2    
         correlations_mat = config.correlation+2*(np.random.random(int(self.num_neurons/config.group_size),)-0.5)*config.correlation/2    
-        aux = np.arange(int(self.num_neurons/config.group_size))
-        activity_peaks = [[x]*config.group_size for x in aux]#np.random.randint(0,high=self.num_bins,size=(1,self.num_neurons)).reshape(self.num_neurons,1)
-        activity_peaks = np.asarray(activity_peaks)
-        activity_peaks = activity_peaks.flatten()
-        activity_peaks = activity_peaks*config.group_size*self.num_bins/self.num_neurons
-        activity_peaks = activity_peaks.reshape(self.num_neurons,1)
+       #        aux = np.arange(int(self.num_neurons/config.group_size))
+#        activity_peaks = [[x]*config.group_size for x in aux]#np.random.randint(0,high=self.num_bins,size=(1,self.num_neurons)).reshape(self.num_neurons,1)
+#        activity_peaks = np.asarray(activity_peaks)
+#        activity_peaks = activity_peaks.flatten()
+#        activity_peaks = activity_peaks*config.group_size*self.num_bins/self.num_neurons
+#        activity_peaks = activity_peaks.reshape(self.num_neurons,1)
+        activity_peaks = np.zeros((self.num_neurons,1))+self.num_bins/4
         self.real_samples = sim_pop_activity.get_samples(num_samples=config.num_samples, num_bins=self.num_bins,\
         num_neurons=self.num_neurons, correlations_mat=correlations_mat, group_size=config.group_size, refr_per=config.ref_period,firing_rates_mat=firing_rates_mat, activity_peaks=activity_peaks)
         #get dev samples
@@ -172,7 +173,7 @@ class WGAN(object):
       plot.plot(self.sample_dir,'train disc cost', -_disc_cost)
       plot.plot(self.sample_dir,'time', aux)
     
-      if (iteration == 500) or iteration % 20000 == 19999:
+      if (iteration == 500) or iteration % 20000 == 19999 or iteration>config.num_iter-10:
         print('epoch ' + str(epoch))
         if config.dataset=='uniform':
             #this is to evaluate whether the discriminator has overfit 
@@ -198,18 +199,22 @@ class WGAN(object):
         sbplt[0][0].set_title('spk-count mean error')
         sbplt[0][0].set_xlabel('iterations')
         sbplt[0][0].set_ylabel('L1 error')
+        sbplt[0][0].set_xlim([0-config.num_iter/4, config.num_iter+config.num_iter/4])
         sbplt[0][1].plot(iteration,time_course_error,'+b')
         sbplt[0][1].set_title('time course error')
         sbplt[0][1].set_xlabel('iterations')
         sbplt[0][1].set_ylabel('L1 error')
+        sbplt[0][1].set_xlim([0-config.num_iter/4, config.num_iter+config.num_iter/4])
         sbplt[1][0].plot(iteration,acf_error,'+b')
         sbplt[1][0].set_title('AC error')
         sbplt[1][0].set_xlabel('iterations')
         sbplt[1][0].set_ylabel('L1 error')
+        sbplt[1][0].set_xlim([0-config.num_iter/4, config.num_iter+config.num_iter/4])
         sbplt[1][1].plot(iteration,corr_error,'+b')
         sbplt[1][1].set_title('corr error')
         sbplt[1][1].set_xlabel('iterations')
         sbplt[1][1].set_ylabel('L1 error')
+        sbplt[1][1].set_xlim([0-config.num_iter/4, config.num_iter+config.num_iter/4])
         f.savefig(self.sample_dir+'fitting_errors.svg',dpi=600, bbox_inches='tight')
         plt.close(f)
         plot.flush(self.sample_dir)
@@ -228,7 +233,20 @@ class WGAN(object):
 
     return tf.reshape(output, [-1])
     
-  #Generator
+  # Discriminator
+  def FCDiscriminator_sampler(self,inputs, FC_DIM=512, n_layers=3):
+      with tf.variable_scope("Discriminator") as scope:
+          scope.reuse_variables()
+          output = act_funct.LeakyReLULayer('Discriminator.Input', self.output_dim, FC_DIM, inputs)
+          outputs_mat = [output]
+          for i in range(n_layers):
+              output = act_funct.LeakyReLULayer('Discriminator.{}'.format(i), FC_DIM, FC_DIM, output)
+              outputs_mat.append(output)
+          output = linear.Linear('Discriminator.Out', FC_DIM, 1, output)
+        
+          return tf.reshape(output, [-1]), outputs_mat
+  
+  # Generator
   def FCGenerator(self, n_samples, noise=None, FC_DIM=512):
     if noise is None:
         noise = tf.random_normal([n_samples, 128])
@@ -259,6 +277,12 @@ class WGAN(object):
     noise = tf.constant(np.random.normal(size=(num_samples, 128)).astype('float32'))
     fake_samples = self.FCGenerator(num_samples, noise=noise)
     return fake_samples  
+  
+  def get_units(self, num_samples=2**13):
+      noise = tf.constant(np.random.random(size=(num_samples, self.output_dim)).astype('float32'))
+      output, units = self.FCDiscriminator_sampler(noise)
+      return output, units, noise  
+
   
   #this is to save the network parameters  
   def save(self, step=0):
