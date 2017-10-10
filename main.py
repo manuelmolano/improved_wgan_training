@@ -17,7 +17,7 @@ import os
 #import numpy as np
 import pprint
 from model import WGAN
-from tflib import analysis, retinal_data#, sim_pop_activity
+from tflib import analysis, retinal_data, visualize_filters_and_units#, sim_pop_activity
 #from utils import pp, get_samples_autocorrelogram, get_samples
 
 
@@ -92,6 +92,10 @@ def main(_):
       if not wgan.load(FLAGS.training_stage):
         raise Exception("[!] Train a model first, then run test mode")      
 
+
+    #get units activity
+    output, units, noise = wgan.get_units(num_samples=2**13)
+    visualize_filters_and_units.plot_untis_rf(units, output, noise, sess, FLAGS)
     #get samples and their statistics
     fake_samples = wgan.get_samples(num_samples=FLAGS.num_samples)
     fake_samples = fake_samples.eval(session=sess)

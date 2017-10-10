@@ -16,7 +16,7 @@ from functools import wraps
 import sys
 sys.path.append(os.getcwd())
 from tflib import plot, sim_pop_activity, params_with_name, analysis, retinal_data
-from tflib.ops import linear, act_funct
+from tflib.ops import linear, act_funct, conv1d_II
 from tensorflow.python.framework import ops as options
 import matplotlib.pyplot as plt
 
@@ -226,9 +226,10 @@ class WGAN(object):
           
   # Discriminator
   def FCDiscriminator(self,inputs, FC_DIM=512, n_layers=3):
-    output = act_funct.LeakyReLULayer('Discriminator.Input', self.output_dim, FC_DIM, inputs)
+    output = conv1d_II.Conv1D('Discriminator.Input', self.num_neurons, self.num_features,self.kernel_width, inputs, stride=1)  
+    output = act_funct.LeakyReLULayer('Discriminator.0', self.num_features*self.num_bins, FC_DIM, inputs)
     for i in range(n_layers):
-        output = act_funct.LeakyReLULayer('Discriminator.{}'.format(i), FC_DIM, FC_DIM, output)
+        output = act_funct.LeakyReLULayer('Discriminator.{}'.format(i+1), FC_DIM, FC_DIM, output)
     output = linear.Linear('Discriminator.Out', FC_DIM, 1, output)
 
     return tf.reshape(output, [-1])
