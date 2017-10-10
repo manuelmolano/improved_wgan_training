@@ -44,7 +44,7 @@ if int(tf.__version__.split('.')[0]) < 1:
   tf.nn.sigmoid_cross_entropy_with_logits = compatibility_decorator(tf.nn.sigmoid_cross_entropy_with_logits)
 
 class WGAN(object):
-  def __init__(self, sess, batch_size=64, lambd=10,
+  def __init__(self, sess, batch_size=64, lambd=10, num_features=64, kernel_width=5,
                num_neurons=4, z_dim=128, num_bins=32,
                checkpoint_dir=None,
                sample_dir=None):    
@@ -55,7 +55,8 @@ class WGAN(object):
     self.num_bins = num_bins
     self.output_dim = self.num_neurons*self.num_bins #number of bins per samples
     self.z_dim = z_dim #latent space dimension
-    
+    self.num_features = num_features
+    self.kernel_width = kernel_width
     #folders
     self.checkpoint_dir = checkpoint_dir
     self.sample_dir = sample_dir
@@ -226,7 +227,7 @@ class WGAN(object):
           
   # Discriminator
   def FCDiscriminator(self,inputs, FC_DIM=512, n_layers=3):
-    output = conv1d_II.Conv1D('Discriminator.Input', self.num_neurons, self.num_features,self.kernel_width, inputs, stride=1)  
+    output = conv1d_II.Conv1D('Discriminator.Input', self.num_neurons, self.num_features, self.kernel_width, inputs, stride=1)  
     output = act_funct.LeakyReLULayer('Discriminator.0', self.num_features*self.num_bins, FC_DIM, inputs)
     for i in range(n_layers):
         output = act_funct.LeakyReLULayer('Discriminator.{}'.format(i+1), FC_DIM, FC_DIM, output)

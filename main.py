@@ -33,6 +33,8 @@ flags.DEFINE_string("checkpoint_dir", "checkpoint", "Directory name to save the 
 flags.DEFINE_boolean("is_train", False, "True for training, False for testing [False]")
 flags.DEFINE_integer("training_step", 200, "number of batches between weigths and performance saving")
 flags.DEFINE_string("training_stage", '', "stage of the training used for the GAN")
+flags.DEFINE_integer("num_features", 4, "features in first layers [4]")
+flags.DEFINE_integer("kernel_width", 4, "width of kernel [4]")
 #parameter set specifiying data
 flags.DEFINE_string("dataset", "uniform", "type of neural activity. It can be simulated  or retina")
 flags.DEFINE_string("data_instance", "1", "if data==retina, this allows chosing the data instance")
@@ -58,11 +60,13 @@ def main(_):
       '_num_neurons_' + str(FLAGS.num_neurons) + '_num_bins_' + str(FLAGS.num_bins)\
       + '_ref_period_' + str(FLAGS.ref_period) + '_firing_rate_' + str(FLAGS.firing_rate) + '_correlation_' + str(FLAGS.correlation) +\
       '_group_size_' + str(FLAGS.group_size)  + '_critic_iters_' + str(FLAGS.critic_iters) + '_lambda_' + str(FLAGS.lambd) +\
+      '_num_layers_' + str(FLAGS.num_layers)  + '_num_features_' + str(FLAGS.num_features) + '_kernel_' + str(FLAGS.kernel_width) +\
       '_iteration_' + FLAGS.iteration + '/'
   elif FLAGS.dataset=='retina':
      FLAGS.sample_dir = 'samples/' + 'dataset_' + FLAGS.dataset + '_instance_' + FLAGS.data_instance +\
       '_num_neurons_' + str(FLAGS.num_neurons) + '_num_bins_' + str(FLAGS.num_bins) +\
        '_critic_iters_' + str(FLAGS.critic_iters) + '_lambda_' + str(FLAGS.lambd) +\
+       '_num_layers_' + str(FLAGS.num_layers)  + '_num_features_' + str(FLAGS.num_features) + '_kernel_' + str(FLAGS.kernel_width) +\
       '_iteration_' + FLAGS.iteration + '/'
       
   FLAGS.checkpoint_dir = FLAGS.sample_dir + 'checkpoint/'
@@ -81,8 +85,8 @@ def main(_):
     wgan = WGAN(sess,
         num_neurons=FLAGS.num_neurons,
         num_bins=FLAGS.num_bins,
-        lambd=FLAGS.lambd,
-        batch_size=FLAGS.batch_size,
+        lambd=FLAGS.lambd, num_features=FLAGS.num_features,
+        kernel_width=FLAGS.kernel_width, batch_size=FLAGS.batch_size,
         checkpoint_dir=FLAGS.checkpoint_dir,
         sample_dir=FLAGS.sample_dir)
 
