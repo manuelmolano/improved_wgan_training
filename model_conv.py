@@ -17,7 +17,7 @@ from functools import wraps
 import sys
 sys.path.append(os.getcwd())
 from tflib import plot, sim_pop_activity, params_with_name, analysis, retinal_data
-from tflib.ops import linear, act_funct, conv2d_II, deconv2d_II, conv1d_II, deconv1d_II
+from tflib.ops import linear, act_funct, conv1d_II, deconv1d_II
 from tensorflow.python.framework import ops as options
 #from tensorflow.python.client import timeline
 import matplotlib.pyplot as plt
@@ -236,8 +236,8 @@ class WGAN_conv(object):
     num_features = self.num_features
     #neurons are treated as different channels
     output = tf.reshape(inputs, [-1, self.num_neurons, self.num_bins])
-    conv2d_II.set_weights_stdev(0.02)
-    deconv2d_II.set_weights_stdev(0.02)
+    conv1d_II.set_weights_stdev(0.02)
+    deconv1d_II.set_weights_stdev(0.02)
     linear.set_weights_stdev(0.02)
     print('DISCRIMINATOR. -------------------------------')
     print((output.get_shape()))
@@ -257,8 +257,8 @@ class WGAN_conv(object):
     output = linear.Linear('Discriminator.Output', int(num_features*self.num_bins), 1, output)
     print((output.get_shape()))
     print('6. -------------------------------')
-    conv2d_II.unset_weights_stdev()
-    deconv2d_II.unset_weights_stdev()
+    conv1d_II.unset_weights_stdev()
+    deconv1d_II.unset_weights_stdev()
     linear.unset_weights_stdev()
 
     return tf.reshape(output, [-1])
@@ -271,8 +271,8 @@ class WGAN_conv(object):
         num_features = self.num_features
         #neurons are treated as different channels
         output = tf.reshape(inputs, [-1, self.num_neurons, self.num_bins])
-        conv2d_II.set_weights_stdev(0.02)
-        deconv2d_II.set_weights_stdev(0.02)
+        conv1d_II.set_weights_stdev(0.02)
+        deconv1d_II.set_weights_stdev(0.02)
         linear.set_weights_stdev(0.02)
         print('DISCRIMINATOR. -------------------------------')
         print((output.get_shape()))
@@ -296,8 +296,8 @@ class WGAN_conv(object):
         output = linear.Linear('Discriminator.Output', int(num_features*self.num_bins), 1, output)
         print((output.get_shape()))
         print('6. -------------------------------')
-        conv2d_II.unset_weights_stdev()
-        deconv2d_II.unset_weights_stdev()
+        conv1d_II.unset_weights_stdev()
+        deconv1d_II.unset_weights_stdev()
         linear.unset_weights_stdev()
 
     
@@ -307,8 +307,8 @@ class WGAN_conv(object):
   def DCGANGenerator(self, n_samples, noise=None, FC_DIM=512):
     kernel_width = self.width_kernel # in the time dimension
     num_features = self.num_features
-    conv2d_II.set_weights_stdev(0.02)
-    deconv2d_II.set_weights_stdev(0.02)
+    conv1d_II.set_weights_stdev(0.02)
+    deconv1d_II.set_weights_stdev(0.02)
     linear.set_weights_stdev(0.02)
 
     if noise is None:
@@ -334,8 +334,8 @@ class WGAN_conv(object):
    
     output = tf.sigmoid(output)
 
-    conv2d_II.unset_weights_stdev()
-    deconv2d_II.unset_weights_stdev()
+    conv1d_II.unset_weights_stdev()
+    deconv1d_II.unset_weights_stdev()
     linear.unset_weights_stdev()
     output = tf.reshape(output, [-1, self.output_dim])
     print((output.get_shape()))
