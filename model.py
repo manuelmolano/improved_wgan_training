@@ -114,13 +114,13 @@ class WGAN(object):
     if config.dataset=='uniform':
         firing_rates_mat = config.firing_rate+2*(np.random.random(int(self.num_neurons/config.group_size),)-0.5)*config.firing_rate/2    
         correlations_mat = config.correlation+2*(np.random.random(int(self.num_neurons/config.group_size),)-0.5)*config.correlation/2    
-       #        aux = np.arange(int(self.num_neurons/config.group_size))
-#        activity_peaks = [[x]*config.group_size for x in aux]#np.random.randint(0,high=self.num_bins,size=(1,self.num_neurons)).reshape(self.num_neurons,1)
-#        activity_peaks = np.asarray(activity_peaks)
-#        activity_peaks = activity_peaks.flatten()
-#        activity_peaks = activity_peaks*config.group_size*self.num_bins/self.num_neurons
-#        activity_peaks = activity_peaks.reshape(self.num_neurons,1)
-        activity_peaks = np.zeros((self.num_neurons,1))+self.num_bins/4
+        aux = np.arange(int(self.num_neurons/config.group_size))
+        activity_peaks = [[x]*config.group_size for x in aux]#np.random.randint(0,high=self.num_bins,size=(1,self.num_neurons)).reshape(self.num_neurons,1)
+        activity_peaks = np.asarray(activity_peaks)
+        activity_peaks = activity_peaks.flatten()
+        activity_peaks = activity_peaks*config.group_size*self.num_bins/self.num_neurons
+        activity_peaks = activity_peaks.reshape(self.num_neurons,1)
+        #activity_peaks = np.zeros((self.num_neurons,1))+self.num_bins/4
         self.real_samples = sim_pop_activity.get_samples(num_samples=config.num_samples, num_bins=self.num_bins,\
         num_neurons=self.num_neurons, correlations_mat=correlations_mat, group_size=config.group_size, refr_per=config.ref_period,firing_rates_mat=firing_rates_mat, activity_peaks=activity_peaks)
         #get dev samples
@@ -227,13 +227,16 @@ class WGAN(object):
           
   # Discriminator
   def FCDiscriminator(self,inputs, FC_DIM=512, n_layers=3):
-    output = conv1d_II.Conv1D('Discriminator.Input', self.num_neurons, self.num_features, self.kernel_width, inputs, stride=1)  
-    output = act_funct.LeakyReLULayer('Discriminator.0', self.num_features*self.num_bins, FC_DIM, inputs)
-    for i in range(n_layers):
-        output = act_funct.LeakyReLULayer('Discriminator.{}'.format(i+1), FC_DIM, FC_DIM, output)
-    output = linear.Linear('Discriminator.Out', FC_DIM, 1, output)
-
-    return tf.reshape(output, [-1])
+      output = tf.reshape(inputs, [-1, self.num_neurons, self.num_bins])
+      conv1d_II.set_weights_stdev(0.02)
+      print(output.get_shape())
+      output = conv1d_II.Conv1D('Discriminator.Input', self.num_neurons, self.num_features, self.kernel_width, output, stride=1)  
+      output = act_funct.LeakyReLULayer('Discriminator.0', self.num_features*self.num_bins, FC_DIM, inputs)
+      for i in range(n_layers-1):
+          output = act_funct.LeakyReLULayer('Discriminator.{}'.format(i+1), FC_DIM, FC_DIM, output)
+      output = linear.Linear('Discriminator.Out', FC_DIM, 1, output)
+      conv1d_II.unset_weights_stdev()
+      return tf.reshape(output, [-1])
     
   # Discriminator
   def FCDiscriminator_sampler(self,inputs, FC_DIM=512, n_layers=3):
