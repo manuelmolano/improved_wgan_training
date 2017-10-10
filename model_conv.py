@@ -265,7 +265,7 @@ class WGAN_conv(object):
   
     
   def DCGANDiscriminator_sampler(self, inputs):
-    with tf.variable_scope("generator") as scope:
+    with tf.variable_scope("Discriminator") as scope:
         scope.reuse_variables()
         kernel_width = self.width_kernel # in the time dimension
         num_features = self.num_features
