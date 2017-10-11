@@ -20,7 +20,7 @@ hspace = 0.4   # the amount of height reserved for white space between subplots
 
 def plot_filters(filters, sess, config):
     for ind_layer in range(1):#range(len(filters)):
-        filter_temp = filters[ind_layer].eval(session=sess)[0,:,:,:]
+        filter_temp = filters[ind_layer].eval(session=sess)
         my_cmap = plt.cm.gray
         num_filters = filter_temp.shape[2]
         num_rows = int(np.ceil(np.sqrt(num_filters)))
@@ -31,11 +31,11 @@ def plot_filters(filters, sess, config):
         matplotlib.rcParams.update({'font.size': 8})
         plt.subplots_adjust(left=left, bottom=bottom, right=right, top=top, wspace=wspace, hspace=hspace)   
         for ind_f in range(num_filters):
-          filter_aux = filter_temp[:,:,ind_f]
-          filter_aux = filter_aux[:,:].T
-          filter_aux = filter_aux/np.max(np.abs(filter_aux))
-          sbplt[int(np.floor(ind_f/num_rows))][ind_f%num_cols].imshow(filter_aux, interpolation='nearest', cmap = my_cmap)
-          sbplt[int(np.floor(ind_f/num_rows))][ind_f%num_cols].axis('off')
+            filter_aux = filter_temp[:,:,ind_f]
+            filter_aux = filter_aux[:,:].T
+            filter_aux = filter_aux/np.max(np.abs(filter_aux))
+            sbplt[int(np.floor(ind_f/num_rows))][ind_f%num_cols].imshow(filter_aux, interpolation='nearest', cmap = my_cmap)
+            sbplt[int(np.floor(ind_f/num_rows))][ind_f%num_cols].axis('off')
           
           
         f.savefig(config.sample_dir+'filters_layer_' + str(ind_layer) + '.svg',dpi=600, bbox_inches='tight')
@@ -46,12 +46,12 @@ def plot_filters(filters, sess, config):
         plt.subplots_adjust(left=left, bottom=bottom, right=right, top=top, wspace=wspace, hspace=hspace)   
         #all_filters = np.empty(shape=(num_filters,FLAGS.num_neurons))
         for ind_f in range(num_filters):
-          filter_aux = filter_temp[:,:,ind_f]
-          filter_aux = np.mean(filter_aux[:,:],axis=0)
-          #all_filters[ind_f,:] = filter_aux
-          #filter_aux = filter_aux/np.max(np.abs(filter_aux))
-          sbplt[int(np.floor(ind_f/num_rows))][ind_f%num_cols].plot(filter_aux)
-    #      sbplt[int(np.floor(ind_f/num_rows))][ind_f%num_cols].axis('off')
+            filter_aux = filter_temp[:,:,ind_f]
+            filter_aux = np.mean(filter_aux[:,:],axis=0)
+            #all_filters[ind_f,:] = filter_aux
+            #filter_aux = filter_aux/np.max(np.abs(filter_aux))
+            sbplt[int(np.floor(ind_f/num_rows))][ind_f%num_cols].plot(filter_aux)
+    #        sbplt[int(np.floor(ind_f/num_rows))][ind_f%num_cols].axis('off')
           
         f.savefig(config.sample_dir+'filters_neurons_dim_layer_' + str(ind_layer) + '.svg',dpi=600, bbox_inches='tight')
         plt.close(f)    

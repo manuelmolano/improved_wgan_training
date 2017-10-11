@@ -226,11 +226,11 @@ class WGAN(object):
        
           
   # Discriminator
-  def FCDiscriminator(self,inputs, FC_DIM=512, n_layers=3):
+  def FCDiscriminator(self,inputs, FC_DIM=512, n_layers=2):
       output = tf.reshape(inputs, [-1, self.num_neurons, self.num_bins])
       conv1d_II.set_weights_stdev(0.02)
-      print(output.get_shape())
       output = conv1d_II.Conv1D('Discriminator.Input', self.num_neurons, self.num_features, self.kernel_width, output, stride=1)  
+      output = conv1d_II.Conv1D('Discriminator.Input', self.num_features, 2*self.num_features, self.kernel_width, output, stride=1)
       output = act_funct.LeakyReLULayer('Discriminator.0', self.num_features*self.num_bins, FC_DIM, inputs)
       for i in range(n_layers-1):
           output = act_funct.LeakyReLULayer('Discriminator.{}'.format(i+1), FC_DIM, FC_DIM, output)
@@ -240,30 +240,36 @@ class WGAN(object):
     
   # Discriminator
   def FCDiscriminator_sampler(self,inputs, FC_DIM=512, n_layers=3):
-      with tf.variable_scope("Discriminator") as scope:
+      with tf.variable_scope('Discriminator') as scope:
           scope.reuse_variables()
-          output = act_funct.LeakyReLULayer('Discriminator.Input', self.output_dim, FC_DIM, inputs)
+          output = tf.reshape(inputs, [-1, self.num_neurons, self.num_bins])
+          conv1d_II.set_weights_stdev(0.02)
+          output, filters = conv1d_II.Conv1D('Discriminator.Input', self.num_neurons, self.num_features, self.kernel_width, output, stride=1, save_filter=True)  
+          print(filters.get_shape())
           outputs_mat = [output]
-          for i in range(n_layers):
-              output = act_funct.LeakyReLULayer('Discriminator.{}'.format(i), FC_DIM, FC_DIM, output)
+          output = act_funct.LeakyReLULayer('Discriminator.0', self.num_features*self.num_bins, FC_DIM, inputs)
+          outputs_mat.append(output)
+          for i in range(n_layers-1):
+              output = act_funct.LeakyReLULayer('Discriminator.{}'.format(i+1), FC_DIM, FC_DIM, output)
               outputs_mat.append(output)
           output = linear.Linear('Discriminator.Out', FC_DIM, 1, output)
+          conv1d_II.unset_weights_stdev()
         
-          return tf.reshape(output, [-1]), outputs_mat
+          return tf.reshape(output, [-1]), [filters], outputs_mat
   
   # Generator
   def FCGenerator(self, n_samples, noise=None, FC_DIM=512):
-    if noise is None:
-        noise = tf.random_normal([n_samples, 128])
-    output = act_funct.ReLULayer('Generator.1', 128, FC_DIM, noise)
-    output = act_funct.ReLULayer('Generator.2', FC_DIM, FC_DIM, output)
-    output = act_funct.ReLULayer('Generator.3', FC_DIM, FC_DIM, output)
-    output = act_funct.ReLULayer('Generator.4', FC_DIM, FC_DIM, output)
-    output = linear.Linear('Generator.Out', FC_DIM, self.output_dim, output)
+      if noise is None:
+          noise = tf.random_normal([n_samples, 128])
+      output = act_funct.ReLULayer('Generator.1', 128, FC_DIM, noise)
+      output = act_funct.ReLULayer('Generator.2', FC_DIM, FC_DIM, output)
+      output = act_funct.ReLULayer('Generator.3', FC_DIM, FC_DIM, output)
+      output = act_funct.ReLULayer('Generator.4', FC_DIM, FC_DIM, output)
+      output = linear.Linear('Generator.Out', FC_DIM, self.output_dim, output)
     
-    output = tf.nn.sigmoid(output)
+      output = tf.nn.sigmoid(output)
     
-    return output
+      return output
  
   def binarize(self, samples, threshold=None):
     '''
@@ -288,7 +294,10 @@ class WGAN(object):
       output, units = self.FCDiscriminator_sampler(noise)
       return output, units, noise  
 
-  
+  def get_filters(self):
+      noise = tf.constant(np.random.normal(size=(1, self.output_dim)).astype('float32'))
+      _,filters,_ = self.FCDiscriminator_sampler(noise)
+      return filters
   #this is to save the network parameters  
   def save(self, step=0):
     model_name = "WGAN.model"

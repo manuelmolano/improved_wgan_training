@@ -97,7 +97,11 @@ def main(_):
         raise Exception("[!] Train a model first, then run test mode")      
 
 
+    print('get filters -----------------------------------')
+    filters = wgan.get_filters()
+    visualize_filters_and_units.plot_filters(filters, sess, FLAGS)
     #get units activity
+    print('get units activity -----------------------------------')
     output, units, noise = wgan.get_units(num_samples=2**13)
     visualize_filters_and_units.plot_untis_rf(units, output, noise, sess, FLAGS)
     #get samples and their statistics
