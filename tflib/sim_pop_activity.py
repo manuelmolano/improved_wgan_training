@@ -6,11 +6,11 @@ Created on Mon Sep 11 11:31:05 2017
 """
 import time
 import numpy as np
-#import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 #import time
 
 def spike_trains_corr(num_bins=64, num_neurons=32, correlations_mat=np.zeros((16,))+0.5,\
-                        group_size=2,refr_per=2,firing_rates_mat=np.zeros((32,))+0.2,activity_peaks=np.zeros((16,))+32):
+                        group_size=2,refr_per=4,firing_rates_mat=np.zeros((32,))+0.2,activity_peaks=np.zeros((32,1))+32):
     std_resp = 5
     noise = np.mean(firing_rates_mat)/2
     X = np.zeros((num_neurons,num_bins)) 
@@ -66,6 +66,7 @@ def get_aproximate_probs(num_samples=2**13,num_bins=64, num_neurons=32, correlat
     
     
 def refractory_period(refr_per, r, firing_rate):
+    sigma = refr_per/2#np.sqrt(refr_per)
     #print('imposing refractory period of ' + str(refr_per))    
     margin_length = 2*np.shape(r)[1]
     for ind_tr in range(int(np.shape(r)[0])):
@@ -76,12 +77,17 @@ def refractory_period(refr_per, r, firing_rate):
         spiketimes = np.nonzero(r_aux>0)
         spiketimes = np.sort(spiketimes)
         isis = np.diff(spiketimes)
-        too_close = np.nonzero(isis<=refr_per)
+        prob_of_removing = np.exp(-(isis/sigma**2))
+        too_close = np.nonzero(np.random.random(size=prob_of_removing.shape)<prob_of_removing)
         while len(too_close[0])>0:
-            spiketimes = np.delete(spiketimes,too_close[0][0]+1)
+            spiketimes = np.delete(spiketimes,too_close[0]+1)
             isis = np.diff(spiketimes)
-            too_close = np.nonzero(isis<=refr_per)
-        
+            prob_of_removing = np.exp(-(isis/sigma**2))
+            #print(prob_of_removing[0:20])
+            what_to_remove = np.random.random(size=prob_of_removing.shape)<prob_of_removing
+            #print(what_to_remove[0:20])
+            too_close = np.nonzero(what_to_remove)
+            #print(too_close[0][0:10])
         r_aux = np.zeros(r_aux.shape)
         r_aux[spiketimes] = 1
             
@@ -91,23 +97,18 @@ def refractory_period(refr_per, r, firing_rate):
 
     
 if __name__ == '__main__':
+    import analysis
     num_tr = 1000
     num_bins = 64
-    num_neurons = 4
-    firing_rate = 0.5
-    group_size = 2
-    ref_period = 0
-    a,b,c = get_samples()
-    firing_rates_mat = firing_rate+2*(np.random.random(int(num_neurons/group_size),)-0.5)*firing_rate/2
-    print(firing_rates_mat)
-    spike_count = np.zeros((num_neurons,))
-    corr_mat = np.zeros((num_neurons,num_neurons))
-    for ind in range(num_tr):
-        sample = spike_trains_corr(num_neurons=num_neurons,num_bins=num_bins,\
-                    group_size=group_size,firing_rates_mat=firing_rates_mat,refr_per=ref_period)
-        spike_count += np.sum(sample,axis=1)
-        corr_mat += np.corrcoef(sample)
-    spike_count = spike_count/(num_bins*num_tr)
-    corr_mat = corr_mat/num_tr
-    print(spike_count)
-    print(corr_mat)
+    num_neurons = 32
+    lag = 10
+    refr_per_mat = [0.1,0.8,1,1.3,1.6]
+    for ind_rp in range(len(refr_per_mat)):
+        X = np.zeros((num_neurons*num_bins,num_tr))
+        autocorrelogram_mat = np.zeros(2*lag+1)
+        for ind in range(num_tr):
+            sample = spike_trains_corr(refr_per=refr_per_mat[ind_rp])
+            X[:,ind] = sample.reshape((num_neurons*num_bins,-1))[:,0]
+            autocorrelogram_mat += analysis.autocorrelogram(sample,lag=lag)
+        autocorrelogram_mat = autocorrelogram_mat/np.max(autocorrelogram_mat)
+        plt.plot(autocorrelogram_mat)
