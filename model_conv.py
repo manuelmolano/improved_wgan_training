@@ -46,10 +46,11 @@ if int(tf.__version__.split('.')[0]) < 1:
   tf.nn.sigmoid_cross_entropy_with_logits = compatibility_decorator(tf.nn.sigmoid_cross_entropy_with_logits)
 
 class WGAN_conv(object):
-  def __init__(self, sess, batch_size=64, lambd=10, stride=2,
+  def __init__(self, sess, batch_size=64, lambd=10, stride=2, architecture = 'conv',
                num_neurons=4, z_dim=128, num_bins=32, num_layers=4, kernel_width=4, num_features=4,
                checkpoint_dir=None,
-               sample_dir=None):    
+               sample_dir=None):  
+    self.architecture = architecture
     self.stride = stride
     self.sess = sess   
     self.batch_size = batch_size
@@ -68,14 +69,16 @@ class WGAN_conv(object):
     self.build_model()
 
   def build_model(self):
+    
+    self.Discriminator, self.Generator, self.Discriminator_sampler = self.GeneratorAndDiscriminator()
     #real samples    
     self.inputs = tf.placeholder(tf.float32, name='real_data', shape=[self.batch_size, self.num_neurons*self.num_bins])
     #fake samples
-    self.sample_inputs = self.DCGANGenerator(self.batch_size)
+    self.sample_inputs = self.Generator(self.batch_size)
     
     #discriminator output
-    disc_real = self.DCGANDiscriminator(self.inputs)
-    disc_fake = self.DCGANDiscriminator(self.sample_inputs)
+    disc_real = self.Discriminator(self.inputs)
+    disc_fake = self.Discriminator(self.sample_inputs)
 
     #generator and discriminator cost
     self.gen_cost = -tf.reduce_mean(disc_fake)
@@ -91,7 +94,7 @@ class WGAN_conv(object):
     print(self.inputs.get_shape())
     differences = self.sample_inputs - self.inputs
     interpolates = self.inputs + (alpha*differences)
-    aux = self.DCGANDiscriminator(interpolates)
+    aux = self.Discriminator(interpolates)
     gradients = tf.gradients(aux, [interpolates])[0]
     slopes = tf.sqrt(tf.reduce_sum(tf.square(gradients), reduction_indices=[1]))
     gradient_penalty = tf.reduce_mean((slopes-1.)**2)
@@ -241,8 +244,17 @@ class WGAN_conv(object):
       plot.tick()        
         
       
-       
-          
+  def GeneratorAndDiscriminator(self):
+    """
+    Choose which generator and discriminator architecture to use by
+    uncommenting one of these lines.
+    """
+    if self.architecture=='conv':
+        return self.DCGANDiscriminator, self.DCGANGenerator, self.DCGANDiscriminator_sampler     
+    elif self.architecture=='fc':
+        return self.FCDiscriminator, self.FCGenerator, self.FCDiscriminator_sampler     
+  
+    
   # Discriminator
   def DCGANDiscriminator(self, inputs):
     kernel_width = self.width_kernel # in the time dimension
@@ -276,7 +288,8 @@ class WGAN_conv(object):
 
     return tf.reshape(output, [-1])
   
-    
+  
+  
   def DCGANDiscriminator_sampler(self, inputs):
       kernel_width = self.width_kernel # in the time dimension
       num_features = self.num_features
@@ -348,6 +361,46 @@ class WGAN_conv(object):
       
       return output
  
+    
+    
+  # Discriminator
+  def FCDiscriminator(self,inputs, FC_DIM=512, n_layers=3):
+    output = act_funct.LeakyReLULayer('Discriminator.Input', self.output_dim, FC_DIM, inputs)
+    for i in range(n_layers):
+        output = act_funct.LeakyReLULayer('Discriminator.{}'.format(i), FC_DIM, FC_DIM, output)
+    output = linear.Linear('Discriminator.Out', FC_DIM, 1, output)
+
+    return tf.reshape(output, [-1])
+    
+  # Discriminator
+  def FCDiscriminator_sampler(self,inputs, FC_DIM=512, n_layers=3):
+      with tf.variable_scope("Discriminator") as scope:
+          scope.reuse_variables()
+          output = act_funct.LeakyReLULayer('Discriminator.Input', self.output_dim, FC_DIM, inputs)
+          outputs_mat = [output]
+          for i in range(n_layers):
+              output = act_funct.LeakyReLULayer('Discriminator.{}'.format(i), FC_DIM, FC_DIM, output)
+              outputs_mat.append(output)
+          output = linear.Linear('Discriminator.Out', FC_DIM, 1, output)
+        
+          return tf.reshape(output, [-1]), outputs_mat
+  
+  # Generator
+  def FCGenerator(self, n_samples, noise=None, FC_DIM=512):
+    if noise is None:
+        noise = tf.random_normal([n_samples, 128])
+    output = act_funct.ReLULayer('Generator.1', 128, FC_DIM, noise)
+    output = act_funct.ReLULayer('Generator.2', FC_DIM, FC_DIM, output)
+    output = act_funct.ReLULayer('Generator.3', FC_DIM, FC_DIM, output)
+    output = act_funct.ReLULayer('Generator.4', FC_DIM, FC_DIM, output)
+    output = linear.Linear('Generator.Out', FC_DIM, self.output_dim, output)
+    
+    output = tf.nn.sigmoid(output)
+    
+    return output
+
+
+
   def binarize(self, samples, threshold=None):
     '''
     Returns binarized samples by thresholding with `threshold`. If `threshold` is `None` then the

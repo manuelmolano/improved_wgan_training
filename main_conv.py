@@ -33,6 +33,7 @@ import tensorflow as tf
 #parameters used for (some) figures
 
 flags = tf.app.flags
+flags.DEFINE_string("architecture", "conv", "semi-conv (conv) or fully connected (fc)")
 flags.DEFINE_integer("num_iter", 300000, "Epoch to train [50]")
 flags.DEFINE_float("learning_rate", 1e-4, "Learning rate for adam [1e-4]")
 flags.DEFINE_float("beta1", 0., "Momentum term of adam [0.]")
@@ -45,6 +46,7 @@ flags.DEFINE_string("training_stage", '', "stage of the training used for the GA
 flags.DEFINE_integer("num_layers", 4, "number of convolutional layers [4]")
 flags.DEFINE_integer("num_features", 4, "features in first layers [4]")
 flags.DEFINE_integer("kernel_width", 4, "width of kernel [4]")
+
 #parameter set specifiying data
 flags.DEFINE_string("dataset", "uniform", "type of neural activity. It can be simulated  or retina")
 flags.DEFINE_string("data_instance", "1", "if data==retina, this allows chosing the data instance")
@@ -65,21 +67,21 @@ def main(_):
   pp.pprint(flags.FLAGS.__flags)
   #folders
   if FLAGS.dataset=='uniform':
-      FLAGS.sample_dir = 'samples CONV/' + 'dataset_' + FLAGS.dataset + '_num_samples_' + str(FLAGS.num_samples) +\
+      FLAGS.sample_dir = 'samples ' + FLAGS.architecture + '/' + 'dataset_' + FLAGS.dataset + '_num_samples_' + str(FLAGS.num_samples) +\
       '_num_neurons_' + str(FLAGS.num_neurons) + '_num_bins_' + str(FLAGS.num_bins)\
       + '_ref_period_' + str(FLAGS.ref_period) + '_firing_rate_' + str(FLAGS.firing_rate) + '_correlation_' + str(FLAGS.correlation) +\
       '_group_size_' + str(FLAGS.group_size)  + '_critic_iters_' + str(FLAGS.critic_iters) + '_lambda_' + str(FLAGS.lambd) +\
       '_num_layers_' + str(FLAGS.num_layers)  + '_num_features_' + str(FLAGS.num_features) + '_kernel_' + str(FLAGS.kernel_width) +\
       '_iteration_' + FLAGS.iteration + '/'
   elif FLAGS.dataset=='packets':
-      FLAGS.sample_dir = 'samples CONV/' + 'dataset_' + FLAGS.dataset + '_num_samples_' + str(FLAGS.num_samples) +\
+      FLAGS.sample_dir = 'samples ' + FLAGS.architecture + '/' + 'dataset_' + FLAGS.dataset + '_num_samples_' + str(FLAGS.num_samples) +\
       '_num_neurons_' + str(FLAGS.num_neurons) + '_num_bins_' + str(FLAGS.num_bins)\
       + '_firing_rate_' + str(FLAGS.firing_rate) + '_group_size_' + str(FLAGS.group_size)  + '_critic_iters_' +\
       str(FLAGS.critic_iters) + '_lambda_' + str(FLAGS.lambd) +\
       '_num_layers_' + str(FLAGS.num_layers)  + '_num_features_' + str(FLAGS.num_features) + '_kernel_' + str(FLAGS.kernel_width) +\
       '_iteration_' + FLAGS.iteration + '/'
   elif FLAGS.dataset=='retina':
-     FLAGS.sample_dir = 'samples CONV/' + 'dataset_' + FLAGS.dataset + '_instance_' + FLAGS.data_instance +\
+     FLAGS.sample_dir = 'samples ' + FLAGS.architecture + '/' + 'dataset_' + FLAGS.dataset + '_instance_' + FLAGS.data_instance +\
       '_num_neurons_' + str(FLAGS.num_neurons) + '_num_bins_' + str(FLAGS.num_bins) +\
        '_critic_iters_' + str(FLAGS.critic_iters) + '_lambda_' + str(FLAGS.lambd) +\
        '_num_layers_' + str(FLAGS.num_layers)  + '_num_features_' + str(FLAGS.num_features) + '_kernel_' + str(FLAGS.kernel_width) +\
