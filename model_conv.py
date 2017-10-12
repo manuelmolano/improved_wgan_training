@@ -179,7 +179,7 @@ class WGAN_conv(object):
       plot.plot(self.sample_dir,'train disc cost', -_disc_cost)
       plot.plot(self.sample_dir,'time', aux)
     
-      if (iteration == 500) or iteration % 20000 == 19999 or (iteration >= 199990):
+      if (iteration == 500) or iteration % 20000 == 19999 or (iteration >= config.num_iter-10):
         print('epoch ' + str(epoch))
         if config.dataset=='uniform':
             #this is to evaluate whether the discriminator has overfit 
@@ -265,83 +265,75 @@ class WGAN_conv(object):
   
     
   def DCGANDiscriminator_sampler(self, inputs):
-    with tf.variable_scope("Discriminator") as scope:
-        scope.reuse_variables()
-        kernel_width = self.width_kernel # in the time dimension
-        num_features = self.num_features
-        #neurons are treated as different channels
-        output = tf.reshape(inputs, [-1, self.num_neurons, self.num_bins])
-        conv1d_II.set_weights_stdev(0.02)
-        deconv1d_II.set_weights_stdev(0.02)
-        linear.set_weights_stdev(0.02)
-        print('DISCRIMINATOR. -------------------------------')
-        print((output.get_shape()))
-        print('0. -------------------------------')
-        out_puts_mat = []
-        filters_mat = []
-        for ind_l in range(self.num_layers):
-            if ind_l==0:
-                output, filters = conv1d_II.Conv1D('Discriminator.'+str(ind_l+1), self.num_neurons, num_features*2**(ind_l+1),kernel_width, output, stride=2, save_filter=True)
-            else:
-                output, filters = conv1d_II.Conv1D('Discriminator.'+str(ind_l+1), num_features*2**(ind_l), num_features*2**(ind_l+1), kernel_width, output, stride=2, save_filter=True)
-            output = act_funct.LeakyReLU(output)
-            out_puts_mat.append(output)
-            filters_mat.append(filters)
-            print((output.get_shape()))
-            print(str(ind_l+1)+'. -------------------------------')
-            
-        output = tf.reshape(output, [-1, int(num_features*self.num_bins)])
-        print((output.get_shape()))
-        print('5. -------------------------------')
-        output = linear.Linear('Discriminator.Output', int(num_features*self.num_bins), 1, output)
-        print((output.get_shape()))
-        print('6. -------------------------------')
-        conv1d_II.unset_weights_stdev()
-        deconv1d_II.unset_weights_stdev()
-        linear.unset_weights_stdev()
+      kernel_width = self.width_kernel # in the time dimension
+      num_features = self.num_features
+      #neurons are treated as different channels
+      output = tf.reshape(inputs, [-1, self.num_neurons, self.num_bins])
+      conv1d_II.set_weights_stdev(0.02)
+      deconv1d_II.set_weights_stdev(0.02)
+      linear.set_weights_stdev(0.02)
+      print('DISCRIMINATOR. -------------------------------')
+      out_puts_mat = []
+      filters_mat = []
 
-    
-        return tf.reshape(output, [-1]), filters_mat, out_puts_mat
+      for ind_l in range(self.num_layers):
+          if ind_l==0:
+              output, filters = conv1d_II.Conv1D('Discriminator.'+str(ind_l+1), self.num_neurons, num_features*2**(ind_l+1),kernel_width, output, stride=2, save_filter=True)
+          else:
+              output, filters = conv1d_II.Conv1D('Discriminator.'+str(ind_l+1), num_features*2**(ind_l), num_features*2**(ind_l+1), kernel_width, output, stride=2, save_filter=True)
+          output = act_funct.LeakyReLU(output)
+          out_puts_mat.append(output)
+          filters_mat.append(filters)
+        
+      output = tf.reshape(output, [-1, int(num_features*self.num_bins)])
+      output = linear.Linear('Discriminator.Output', int(num_features*self.num_bins), 1, output)
+
+      conv1d_II.unset_weights_stdev()
+      deconv1d_II.unset_weights_stdev()
+      linear.unset_weights_stdev()
+
+
+      return tf.reshape(output, [-1]), filters_mat, out_puts_mat
   
   #Generator
   def DCGANGenerator(self, n_samples, noise=None, FC_DIM=512):
-    kernel_width = self.width_kernel # in the time dimension
-    num_features = self.num_features
-    conv1d_II.set_weights_stdev(0.02)
-    deconv1d_II.set_weights_stdev(0.02)
-    linear.set_weights_stdev(0.02)
-
-    if noise is None:
-        noise = tf.random_normal([n_samples, 128])
+      kernel_width = self.width_kernel # in the time dimension
+      num_features = self.num_features
+      conv1d_II.set_weights_stdev(0.02)
+      deconv1d_II.set_weights_stdev(0.02)
+      linear.set_weights_stdev(0.02)
+      
+      if noise is None:
+          noise = tf.random_normal([n_samples, 128])
         
-    output = linear.Linear('Generator.Input', 128,int(num_features*self.num_bins), noise)
-    print('GENERATOR. -------------------------------')
-    print((output.get_shape()))
-    print('0. -------------------------------')
-    output = tf.reshape(output, [-1, num_features*2**self.num_layers, int(self.num_bins/2**self.num_layers)])
-    output = act_funct.LeakyReLU(output)
-    print((output.get_shape()))
-    print('1. -------------------------------')
-    for ind_l in range(self.num_layers,0,-1):
-        if ind_l==1:
-            output = deconv1d_II.Deconv1D('Generator.'+str(self.num_layers-ind_l+1), num_features*2**ind_l, self.num_neurons, kernel_width, output, num_bins=int(2**(self.num_layers-ind_l+1)*self.num_bins/2**self.num_layers))
-        else:
-            output = deconv1d_II.Deconv1D('Generator.'+str(self.num_layers-ind_l+1), num_features*2**ind_l, num_features*2**(ind_l-1), kernel_width, output, num_bins=int(2**(self.num_layers-ind_l+1)*self.num_bins/2**self.num_layers))
-        output = act_funct.LeakyReLU(output)
-        print((output.get_shape()))
-        print(str(self.num_layers-ind_l+1) + '. -------------------------------')
+      output = linear.Linear('Generator.Input', 128,int(num_features*self.num_bins), noise)
+      print('GENERATOR. -------------------------------')
+      print((output.get_shape()))
+      print('0. -------------------------------')
+      output = tf.reshape(output, [-1, num_features*2**self.num_layers, int(self.num_bins/2**self.num_layers)])
+      output = act_funct.LeakyReLU(output)
+      print((output.get_shape()))
+      print('1. -------------------------------')
+      for ind_l in range(self.num_layers,0,-1):
+          if ind_l==1:
+              output = deconv1d_II.Deconv1D('Generator.'+str(self.num_layers-ind_l+1), num_features*2**ind_l, self.num_neurons, kernel_width, output, num_bins=int(2**(self.num_layers-ind_l+1)*self.num_bins/2**self.num_layers))
+          else:
+              output = deconv1d_II.Deconv1D('Generator.'+str(self.num_layers-ind_l+1), num_features*2**ind_l, num_features*2**(ind_l-1), kernel_width, output, num_bins=int(2**(self.num_layers-ind_l+1)*self.num_bins/2**self.num_layers))
+          output = act_funct.LeakyReLU(output)
+          print((output.get_shape()))
+          print(str(self.num_layers-ind_l+1) + '. -------------------------------')
       
    
-    output = tf.sigmoid(output)
+      output = tf.sigmoid(output)
 
-    conv1d_II.unset_weights_stdev()
-    deconv1d_II.unset_weights_stdev()
-    linear.unset_weights_stdev()
-    output = tf.reshape(output, [-1, self.output_dim])
-    print((output.get_shape()))
-    print('6. -------------------------------')
-    
-    return output
+      conv1d_II.unset_weights_stdev()
+      deconv1d_II.unset_weights_stdev()
+      linear.unset_weights_stdev()
+      output = tf.reshape(output, [-1, self.output_dim])
+      print((output.get_shape()))
+      print('6. -------------------------------')
+      
+      return output
  
   def binarize(self, samples, threshold=None):
     '''
@@ -361,15 +353,15 @@ class WGAN_conv(object):
     fake_samples = self.DCGANGenerator(num_samples, noise=noise)
     return fake_samples  
 
-  def get_filters(self):
-      noise = tf.constant(np.random.normal(size=(1, self.output_dim)).astype('float32'))
+  def get_filters(self, num_samples=64):
+      noise = tf.constant(np.random.normal(size=(num_samples, self.output_dim)).astype('float32'))
       _,filters,_ = self.DCGANDiscriminator_sampler(noise)
       return filters
   
   def get_units(self, num_samples):
       noise = tf.constant(np.random.random(size=(num_samples, self.output_dim)).astype('float32'))
       output,_,units = self.DCGANDiscriminator_sampler(noise)
-      return output, units    
+      return output, units, noise    
   
   #this is to save the network parameters  
   def save(self, step=0):

@@ -111,10 +111,10 @@ def main(_):
 
     #get filters
     print('get activations -----------------------------------')
-    output,units = wgan.get_units(num_samples=2**12)    
-    visualize_filters_and_units.plot_untis_rf(units,output, sess, FLAGS)
+    output,units,inputs = wgan.get_units(num_samples=2**12)  
+    visualize_filters_and_units.plot_untis_rf_conv(units,output, inputs, sess, FLAGS)
     print('get filters -----------------------------------')
-    filters = wgan.get_filters()
+    filters = wgan.get_filters(num_samples=64)
     visualize_filters_and_units.plot_filters(filters, sess, FLAGS)
     
     #get samples and their statistics
