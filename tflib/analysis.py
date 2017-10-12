@@ -22,7 +22,7 @@ wspace = 0.4   # the amount of width reserved for blank space between subplots
 hspace = 0.4   # the amount of height reserved for white space between subplots
 
 
-def get_stats(X, num_neurons, num_bins, folder, name, firing_rate_mat=[],correlation_mat=[], activity_peaks=[], critic_cost=np.nan, instance='1'): 
+def get_stats(X, num_neurons, num_bins, folder, name, firing_rate_mat=[],correlation_mat=[], activity_peaks=[], critic_cost=np.nan, instance='1',shuffled_index=[]): 
     '''
     compute spike trains spikes: spk-count mean and std, autocorrelogram and correlation mat
     if name!='real' then it compares the above stats with the original ones 
@@ -31,7 +31,7 @@ def get_stats(X, num_neurons, num_bins, folder, name, firing_rate_mat=[],correla
     resave_real_data = False
     if name!='real':
         original_data = np.load(folder + '/stats_real.npz')   
-        if any(k not in original_data for k in ("mean","acf","cov_mat","k_probs","lag_cov_mat","firing_average_time_course")):
+        if any(k not in original_data for k in ("mean","acf","cov_mat","k_probs","lag_cov_mat","firing_average_time_course","samples")):
             if 'samples' not in original_data:
                 samples = retinal_data.get_samples(num_bins=num_bins, num_neurons=num_neurons, instance=instance)
             else:
@@ -164,8 +164,9 @@ def get_stats(X, num_neurons, num_bins, folder, name, firing_rate_mat=[],correla
         plt.close(f)
         
     if name=='real' and len(firing_rate_mat)>0:
+        #ground truth data but not real (retinal) data
         data = {'mean':mean_spike_count, 'acf':autocorrelogram_mat, 'cov_mat':cov_mat, 'samples':X, 'k_probs':k_probs,'lag_cov_mat':lag_cov_mat,\
-        'firing_rate_mat':firing_rate_mat, 'correlation_mat':correlation_mat, 'activity_peaks':activity_peaks, 'firing_average_time_course':firing_average_time_course}
+        'firing_rate_mat':firing_rate_mat, 'correlation_mat':correlation_mat, 'activity_peaks':activity_peaks, 'shuffled_index':shuffled_index, 'firing_average_time_course':firing_average_time_course}
         np.savez(folder + '/stats_'+name+'.npz', **data)    
     else:
         data = {'mean':mean_spike_count, 'acf':autocorrelogram_mat, 'cov_mat':cov_mat, 'k_probs':k_probs, 'firing_average_time_course':firing_average_time_course, 'critic_cost':critic_cost}
@@ -173,8 +174,8 @@ def get_stats(X, num_neurons, num_bins, folder, name, firing_rate_mat=[],correla
         if resave_real_data:
             if 'firing_rate_mat' in original_data:
                 data = {'mean':mean_spike_count_real, 'acf':autocorrelogram_mat_real, 'cov_mat':cov_mat_real, 'samples':samples, 'k_probs':k_probs_real,'lag_cov_mat':lag_cov_mat_real,\
-                'firing_rate_mat':original_data['firing_rate_mat'], 'correlation_mat':original_data['correlation_mat'], 'activity_peaks':original_data['activity_peaks'], \
-                'firing_average_time_course':firing_average_time_course_real}
+                'firing_rate_mat':original_data['firing_rate_mat'], 'correlation_mat':original_data['correlation_mat'], 'activity_peaks':original_data['activity_peaks'],\
+                 'shuffled_index':original_data['shuffled_index'], 'firing_average_time_course':firing_average_time_course_real}
             else:
                 data = {'mean':mean_spike_count_real, 'acf':autocorrelogram_mat_real, 'cov_mat':cov_mat_real, 'samples':samples, 'k_probs':k_probs_real,'lag_cov_mat':lag_cov_mat_real,\
                     'firing_average_time_course':firing_average_time_course_real}
