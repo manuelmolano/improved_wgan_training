@@ -4,7 +4,9 @@ Created on Fri Sep 15 14:41:38 2017
 
 @author: manuel
 """
-import os
+import sys, os
+print(os.getcwd())
+sys.path.append('/home/manuel/improved_wgan_training/')
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
@@ -44,7 +46,9 @@ def get_stats(X, num_neurons, num_bins, folder, name, firing_rate_mat=[],correla
             [original_data["mean"], original_data["acf"], original_data["firing_average_time_course"], original_data["cov_mat"], original_data["k_probs"], original_data["lag_cov_mat"]]
     
     cov_mat, k_probs, mean_spike_count, autocorrelogram_mat, firing_average_time_course, lag_cov_mat = get_stats_aux(X, num_neurons, num_bins)
-    
+    variances = np.diag(cov_mat)
+    only_cov_mat = cov_mat
+    only_cov_mat[np.diag_indices(num_neurons)] = np.nan
     
     
     #PLOT
@@ -77,19 +81,22 @@ def get_stats(X, num_neurons, num_bins, folder, name, firing_rate_mat=[],correla
         
     sbplt[0][0].set_title('mean firing rates')
 
-    #plot correlations
+    #plot covariances
     if name!='real':
-        sbplt[0][1].plot([np.min(cov_mat_real.flatten()),np.max(cov_mat_real.flatten())],\
-                        [np.min(cov_mat_real.flatten()),np.max(cov_mat_real.flatten())],'k')
-        sbplt[0][1].plot(cov_mat_real.flatten(),cov_mat.flatten(),'.g')
-        sbplt[0][1].set_title('pairwise correlations')
-        sbplt[0][1].set_xlabel('correlations expt')
-        sbplt[0][1].set_ylabel('correlations model')
-        corr_error = np.sum(np.abs(cov_mat-cov_mat_real).flatten())
+        variances_real = np.diag(cov_mat_real)
+        only_cov_mat_real = cov_mat_real
+        only_cov_mat_real[np.diag_indices(num_neurons)] = np.nan
+        sbplt[0][1].plot([np.nanmin(only_cov_mat_real.flatten()),np.nanmax(only_cov_mat_real.flatten())],\
+                        [np.nanmin(only_cov_mat_real.flatten()),np.nanmax(only_cov_mat_real.flatten())],'k')
+        sbplt[0][1].plot(only_cov_mat_real.flatten(),only_cov_mat.flatten(),'.g')
+        sbplt[0][1].set_title('pairwise covariances')
+        sbplt[0][1].set_xlabel('covariances expt')
+        sbplt[0][1].set_ylabel('covariances model')
+        corr_error = np.nansum(np.abs(only_cov_mat-only_cov_mat_real).flatten())
     else:       
-        map_aux = sbplt[0][1].imshow(cov_mat,interpolation='nearest')
+        map_aux = sbplt[0][1].imshow(only_cov_mat,interpolation='nearest')
         f.colorbar(map_aux,ax=sbplt[0][1])
-        sbplt[0][1].set_title('correlation mat')
+        sbplt[0][1].set_title('covariance mat')
         sbplt[0][1].set_xlabel('neuron')
         sbplt[0][1].set_ylabel('neuron')
         
@@ -129,24 +136,30 @@ def get_stats(X, num_neurons, num_bins, folder, name, firing_rate_mat=[],correla
     if name!='real':   
         #PLOT LAG COVARIANCES
         #figure for all training error across epochs (supp. figure 2)
-        f,sbplt = plt.subplots(1,3,figsize=(8, 8),dpi=250)
+        f,sbplt = plt.subplots(2,2,figsize=(8, 8),dpi=250)
         matplotlib.rcParams.update({'font.size': 8})
         plt.subplots_adjust(left=left, bottom=bottom, right=right, top=top, wspace=wspace, hspace=hspace)    
-        map_aux = sbplt[0].imshow(lag_cov_mat_real,interpolation='nearest')
-        f.colorbar(map_aux,ax=sbplt[0])
-        sbplt[0].set_title('lag correlation mat expt')
-        sbplt[0].set_xlabel('neuron')
-        sbplt[0].set_ylabel('neuron shifted')
-        map_aux = sbplt[1].imshow(lag_cov_mat,interpolation='nearest')
-        f.colorbar(map_aux,ax=sbplt[1])
-        sbplt[1].set_title('lag correlation mat model')
-        sbplt[1].set_xlabel('neuron')
-        sbplt[1].set_ylabel('neuron shifted')
-        sbplt[2].plot([np.min(lag_cov_mat_real.flatten()),np.max(lag_cov_mat_real.flatten())],\
+        map_aux = sbplt[0][0].imshow(lag_cov_mat_real,interpolation='nearest')
+        f.colorbar(map_aux,ax=sbplt[0][0])
+        sbplt[0][0].set_title('lag covariance mat expt')
+        sbplt[0][0].set_xlabel('neuron')
+        sbplt[0][0].set_ylabel('neuron shifted')
+        map_aux = sbplt[1][0].imshow(lag_cov_mat,interpolation='nearest')
+        f.colorbar(map_aux,ax=sbplt[1][0])
+        sbplt[1][0].set_title('lag covariance mat model')
+        sbplt[1][0].set_xlabel('neuron')
+        sbplt[1][0].set_ylabel('neuron shifted')
+        sbplt[0][1].plot([np.min(lag_cov_mat_real.flatten()),np.max(lag_cov_mat_real.flatten())],\
                         [np.min(lag_cov_mat_real.flatten()),np.max(lag_cov_mat_real.flatten())],'k')        
-        sbplt[2].plot(lag_cov_mat_real,lag_cov_mat,'.g')
-        sbplt[2].set_xlabel('lag cov real')
-        sbplt[2].set_ylabel('lag cov model')
+        sbplt[0][1].plot(lag_cov_mat_real,lag_cov_mat,'.g')
+        sbplt[0][1].set_xlabel('lag cov real')
+        sbplt[0][1].set_ylabel('lag cov model')
+        sbplt[1][1].plot([np.min(variances_real.flatten()),np.max(variances.flatten())],\
+                        [np.min(variances_real.flatten()),np.max(variances_real.flatten())],'k')
+        sbplt[1][1].plot(variances_real.flatten(),variances.flatten(),'.g')
+        sbplt[1][1].set_title('variances')
+        sbplt[1][1].set_xlabel('variances expt')
+        sbplt[1][1].set_ylabel('variances model')
         f.savefig(folder+'lag_covs_'+name+'_II.svg',dpi=600, bbox_inches='tight')
         plt.close(f)
         
