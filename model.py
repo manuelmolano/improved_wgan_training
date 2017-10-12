@@ -226,33 +226,35 @@ class WGAN(object):
        
           
   # Discriminator
-  def FCDiscriminator(self,inputs, FC_DIM=512, n_layers=2):
+  def FCDiscriminator(self,inputs, FC_DIM=512, n_layers=3):
       output = tf.reshape(inputs, [-1, self.num_neurons, self.num_bins])
       conv1d_II.set_weights_stdev(0.02)
-      output = conv1d_II.Conv1D('Discriminator.Input', self.num_neurons, self.num_features, self.kernel_width, output, stride=1)  
-      output = conv1d_II.Conv1D('Discriminator.Input', self.num_features, 2*self.num_features, self.kernel_width, output, stride=1)
-      output = act_funct.LeakyReLULayer('Discriminator.0', self.num_features*self.num_bins, FC_DIM, inputs)
+      output = conv1d_II.Conv1D('Discriminator.Input', self.num_neurons, self.num_features, self.kernel_width, output, stride=1) 
+      output = tf.reshape(output, [-1, self.num_features*self.num_bins])
+      output = act_funct.LeakyReLULayer('Discriminator.0', self.num_features*self.num_bins, FC_DIM, output)
       for i in range(n_layers-1):
           output = act_funct.LeakyReLULayer('Discriminator.{}'.format(i+1), FC_DIM, FC_DIM, output)
       output = linear.Linear('Discriminator.Out', FC_DIM, 1, output)
       conv1d_II.unset_weights_stdev()
       return tf.reshape(output, [-1])
     
+    
+  
   # Discriminator
   def FCDiscriminator_sampler(self,inputs, FC_DIM=512, n_layers=3):
       with tf.variable_scope('Discriminator') as scope:
           scope.reuse_variables()
           output = tf.reshape(inputs, [-1, self.num_neurons, self.num_bins])
           conv1d_II.set_weights_stdev(0.02)
-          output, filters = conv1d_II.Conv1D('Discriminator.Input', self.num_neurons, self.num_features, self.kernel_width, output, stride=1, save_filter=True)  
-          print(filters.get_shape())
+          output, filters = conv1d_II.Conv1D('Input', self.num_neurons, self.num_features, self.kernel_width, output, stride=1, save_filter=True)  
+          output = tf.reshape(output, [-1, self.num_features*self.num_bins])
           outputs_mat = [output]
-          output = act_funct.LeakyReLULayer('Discriminator.0', self.num_features*self.num_bins, FC_DIM, inputs)
+          output = act_funct.LeakyReLULayer('0', self.num_features*self.num_bins, FC_DIM, output)
           outputs_mat.append(output)
           for i in range(n_layers-1):
-              output = act_funct.LeakyReLULayer('Discriminator.{}'.format(i+1), FC_DIM, FC_DIM, output)
+              output = act_funct.LeakyReLULayer('{}'.format(i+1), FC_DIM, FC_DIM, output)
               outputs_mat.append(output)
-          output = linear.Linear('Discriminator.Out', FC_DIM, 1, output)
+          output = linear.Linear('Out', FC_DIM, 1, output)
           conv1d_II.unset_weights_stdev()
         
           return tf.reshape(output, [-1]), [filters], outputs_mat
