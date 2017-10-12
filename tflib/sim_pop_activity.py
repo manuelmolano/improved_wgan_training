@@ -54,7 +54,7 @@ def spike_train_packets(num_bins=64, num_neurons=32, group_size=4, prob_packets=
         
         
 def get_samples(num_samples=2**13,num_bins=64, num_neurons=32, correlations_mat=np.zeros((16,))+0.5, packets_on=False,\
-                        group_size=2,refr_per=2,firing_rates_mat=np.zeros((16,))+0.2,activity_peaks=np.zeros((16,))+32, prob_packets=0.05):                        
+                        group_size=2,refr_per=2,firing_rates_mat=np.zeros((16,))+0.2,activity_peaks=np.zeros((16,))+32, prob_packets=0.05, shuffled_index=np.arange(32)):                        
     X = np.zeros((num_neurons*num_bins,num_samples))
     for ind in range(num_samples):
         if not packets_on:
@@ -62,7 +62,7 @@ def get_samples(num_samples=2**13,num_bins=64, num_neurons=32, correlations_mat=
                     group_size=group_size, firing_rates_mat=firing_rates_mat, refr_per=refr_per, activity_peaks=activity_peaks)
         else:
             sample = spike_train_packets(num_bins=num_bins, num_neurons=num_neurons, group_size=group_size, prob_packets=prob_packets, firing_rates_mat=firing_rates_mat)
-            
+            sample = sample[shuffled_index,:]
         X[:,ind] = sample.reshape((num_neurons*num_bins,-1))[:,0]
      
     return X
