@@ -140,10 +140,10 @@ class WGAN_conv(object):
         shuffled_index = np.arange(self.num_neurons)
         #np.random.shuffle(shuffled_index)
         firing_rates_mat = config.firing_rate+2*(np.random.random(size=(self.num_neurons,1))-0.5)*config.firing_rate/2 
-        self.real_samples = sim_pop_activity.get_samples(num_samples=config.num_samples, num_bins=self.num_bins,\
+        self.real_samples = sim_pop_activity.get_samples(num_samples=config.num_samples, num_bins=self.num_bins, refr_per=config.ref_period,\
         num_neurons=self.num_neurons, group_size=config.group_size, firing_rates_mat=firing_rates_mat, packets_on=True, shuffled_index=shuffled_index)
         #get dev samples
-        dev_samples = sim_pop_activity.get_samples(num_samples=int(config.num_samples/4), num_bins=self.num_bins,\
+        dev_samples = sim_pop_activity.get_samples(num_samples=int(config.num_samples/4), num_bins=self.num_bins, refr_per=config.ref_period,\
         num_neurons=self.num_neurons, group_size=config.group_size, firing_rates_mat=firing_rates_mat, packets_on=True, shuffled_index=shuffled_index)
         #save original statistics
         analysis.get_stats(X=self.real_samples, num_neurons=self.num_neurons, num_bins=self.num_bins, folder=self.sample_dir, name='real',firing_rate_mat=firing_rates_mat, shuffled_index=shuffled_index)
@@ -197,7 +197,7 @@ class WGAN_conv(object):
     
       if (iteration == 500) or iteration % 20000 == 19999 or (iteration >= config.num_iter-10):
         print('epoch ' + str(epoch))
-        if config.dataset=='uniform':
+        if config.dataset=='uniform' or config.dataset=='packets':
             #this is to evaluate whether the discriminator has overfit 
             dev_disc_costs = []
             for ind_dev in range(int(dev_samples.shape[1]/self.batch_size)):
@@ -416,17 +416,17 @@ class WGAN_conv(object):
   #draw samples from the generator
   def get_samples(self, num_samples=2**13): 
     noise = tf.constant(np.random.normal(size=(num_samples, 128)).astype('float32'))
-    fake_samples = self.DCGANGenerator(num_samples, noise=noise)
+    fake_samples = self.Generator(num_samples, noise=noise)
     return fake_samples  
 
   def get_filters(self, num_samples=64):
       noise = tf.constant(np.random.normal(size=(num_samples, self.output_dim)).astype('float32'))
-      _,filters,_ = self.DCGANDiscriminator_sampler(noise)
+      _,filters,_ = self.Discriminator_sampler(noise)
       return filters
   
   def get_units(self, num_samples):
       noise = tf.constant(np.random.random(size=(num_samples, self.output_dim)).astype('float32'))
-      output,_,units = self.DCGANDiscriminator_sampler(noise)
+      output,_,units = self.Discriminator_sampler(noise)
       return output, units, noise    
   
   #this is to save the network parameters  

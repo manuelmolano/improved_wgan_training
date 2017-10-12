@@ -120,7 +120,10 @@ def main(_):
     #get filters
     print('get activations -----------------------------------')
     output,units,inputs = wgan.get_units(num_samples=2**12)  
-    visualize_filters_and_units.plot_untis_rf_conv(units,output, inputs, sess, FLAGS)
+    if FLAGS.architecture=='conv':
+        visualize_filters_and_units.plot_untis_rf_conv(units,output, inputs, sess, FLAGS)
+    elif FLAGS.architecture=='fc':
+        visualize_filters_and_units.plot_untis_rf(units, output, inputs, sess, FLAGS)
     print('get filters -----------------------------------')
     filters = wgan.get_filters(num_samples=64)
     visualize_filters_and_units.plot_filters(filters, sess, FLAGS)
