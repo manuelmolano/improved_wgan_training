@@ -46,10 +46,11 @@ if int(tf.__version__.split('.')[0]) < 1:
   tf.nn.sigmoid_cross_entropy_with_logits = compatibility_decorator(tf.nn.sigmoid_cross_entropy_with_logits)
 
 class WGAN_conv(object):
-  def __init__(self, sess, batch_size=64, lambd=10,
+  def __init__(self, sess, batch_size=64, lambd=10, stride=2,
                num_neurons=4, z_dim=128, num_bins=32, num_layers=4, kernel_width=4, num_features=4,
                checkpoint_dir=None,
                sample_dir=None):    
+    self.stride = stride
     self.sess = sess   
     self.batch_size = batch_size
     self.lambd = lambd #for the gradient penalization
@@ -132,6 +133,16 @@ class WGAN_conv(object):
         num_neurons=self.num_neurons, correlations_mat=correlations_mat, group_size=config.group_size, refr_per=config.ref_period,firing_rates_mat=firing_rates_mat, activity_peaks=activity_peaks)
         #save original statistics
         analysis.get_stats(X=self.real_samples, num_neurons=self.num_neurons, num_bins=self.num_bins, folder=self.sample_dir, name='real',firing_rate_mat=firing_rates_mat, correlation_mat=correlations_mat, activity_peaks=activity_peaks)
+    elif config.dataset=='packets':
+        firing_rates_mat = config.firing_rate+2*(np.random.random(size=(self.num_neurons,1))-0.5)*config.firing_rate/2 
+        self.real_samples = sim_pop_activity.get_samples(num_samples=config.num_samples, num_bins=self.num_bins,\
+        num_neurons=self.num_neurons, group_size=config.group_size, firing_rates_mat=firing_rates_mat, packets_on=True)
+        #get dev samples
+        dev_samples = sim_pop_activity.get_samples(num_samples=int(config.num_samples/4), num_bins=self.num_bins,\
+        num_neurons=self.num_neurons, group_size=config.group_size, firing_rates_mat=firing_rates_mat, packets_on=True)
+        #save original statistics
+        analysis.get_stats(X=self.real_samples, num_neurons=self.num_neurons, num_bins=self.num_bins, folder=self.sample_dir, name='real',firing_rate_mat=firing_rates_mat, correlation_mat=[], activity_peaks=[])
+        
     elif config.dataset=='retina':
         self.real_samples = retinal_data.get_samples(num_bins=self.num_bins, num_neurons=self.num_neurons, instance=config.data_instance)
         #save original statistics
@@ -244,9 +255,9 @@ class WGAN_conv(object):
     print('0. -------------------------------')
     for ind_l in range(self.num_layers):
         if ind_l==0:
-            output = conv1d_II.Conv1D('Discriminator.'+str(ind_l+1), self.num_neurons, num_features*2**(ind_l+1),kernel_width, output, stride=2)
+            output = conv1d_II.Conv1D('Discriminator.'+str(ind_l+1), self.num_neurons, num_features*2**(ind_l+1),kernel_width, output, stride=self.stride)
         else:
-            output = conv1d_II.Conv1D('Discriminator.'+str(ind_l+1), num_features*2**(ind_l), num_features*2**(ind_l+1), kernel_width, output, stride=2)
+            output = conv1d_II.Conv1D('Discriminator.'+str(ind_l+1), num_features*2**(ind_l), num_features*2**(ind_l+1), kernel_width, output, stride=self.stride)
         output = act_funct.LeakyReLU(output)
         print((output.get_shape()))
         print(str(ind_l+1)+'. -------------------------------')
@@ -278,9 +289,9 @@ class WGAN_conv(object):
 
       for ind_l in range(self.num_layers):
           if ind_l==0:
-              output, filters = conv1d_II.Conv1D('Discriminator.'+str(ind_l+1), self.num_neurons, num_features*2**(ind_l+1),kernel_width, output, stride=2, save_filter=True)
+              output, filters = conv1d_II.Conv1D('Discriminator.'+str(ind_l+1), self.num_neurons, num_features*2**(ind_l+1),kernel_width, output, stride=self.stride, save_filter=True)
           else:
-              output, filters = conv1d_II.Conv1D('Discriminator.'+str(ind_l+1), num_features*2**(ind_l), num_features*2**(ind_l+1), kernel_width, output, stride=2, save_filter=True)
+              output, filters = conv1d_II.Conv1D('Discriminator.'+str(ind_l+1), num_features*2**(ind_l), num_features*2**(ind_l+1), kernel_width, output, stride=self.stride, save_filter=True)
           output = act_funct.LeakyReLU(output)
           out_puts_mat.append(output)
           filters_mat.append(filters)

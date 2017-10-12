@@ -35,35 +35,33 @@ def spike_trains_corr(num_bins=64, num_neurons=32, correlations_mat=np.zeros((16
     return X.astype(float)
 
 
-def spike_train_packets(num_bins=64, num_neurons=32, group_size=4, num_packets=8, prob_packets=0.02, firing_rates_mat=np.zeros((32,1))+0.05):
+def spike_train_packets(num_bins=64, num_neurons=32, group_size=4, prob_packets=0.02, firing_rates_mat=np.zeros((32,1))+0.05):
     X = (np.zeros((num_neurons,num_bins)) + firing_rates_mat) > np.random.random((num_neurons,num_bins))
     packets_activity = np.zeros((num_neurons,num_bins))
-    packet = np.eye(group_size)*2
+    packet = np.eye(group_size)
     for ind_p in range(int(num_neurons/group_size)):
-        num_packets = np.random.binomial(num_bins,prob_packets)
-        packets_timing = np.sort(np.random.randint(0,num_bins-group_size,size=(num_packets,)))
-        aux = np.zeros((1,num_bins))
-        aux[0,packets_timing] = 1
+        aux = np.zeros((1,num_bins)) + prob_packets > np.random.random((1,num_bins))
+        aux[:,-group_size:] = 0
         aux = refractory_period_hard(group_size, aux, prob_packets)
         packets_timing = np.nonzero(aux[0])[0]
         assert all(np.diff(packets_timing)>group_size)
         for ind_t in range(len(packets_timing)):
             packets_activity[ind_p*group_size:(ind_p+1)*group_size,packets_timing[ind_t]:packets_timing[ind_t]+group_size] = packet
-        
-                
+                    
     result = X + packets_activity
-    return result, X, packets_activity
+    result[result>1] = 1
+    return result
         
         
-def get_samples(num_samples=2**13,num_bins=64, num_neurons=32, correlations_mat=np.zeros((16,))+0.5, type_response='corrs',\
+def get_samples(num_samples=2**13,num_bins=64, num_neurons=32, correlations_mat=np.zeros((16,))+0.5, packets_on=False,\
                         group_size=2,refr_per=2,firing_rates_mat=np.zeros((16,))+0.2,activity_peaks=np.zeros((16,))+32, prob_packets=0.05):                        
     X = np.zeros((num_neurons*num_bins,num_samples))
     for ind in range(num_samples):
-        if type_response=='corrs':
+        if not packets_on:
             sample = spike_trains_corr(num_neurons=num_neurons,num_bins=num_bins, correlations_mat=correlations_mat,\
                     group_size=group_size, firing_rates_mat=firing_rates_mat, refr_per=refr_per, activity_peaks=activity_peaks)
-        elif type_response=='packets':
-            sample = spike_trains_corr(num_bins=num_bins, num_neurons=num_neurons, group_size=group_size, prob_packets=prob_packets, firing_rates_mat=firing_rates_mat)
+        else:
+            sample = spike_train_packets(num_bins=num_bins, num_neurons=num_neurons, group_size=group_size, prob_packets=prob_packets, firing_rates_mat=firing_rates_mat)
             
         X[:,ind] = sample.reshape((num_neurons*num_bins,-1))[:,0]
      

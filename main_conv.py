@@ -63,13 +63,19 @@ pp = pprint.PrettyPrinter()
 def main(_):
   #print parameters
   pp.pprint(flags.FLAGS.__flags)
-  
   #folders
   if FLAGS.dataset=='uniform':
       FLAGS.sample_dir = 'samples CONV/' + 'dataset_' + FLAGS.dataset + '_num_samples_' + str(FLAGS.num_samples) +\
       '_num_neurons_' + str(FLAGS.num_neurons) + '_num_bins_' + str(FLAGS.num_bins)\
       + '_ref_period_' + str(FLAGS.ref_period) + '_firing_rate_' + str(FLAGS.firing_rate) + '_correlation_' + str(FLAGS.correlation) +\
       '_group_size_' + str(FLAGS.group_size)  + '_critic_iters_' + str(FLAGS.critic_iters) + '_lambda_' + str(FLAGS.lambd) +\
+      '_num_layers_' + str(FLAGS.num_layers)  + '_num_features_' + str(FLAGS.num_features) + '_kernel_' + str(FLAGS.kernel_width) +\
+      '_iteration_' + FLAGS.iteration + '/'
+  elif FLAGS.dataset=='packets':
+      FLAGS.sample_dir = 'samples CONV/' + 'dataset_' + FLAGS.dataset + '_num_samples_' + str(FLAGS.num_samples) +\
+      '_num_neurons_' + str(FLAGS.num_neurons) + '_num_bins_' + str(FLAGS.num_bins)\
+      + '_firing_rate_' + str(FLAGS.firing_rate) + '_group_size_' + str(FLAGS.group_size)  + '_critic_iters_' +\
+      str(FLAGS.critic_iters) + '_lambda_' + str(FLAGS.lambd) +\
       '_num_layers_' + str(FLAGS.num_layers)  + '_num_features_' + str(FLAGS.num_features) + '_kernel_' + str(FLAGS.kernel_width) +\
       '_iteration_' + FLAGS.iteration + '/'
   elif FLAGS.dataset=='retina':
