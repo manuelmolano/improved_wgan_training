@@ -35,10 +35,10 @@ def spike_trains_corr(num_bins=64, num_neurons=32, correlations_mat=np.zeros((16
     return X.astype(float)
 
 
-def spike_train_packets(num_bins=64, num_neurons=32, group_size=4, prob_packets=0.02, firing_rates_mat=np.zeros((32,1))+0.05, refr_per=2):
+def spike_train_packets(num_bins=64, num_neurons=32, group_size=4, prob_packets=0.02, firing_rates_mat=np.zeros((32,1))+0.2, refr_per=2):
     X = (np.zeros((num_neurons,num_bins)) + firing_rates_mat) > np.random.random((num_neurons,num_bins))
     for ind_n in range(num_neurons):
-        X[ind_n,:] = refractory_period(refr_per, X[ind_n,:], firing_rates_mat[ind_n])
+        X[ind_n,:] = refractory_period(refr_per, X[ind_n,:].reshape(1,num_bins), firing_rates_mat[ind_n])
     packets_activity = np.zeros((num_neurons,num_bins))
     packet = np.eye(group_size)
     for ind_p in range(int(num_neurons/group_size)):
@@ -113,8 +113,7 @@ def refractory_period_hard(refr_per, r, firing_rate):
     
 def refractory_period(refr_per, r, firing_rate):
     sigma = refr_per/1.5#np.sqrt(refr_per)
-    #print('imposing refractory period of ' + str(refr_per))    
-    margin_length = 2*np.shape(r)[1]
+    margin_length = 2*r.shape[1]
     for ind_tr in range(int(np.shape(r)[0])):
         r_aux = r[ind_tr,:]
         margin1 = np.random.poisson(np.zeros((margin_length,))+firing_rate)
@@ -141,20 +140,15 @@ def refractory_period(refr_per, r, firing_rate):
 
     
 if __name__ == '__main__':
-    plt.close('all')
-    sample, background, packet_activity = spike_train_packets()
-    sample[sample==3] = 2
-    f = plt.figure()
-    plt.imshow(sample,interpolation='nearest')
-    plt.colorbar()
-    f1 = plt.figure()
-    plt.imshow(background,interpolation='nearest')
-    plt.colorbar()
-    f2 = plt.figure()
-    plt.imshow(packet_activity,interpolation='nearest')
-    plt.colorbar()
-    
-    asdsadds
+#    plt.close('all')
+#    sample = spike_train_packets()
+#    sample[sample==3] = 2
+#    f = plt.figure()
+#    plt.imshow(sample,interpolation='nearest')
+#    plt.colorbar()
+#    
+#    
+#    asdsadds
     
     import analysis
     num_tr = 1000
@@ -162,11 +156,12 @@ if __name__ == '__main__':
     num_neurons = 32
     lag = 10
     refr_per_mat = [0.1,0.8,1,1.3,1.6]
+    f = plt.figure()
     for ind_rp in range(len(refr_per_mat)):
         X = np.zeros((num_neurons*num_bins,num_tr))
         autocorrelogram_mat = np.zeros(2*lag+1)
         for ind in range(num_tr):
-            sample = spike_trains_corr(refr_per=refr_per_mat[ind_rp])
+            sample = spike_train_packets(refr_per=refr_per_mat[ind_rp])
             X[:,ind] = sample.reshape((num_neurons*num_bins,-1))[:,0]
             autocorrelogram_mat += analysis.autocorrelogram(sample,lag=lag)
         autocorrelogram_mat = autocorrelogram_mat/np.max(autocorrelogram_mat)
