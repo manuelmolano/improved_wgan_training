@@ -60,7 +60,6 @@ def plot_filters(filters, sess, config):
 def plot_untis_rf_conv(activations, outputs, inputs, sess, config):
     my_cmap = plt.cm.gray
     num_layers = len(activations)
-    print(num_layers)   
     critics_decision = outputs.eval(session=sess)
     inputs = inputs.eval(session=sess)
     critics_decision = critics_decision.reshape(1,len(critics_decision))
@@ -75,7 +74,7 @@ def plot_untis_rf_conv(activations, outputs, inputs, sess, config):
         act_shape = act_temp.shape
         num_features = act_shape[1]
         #num_bins = act_shape[2]
-        for ind_bin in range(5,6):
+        for ind_bin in range(2,6):
             corr_with_decision = np.zeros((num_features,))
             #compute correlation between units and final decision
             for ind_feature in range(num_features):
@@ -86,19 +85,20 @@ def plot_untis_rf_conv(activations, outputs, inputs, sess, config):
             sbplt[int(np.floor(ind_f/num_rows))][ind_f%num_cols].hist(corr_with_decision)  
             sbplt[int(np.floor(ind_f/num_rows))][ind_f%num_cols].set_title(str(np.mean(np.abs(corr_with_decision))))
             
-            f2,sbplt2 = plt.subplots(8,8,figsize=(8, 8),dpi=250)
+            f2,sbplt2 = plt.subplots(10,10,figsize=(8, 8),dpi=250)
             matplotlib.rcParams.update({'font.size': 8})
             plt.subplots_adjust(left=left, bottom=bottom, right=right, top=top, wspace=wspace, hspace=hspace)  
             #get STA for most correlated units
-            portion = 64/num_features
+            portion = np.min([100/num_features,1])
             most_corr = corr_with_decision>np.percentile(corr_with_decision,100-portion*100)
             most_corr = act_temp[:,most_corr,ind_bin]
             for ind_unit in range(most_corr.shape[1]):
                 act_aux = most_corr[:,ind_unit].reshape(act_temp.shape[0],1)
                 spk = np.sum(inputs*act_aux,axis=0)
                 spk = spk.reshape(config.num_neurons,config.num_bins)
-                sbplt2[int(np.floor(ind_unit/8))][ind_unit%8].imshow(spk,interpolation='nearest', cmap = my_cmap)  
-                sbplt2[int(np.floor(ind_unit/8))][ind_unit%8].axis('off')  
+                sbplt2[int(np.floor(ind_unit/10))][ind_unit%10].imshow(spk,interpolation='nearest', cmap = my_cmap)  
+                sbplt2[int(np.floor(ind_unit/10))][ind_unit%10].axis('off')  
+            print(config.sample_dir+'sta_layer_' + str(ind_f) + '_bin_' + str(ind_bin) + '_most_corr.svg')  
             f2.savefig(config.sample_dir+'sta_layer_' + str(ind_f) + '_bin_' + str(ind_bin) + '_most_corr.svg',dpi=600, bbox_inches='tight')
             plt.close(f2)  
             

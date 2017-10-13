@@ -22,7 +22,7 @@ from tensorflow.python.framework import ops as options
 #from tensorflow.python.client import timeline
 import matplotlib.pyplot as plt
 
-#parameters used for (some) figures
+#parameters used for figures
 left  = 0.125  # the left side of the subplots of the figure
 right = 0.9    # the right side of the subplots of the figure
 bottom = 0.1   # the bottom of the subplots of the figure
@@ -50,7 +50,7 @@ class WGAN_conv(object):
                num_neurons=4, z_dim=128, num_bins=32, num_layers=4, kernel_width=4, num_features=4,
                checkpoint_dir=None,
                sample_dir=None):  
-    self.architecture = architecture
+    self.architecture = architecture #fully connected (fc) or convolutional (conv)
     self.stride = stride
     self.sess = sess   
     self.batch_size = batch_size
@@ -69,7 +69,7 @@ class WGAN_conv(object):
     self.build_model()
 
   def build_model(self):
-    
+    #get the discriminator/generator corresponding to the selected architecture
     self.Discriminator, self.Generator, self.Discriminator_sampler = self.GeneratorAndDiscriminator()
     #real samples    
     self.inputs = tf.placeholder(tf.float32, name='real_data', shape=[self.batch_size, self.num_neurons*self.num_bins])
@@ -85,13 +85,7 @@ class WGAN_conv(object):
     self.disc_cost = tf.reduce_mean(disc_fake) - tf.reduce_mean(disc_real)
     
     #penalize gradients
-    alpha = tf.random_uniform(
-        shape=[self.batch_size,1], 
-        minval=0.,
-        maxval=1.
-    )
-    print(self.sample_inputs.get_shape())
-    print(self.inputs.get_shape())
+    alpha = tf.random_uniform(shape=[self.batch_size,1], minval=0., maxval=1.)
     differences = self.sample_inputs - self.inputs
     interpolates = self.inputs + (alpha*differences)
     aux = self.Discriminator(interpolates)
@@ -111,42 +105,59 @@ class WGAN_conv(object):
     self.d_optim = tf.train.AdamOptimizer(learning_rate=config.learning_rate, beta1=config.beta1, beta2=config.beta2).minimize(self.disc_cost,
                                        var_list=params_with_name('Discriminator.'), colocate_gradients_with_ops=True)
 
-    
     tf.global_variables_initializer().run()
-    
       
     #try to load trained parameters
     self.load()
     
     #get real samples
     if config.dataset=='uniform':
-        firing_rates_mat = config.firing_rate+2*(np.random.random(int(self.num_neurons/config.group_size),)-0.5)*config.firing_rate/2    
-        correlations_mat = config.correlation+2*(np.random.random(int(self.num_neurons/config.group_size),)-0.5)*config.correlation/2    
-#        aux = np.arange(int(self.num_neurons/config.group_size))
-#        activity_peaks = [[x]*config.group_size for x in aux]#np.random.randint(0,high=self.num_bins,size=(1,self.num_neurons)).reshape(self.num_neurons,1)
-#        activity_peaks = np.asarray(activity_peaks)
-#        activity_peaks = activity_peaks.flatten()
-#        activity_peaks = activity_peaks*config.group_size*self.num_bins/self.num_neurons
-#        activity_peaks = activity_peaks.reshape(self.num_neurons,1)
-        activity_peaks = np.zeros((self.num_neurons,1))+self.num_bins/4
-        self.real_samples = sim_pop_activity.get_samples(num_samples=config.num_samples, num_bins=self.num_bins,\
-        num_neurons=self.num_neurons, correlations_mat=correlations_mat, group_size=config.group_size, refr_per=config.ref_period,firing_rates_mat=firing_rates_mat, activity_peaks=activity_peaks)
+        if os.path.isfile(self.sample_dir + '/stats_real.npz'):
+            aux = np.load(self.sample_dir+ '/stats_real.npz')
+            self.real_samples = aux['samples']
+        else:
+            firing_rates_mat = config.firing_rate+2*(np.random.random(int(self.num_neurons/config.group_size),)-0.5)*config.firing_rate/2    
+            correlations_mat = config.correlation+2*(np.random.random(int(self.num_neurons/config.group_size),)-0.5)*config.correlation/2   
+            #peaks of activity
+            #sequence response
+            #        aux = np.arange(int(self.num_neurons/config.group_size))
+            #        activity_peaks = [[x]*config.group_size for x in aux]#np.random.randint(0,high=self.num_bins,size=(1,self.num_neurons)).reshape(self.num_neurons,1)
+            #        activity_peaks = np.asarray(activity_peaks)
+            #        activity_peaks = activity_peaks.flatten()
+            #        activity_peaks = activity_peaks*config.group_size*self.num_bins/self.num_neurons
+            #        activity_peaks = activity_peaks.reshape(self.num_neurons,1)
+            #peak of activity equal for all neurons 
+            activity_peaks = np.zeros((self.num_neurons,1))+self.num_bins/4
+            self.real_samples = sim_pop_activity.get_samples(num_samples=config.num_samples, num_bins=self.num_bins,\
+                                num_neurons=self.num_neurons, correlations_mat=correlations_mat, group_size=config.group_size,\
+                                refr_per=config.ref_period,firing_rates_mat=firing_rates_mat, activity_peaks=activity_peaks)
+            
+            #save original statistics
+            analysis.get_stats(X=self.real_samples, num_neurons=self.num_neurons, num_bins=self.num_bins, folder=self.sample_dir,\
+                               name='real',firing_rate_mat=firing_rates_mat, correlation_mat=correlations_mat, activity_peaks=activity_peaks)
+            
         #get dev samples
         dev_samples = sim_pop_activity.get_samples(num_samples=int(config.num_samples/4), num_bins=self.num_bins,\
-        num_neurons=self.num_neurons, correlations_mat=correlations_mat, group_size=config.group_size, refr_per=config.ref_period,firing_rates_mat=firing_rates_mat, activity_peaks=activity_peaks)
-        #save original statistics
-        analysis.get_stats(X=self.real_samples, num_neurons=self.num_neurons, num_bins=self.num_bins, folder=self.sample_dir, name='real',firing_rate_mat=firing_rates_mat, correlation_mat=correlations_mat, activity_peaks=activity_peaks)
+                       num_neurons=self.num_neurons, correlations_mat=correlations_mat, group_size=config.group_size,\
+                       refr_per=config.ref_period,firing_rates_mat=firing_rates_mat, activity_peaks=activity_peaks)
+        
     elif config.dataset=='packets':
-        shuffled_index = np.arange(self.num_neurons)
-        #np.random.shuffle(shuffled_index)
-        firing_rates_mat = config.firing_rate+2*(np.random.random(size=(self.num_neurons,1))-0.5)*config.firing_rate/2 
-        self.real_samples = sim_pop_activity.get_samples(num_samples=config.num_samples, num_bins=self.num_bins, refr_per=config.ref_period,\
-        num_neurons=self.num_neurons, group_size=config.group_size, firing_rates_mat=firing_rates_mat, packets_on=True, shuffled_index=shuffled_index)
+        if os.path.isfile(self.sample_dir + '/stats_real.npz'):
+            aux = np.load(self.sample_dir+ '/stats_real.npz')
+            self.real_samples = aux['samples']
+        else:
+            #we shuffle neurons to test if the network still learns the packets
+            shuffled_index = np.arange(self.num_neurons)
+            #np.random.shuffle(shuffled_index)
+            firing_rates_mat = config.firing_rate+2*(np.random.random(size=(self.num_neurons,1))-0.5)*config.firing_rate/2 
+            self.real_samples = sim_pop_activity.get_samples(num_samples=config.num_samples, num_bins=self.num_bins, refr_per=config.ref_period,\
+                                 num_neurons=self.num_neurons, group_size=config.group_size, firing_rates_mat=firing_rates_mat, packets_on=True, shuffled_index=shuffled_index)
+            #save original statistics
+            analysis.get_stats(X=self.real_samples, num_neurons=self.num_neurons, num_bins=self.num_bins, folder=self.sample_dir, name='real',\
+                           firing_rate_mat=firing_rates_mat, shuffled_index=shuffled_index)
         #get dev samples
         dev_samples = sim_pop_activity.get_samples(num_samples=int(config.num_samples/4), num_bins=self.num_bins, refr_per=config.ref_period,\
-        num_neurons=self.num_neurons, group_size=config.group_size, firing_rates_mat=firing_rates_mat, packets_on=True, shuffled_index=shuffled_index)
-        #save original statistics
-        analysis.get_stats(X=self.real_samples, num_neurons=self.num_neurons, num_bins=self.num_bins, folder=self.sample_dir, name='real',firing_rate_mat=firing_rates_mat, shuffled_index=shuffled_index)
+                       num_neurons=self.num_neurons, group_size=config.group_size, firing_rates_mat=firing_rates_mat, packets_on=True, shuffled_index=shuffled_index)
         
     elif config.dataset=='retina':
         self.real_samples = retinal_data.get_samples(num_bins=self.num_bins, num_neurons=self.num_neurons, instance=config.data_instance)
@@ -181,7 +192,7 @@ class WGAN_conv(object):
       # Train critic
       disc_iters = config.critic_iters
       for i in range(disc_iters):
-        #get batch and trained critic
+        #get batch and update critic
         _data = self.real_samples[:,counter_batch*config.batch_size:(counter_batch+1)*config.batch_size].T
         _disc_cost, _ = self.sess.run([self.disc_cost, self.d_optim], feed_dict={self.inputs: _data})
         #if we have reached the end of the real samples set, we start over and increment the number of epochs
@@ -295,6 +306,7 @@ class WGAN_conv(object):
       num_features = self.num_features
       #neurons are treated as different channels
       output = tf.reshape(inputs, [-1, self.num_neurons, self.num_bins])
+      #initialize weights
       conv1d_II.set_weights_stdev(0.02)
       deconv1d_II.set_weights_stdev(0.02)
       linear.set_weights_stdev(0.02)
@@ -313,7 +325,7 @@ class WGAN_conv(object):
         
       output = tf.reshape(output, [-1, int(num_features*self.num_bins)])
       output = linear.Linear('Discriminator.Output', int(num_features*self.num_bins), 1, output)
-
+      #unset weights
       conv1d_II.unset_weights_stdev()
       deconv1d_II.unset_weights_stdev()
       linear.unset_weights_stdev()
@@ -374,16 +386,14 @@ class WGAN_conv(object):
     
   # Discriminator
   def FCDiscriminator_sampler(self,inputs, FC_DIM=512, n_layers=3):
-      with tf.variable_scope("Discriminator") as scope:
-          scope.reuse_variables()
-          output = act_funct.LeakyReLULayer('Discriminator.Input', self.output_dim, FC_DIM, inputs)
-          outputs_mat = [output]
-          for i in range(n_layers):
-              output = act_funct.LeakyReLULayer('Discriminator.{}'.format(i), FC_DIM, FC_DIM, output)
-              outputs_mat.append(output)
-          output = linear.Linear('Discriminator.Out', FC_DIM, 1, output)
-        
-          return tf.reshape(output, [-1]), outputs_mat
+      output = act_funct.LeakyReLULayer('Discriminator.Input', self.output_dim, FC_DIM, inputs)
+      outputs_mat = [output]
+      for i in range(n_layers):
+          output = act_funct.LeakyReLULayer('Discriminator.{}'.format(i), FC_DIM, FC_DIM, output)
+          outputs_mat.append(output)
+      output = linear.Linear('Discriminator.Out', FC_DIM, 1, output)
+    
+      return tf.reshape(output, [-1]), outputs_mat
   
   # Generator
   def FCGenerator(self, n_samples, noise=None, FC_DIM=512):
@@ -419,13 +429,17 @@ class WGAN_conv(object):
     fake_samples = self.Generator(num_samples, noise=noise)
     return fake_samples  
 
+  #get filters from the discriminator
   def get_filters(self, num_samples=64):
       noise = tf.constant(np.random.normal(size=(num_samples, self.output_dim)).astype('float32'))
       _,filters,_ = self.Discriminator_sampler(noise)
+  
       return filters
   
+  #get units STA from the discriminator
   def get_units(self, num_samples):
-      noise = tf.constant(np.random.random(size=(num_samples, self.output_dim)).astype('float32'))
+      #aux = np.load(self.sample_dir+ '/stats_real.npz')
+      noise = tf.constant(((np.zeros((num_samples, self.output_dim)) + 0.5) > np.random.random((num_samples, self.output_dim))).astype('float32'))
       output,_,units = self.Discriminator_sampler(noise)
       return output, units, noise    
   
