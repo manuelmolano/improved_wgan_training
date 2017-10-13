@@ -149,6 +149,7 @@ def get_stats(X, num_neurons, num_bins, folder, name, firing_rate_mat=[],correla
         sbplt[1][0].set_title('lag covariance mat model')
         sbplt[1][0].set_xlabel('neuron')
         sbplt[1][0].set_ylabel('neuron shifted')
+        lag_corr_error = np.nansum(np.abs(lag_cov_mat-lag_cov_mat_real).flatten())
         sbplt[0][1].plot([np.min(lag_cov_mat_real.flatten()),np.max(lag_cov_mat_real.flatten())],\
                         [np.min(lag_cov_mat_real.flatten()),np.max(lag_cov_mat_real.flatten())],'k')        
         sbplt[0][1].plot(lag_cov_mat_real,lag_cov_mat,'.g')
@@ -160,6 +161,7 @@ def get_stats(X, num_neurons, num_bins, folder, name, firing_rate_mat=[],correla
         sbplt[1][1].set_title('variances')
         sbplt[1][1].set_xlabel('variances expt')
         sbplt[1][1].set_ylabel('variances model')
+        variance_error = np.nansum(np.abs(variances_real-variances).flatten())
         f.savefig(folder+'lag_covs_'+name+'_II.svg',dpi=600, bbox_inches='tight')
         plt.close(f)
         
@@ -180,7 +182,10 @@ def get_stats(X, num_neurons, num_bins, folder, name, firing_rate_mat=[],correla
                 data = {'mean':mean_spike_count_real, 'acf':autocorrelogram_mat_real, 'cov_mat':cov_mat_real, 'samples':samples, 'k_probs':k_probs_real,'lag_cov_mat':lag_cov_mat_real,\
                     'firing_average_time_course':firing_average_time_course_real}
             np.savez(folder + '/stats_real.npz', **data)     
-        if name!='real':        
+        if name!='real': 
+            errors_mat = {'acf_error':acf_error, 'mean_error':mean_error, 'corr_error':corr_error, 'time_course_error':time_course_error, 'k_probs_error':k_probs_error,\
+                          'variance_error':variance_error, 'lag_corr_error':lag_corr_error}
+            np.savez(folder + '/errors_'+name+'.npz', **errors_mat)
             return acf_error, mean_error, corr_error, time_course_error, k_probs_error
     
 
