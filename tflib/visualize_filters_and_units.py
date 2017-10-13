@@ -74,7 +74,7 @@ def plot_untis_rf_conv(activations, outputs, inputs, sess, config):
         act_shape = act_temp.shape
         num_features = act_shape[1]
         #num_bins = act_shape[2]
-        for ind_bin in range(2,6):
+        for ind_bin in range(5,6):
             corr_with_decision = np.zeros((num_features,))
             #compute correlation between units and final decision
             for ind_feature in range(num_features):

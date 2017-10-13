@@ -24,8 +24,8 @@ Created on Thu Feb 23 11:27:20 2017
 import os
 import pprint
 from model_conv import WGAN_conv
-from tflib import analysis, retinal_data, visualize_filters_and_units#, sim_pop_activity
-
+from tflib import analysis, retinal_data, visualize_filters_and_units, sim_pop_activity
+import numpy as np
 #from utils import pp, get_samples_autocorrelogram, get_samples
 
 
@@ -52,6 +52,7 @@ flags.DEFINE_string("dataset", "uniform", "type of neural activity. It can be si
 flags.DEFINE_string("data_instance", "1", "if data==retina, this allows chosing the data instance")
 flags.DEFINE_integer("num_samples", 2**13, "number of samples")
 flags.DEFINE_integer("num_neurons", 4, "number of neurons in the population")
+flags.DEFINE_float("packet_prob", 0.05, "probability of packets")
 flags.DEFINE_integer("num_bins", 32, "number of bins (ms) for each sample")
 flags.DEFINE_string("iteration", "0", "in case several instances are run with the same parameters")
 flags.DEFINE_integer("ref_period", 2, "minimum number of ms between spikes (if < 0, no refractory period is imposed)")
@@ -75,7 +76,7 @@ def main(_):
       '_iteration_' + FLAGS.iteration + '/'
   elif FLAGS.dataset=='packets':
       FLAGS.sample_dir = 'samples ' + FLAGS.architecture + '/' + 'dataset_' + FLAGS.dataset + '_num_samples_' + str(FLAGS.num_samples) +\
-      '_num_neurons_' + str(FLAGS.num_neurons) + '_num_bins_' + str(FLAGS.num_bins)\
+      '_num_neurons_' + str(FLAGS.num_neurons) + '_num_bins_' + str(FLAGS.num_bins) + 'packet_prob_' + str(FLAGS.packet_prob)\
       + '_firing_rate_' + str(FLAGS.firing_rate) + '_group_size_' + str(FLAGS.group_size)  + '_critic_iters_' +\
       str(FLAGS.critic_iters) + '_lambda_' + str(FLAGS.lambd) +\
       '_num_layers_' + str(FLAGS.num_layers)  + '_num_features_' + str(FLAGS.num_features) + '_kernel_' + str(FLAGS.kernel_width) +\
@@ -135,10 +136,19 @@ def main(_):
     fake_samples = wgan.binarize(samples=fake_samples)    
     _,_,_,_,_ = analysis.get_stats(X=fake_samples.T, num_neurons=FLAGS.num_neurons, num_bins= FLAGS.num_bins, folder=FLAGS.sample_dir, name='fake', instance=FLAGS.data_instance)
 
+    #plot samples
+    sim_pop_activity.plot_samples(fake_samples.T, FLAGS.num_neurons, FLAGS.sample_dir, 'fake')
+    aux = np.load(FLAGS.sample_dir+ '/stats_real.npz')
+    real_samples = aux['samples']
+    sim_pop_activity.plot_samples(real_samples, FLAGS.num_neurons, FLAGS.sample_dir, 'real')
+    
+    #compare with k-pairwise model samples
     if FLAGS.dataset=='retina':
         k_pairwise_samples = retinal_data.load_samples_from_k_pairwise_model(num_samples=FLAGS.num_samples, num_bins=FLAGS.num_bins, num_neurons=FLAGS.num_neurons, instance=FLAGS.data_instance)    
         print(k_pairwise_samples.shape)
         _,_,_,_ ,_ = analysis.get_stats(X=k_pairwise_samples, num_neurons=FLAGS.num_neurons, num_bins= FLAGS.num_bins, folder=FLAGS.sample_dir, name='k_pairwise', instance=FLAGS.data_instance)
+    
+    #evaluate high order features approximation
     if FLAGS.dataset=='uniform' and False:
         analysis.evaluate_approx_distribution(X=fake_samples.T, folder=FLAGS.sample_dir, num_samples_theoretical_distr=2**21,num_bins=FLAGS.num_bins, num_neurons=FLAGS.num_neurons,\
                             group_size=FLAGS.group_size,refr_per=FLAGS.ref_period)

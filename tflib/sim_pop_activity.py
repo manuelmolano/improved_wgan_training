@@ -8,6 +8,16 @@ import time
 import numpy as np
 import matplotlib.pyplot as plt
 #import time
+import matplotlib
+
+#parameters for figure
+left  = 0.125  # the left side of the subplots of the figure
+right = 0.9    # the right side of the subplots of the figure
+bottom = 0.1   # the bottom of the subplots of the figure
+top = 0.9      # the top of the subplots of the figure
+wspace = 0.4   # the amount of width reserved for blank space between subplots
+hspace = 0.4   # the amount of height reserved for white space between subplots
+
 
 def spike_trains_corr(num_bins=64, num_neurons=32, correlations_mat=np.zeros((16,))+0.5,\
                         group_size=2,refr_per=4,firing_rates_mat=np.zeros((32,))+0.2,activity_peaks=np.zeros((32,1))+32):
@@ -35,7 +45,7 @@ def spike_trains_corr(num_bins=64, num_neurons=32, correlations_mat=np.zeros((16
     return X.astype(float)
 
 
-def spike_train_packets(num_bins=64, num_neurons=32, group_size=4, prob_packets=0.02, firing_rates_mat=np.zeros((32,1))+0.2, refr_per=2):
+def spike_train_packets(num_bins=32, num_neurons=16, group_size=4, prob_packets=0.02, firing_rates_mat=np.zeros((16,1))+0.25, refr_per=2):
     X = (np.zeros((num_neurons,num_bins)) + firing_rates_mat) > np.random.random((num_neurons,num_bins))
     for ind_n in range(num_neurons):
         X[ind_n,:] = refractory_period(refr_per, X[ind_n,:].reshape(1,num_bins), firing_rates_mat[ind_n])
@@ -53,10 +63,26 @@ def spike_train_packets(num_bins=64, num_neurons=32, group_size=4, prob_packets=
     result = X + packets_activity
     result[result>1] = 1
     return result
-        
-        
+   
+def plot_samples(X, num_neurons, folder, name):
+    my_cmap = plt.cm.gray
+    num1 = 8
+    num2 = 8
+    f,sbplt = plt.subplots(8,8,figsize=(num1, num2),dpi=250)
+    matplotlib.rcParams.update({'font.size': 8})
+    plt.subplots_adjust(left=left, bottom=bottom, right=right, top=top, wspace=wspace, hspace=hspace)
+    num_samples = num1*num2
+    
+    for ind in range(num_samples):
+        sample = X[:,ind].reshape((num_neurons,-1))
+        sbplt[int(np.floor(ind/num1))][ind%num2].imshow(sample,interpolation='nearest', cmap = my_cmap)  
+        sbplt[int(np.floor(ind/num1))][ind%num2].axis('off')  
+         
+    f.savefig(folder + name + '_samples.svg',dpi=600, bbox_inches='tight')
+    plt.close(f) 
+    
 def get_samples(num_samples=2**13,num_bins=64, num_neurons=32, correlations_mat=np.zeros((16,))+0.5, packets_on=False,\
-                        group_size=2,refr_per=2,firing_rates_mat=np.zeros((16,))+0.2,activity_peaks=np.zeros((16,))+32, prob_packets=0.05, shuffled_index=np.arange(32)):                        
+                group_size=2,refr_per=2,firing_rates_mat=np.zeros((16,))+0.2,activity_peaks=np.zeros((16,))+32, prob_packets=0.05, shuffled_index=np.arange(32), folder=''):                        
     X = np.zeros((num_neurons*num_bins,num_samples))
     for ind in range(num_samples):
         if not packets_on:
@@ -65,8 +91,10 @@ def get_samples(num_samples=2**13,num_bins=64, num_neurons=32, correlations_mat=
         else:
             sample = spike_train_packets(num_bins=num_bins, num_neurons=num_neurons, group_size=group_size, prob_packets=prob_packets, firing_rates_mat=firing_rates_mat, refr_per=refr_per,)
             sample = sample[shuffled_index,:]
+        
         X[:,ind] = sample.reshape((num_neurons*num_bins,-1))[:,0]
-     
+    if folder!='':
+        plot_samples(X, num_neurons, folder, 'real')
     return X
 
 def get_aproximate_probs(num_samples=2**13,num_bins=64, num_neurons=32, correlations_mat=np.zeros((16,))+0.5,\
@@ -140,15 +168,15 @@ def refractory_period(refr_per, r, firing_rate):
 
     
 if __name__ == '__main__':
-#    plt.close('all')
-#    sample = spike_train_packets()
-#    sample[sample==3] = 2
-#    f = plt.figure()
-#    plt.imshow(sample,interpolation='nearest')
-#    plt.colorbar()
-#    
-#    
-#    asdsadds
+    plt.close('all')
+    sample = spike_train_packets()
+    sample[sample==3] = 2
+    f = plt.figure()
+    plt.imshow(sample,interpolation='nearest')
+    plt.colorbar()
+    
+    
+    asdsadds
     
     import analysis
     num_tr = 1000
