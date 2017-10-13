@@ -115,6 +115,9 @@ class WGAN_conv(object):
         if os.path.isfile(self.sample_dir + '/stats_real.npz'):
             aux = np.load(self.sample_dir+ '/stats_real.npz')
             self.real_samples = aux['samples']
+            firing_rates_mat = aux['firing_rate_mat']
+            correlations_mat = aux['correlation_mat']
+            activity_peaks = aux['activity_peaks']
         else:
             firing_rates_mat = config.firing_rate+2*(np.random.random(int(self.num_neurons/config.group_size),)-0.5)*config.firing_rate/2    
             correlations_mat = config.correlation+2*(np.random.random(int(self.num_neurons/config.group_size),)-0.5)*config.correlation/2   
@@ -130,7 +133,7 @@ class WGAN_conv(object):
             activity_peaks = np.zeros((self.num_neurons,1))+self.num_bins/4
             self.real_samples = sim_pop_activity.get_samples(num_samples=config.num_samples, num_bins=self.num_bins,\
                                 num_neurons=self.num_neurons, correlations_mat=correlations_mat, group_size=config.group_size,\
-                                refr_per=config.ref_period,firing_rates_mat=firing_rates_mat, activity_peaks=activity_peaks)
+                                refr_per=config.ref_period,firing_rates_mat=firing_rates_mat, activity_peaks=activity_peaks, folder=config.sample_dir)
             
             #save original statistics
             analysis.get_stats(X=self.real_samples, num_neurons=self.num_neurons, num_bins=self.num_bins, folder=self.sample_dir,\
@@ -145,19 +148,23 @@ class WGAN_conv(object):
         if os.path.isfile(self.sample_dir + '/stats_real.npz'):
             aux = np.load(self.sample_dir+ '/stats_real.npz')
             self.real_samples = aux['samples']
+            firing_rates_mat = aux['firing_rate_mat']
+            shuffled_index = aux['shuffled_index']
         else:
             #we shuffle neurons to test if the network still learns the packets
             shuffled_index = np.arange(self.num_neurons)
             #np.random.shuffle(shuffled_index)
             firing_rates_mat = config.firing_rate+2*(np.random.random(size=(self.num_neurons,1))-0.5)*config.firing_rate/2 
             self.real_samples = sim_pop_activity.get_samples(num_samples=config.num_samples, num_bins=self.num_bins, refr_per=config.ref_period,\
-                                 num_neurons=self.num_neurons, group_size=config.group_size, firing_rates_mat=firing_rates_mat, packets_on=True, shuffled_index=shuffled_index)
+                                 num_neurons=self.num_neurons, group_size=config.group_size, firing_rates_mat=firing_rates_mat, packets_on=True,\
+                                 prob_packets=config.packet_prob, shuffled_index=shuffled_index, folder=config.sample_dir)
             #save original statistics
             analysis.get_stats(X=self.real_samples, num_neurons=self.num_neurons, num_bins=self.num_bins, folder=self.sample_dir, name='real',\
                            firing_rate_mat=firing_rates_mat, shuffled_index=shuffled_index)
         #get dev samples
         dev_samples = sim_pop_activity.get_samples(num_samples=int(config.num_samples/4), num_bins=self.num_bins, refr_per=config.ref_period,\
-                       num_neurons=self.num_neurons, group_size=config.group_size, firing_rates_mat=firing_rates_mat, packets_on=True, shuffled_index=shuffled_index)
+                       num_neurons=self.num_neurons, group_size=config.group_size, firing_rates_mat=firing_rates_mat, packets_on=True,\
+                       prob_packets=config.packet_prob,shuffled_index=shuffled_index)
         
     elif config.dataset=='retina':
         self.real_samples = retinal_data.get_samples(num_bins=self.num_bins, num_neurons=self.num_neurons, instance=config.data_instance)
