@@ -108,11 +108,11 @@ class WGAN_conv(object):
     tf.global_variables_initializer().run()
       
     #try to load trained parameters
-    self.load()
+    existing_gan, ckpt_name = self.load()
     
     #get real samples
     if config.dataset=='uniform':
-        if os.path.isfile(self.sample_dir + '/stats_real.npz'):
+        if existing_gan:
             aux = np.load(self.sample_dir+ '/stats_real.npz')
             self.real_samples = aux['samples']
             firing_rates_mat = aux['firing_rate_mat']
@@ -145,7 +145,7 @@ class WGAN_conv(object):
                        refr_per=config.ref_period,firing_rates_mat=firing_rates_mat, activity_peaks=activity_peaks)
         
     elif config.dataset=='packets':
-        if os.path.isfile(self.sample_dir + '/stats_real.npz'):
+        if existing_gan:
             aux = np.load(self.sample_dir+ '/stats_real.npz')
             self.real_samples = aux['samples']
             firing_rates_mat = aux['firing_rate_mat']
@@ -193,7 +193,7 @@ class WGAN_conv(object):
     for iteration in range(config.num_iter):
       start_time = time.time()
       # Train generator (only after the critic has been trained, at least once)
-      if iteration > 0:
+      if iteration+ckpt_name > 0:
          _ = self.sess.run(self.g_optim)
       
       # Train critic
@@ -213,7 +213,7 @@ class WGAN_conv(object):
       plot.plot(self.sample_dir,'train disc cost', -_disc_cost)
       plot.plot(self.sample_dir,'time', aux)
     
-      if (iteration == 500) or iteration % 20000 == 19999 or (iteration >= config.num_iter-10):
+      if (iteration+ckpt_name == 500) or iteration % 20000 == 19999 or (iteration+ckpt_name >= config.num_iter-10):
         print('epoch ' + str(epoch))
         if config.dataset=='uniform' or config.dataset=='packets':
             #this is to evaluate whether the discriminator has overfit 
@@ -226,31 +226,31 @@ class WGAN_conv(object):
             plot.plot(self.sample_dir,'dev disc cost', -np.mean(dev_disc_costs))
         
         #save the network parameters
-        self.save(iteration)
+        self.save(iteration+ckpt_name)
         
         #get simulated samples, calculate their statistics and compare them with the original ones
         fake_samples = self.get_samples(num_samples=2**13)
         fake_samples = fake_samples.eval(session=self.sess)
         fake_samples = self.binarize(samples=fake_samples)    
         acf_error, mean_error, corr_error, time_course_error,_ = analysis.get_stats(X=fake_samples.T, num_neurons=config.num_neurons,\
-            num_bins=config.num_bins, folder=config.sample_dir, name='fake'+str(iteration), critic_cost=-_disc_cost,instance=config.data_instance) 
+            num_bins=config.num_bins, folder=config.sample_dir, name='fake'+str(iteration+ckpt_name), critic_cost=-_disc_cost,instance=config.data_instance) 
         #plot the fitting errors
-        sbplt[0][0].plot(iteration,mean_error,'+b')
+        sbplt[0][0].plot(iteration+ckpt_name,mean_error,'+b')
         sbplt[0][0].set_title('spk-count mean error')
         sbplt[0][0].set_xlabel('iterations')
         sbplt[0][0].set_ylabel('L1 error')
         sbplt[0][0].set_xlim([0-config.num_iter/4, config.num_iter+config.num_iter/4])
-        sbplt[0][1].plot(iteration,time_course_error,'+b')
+        sbplt[0][1].plot(iteration+ckpt_name,time_course_error,'+b')
         sbplt[0][1].set_title('time course error')
         sbplt[0][1].set_xlabel('iterations')
         sbplt[0][1].set_ylabel('L1 error')
         sbplt[0][1].set_xlim([0-config.num_iter/4, config.num_iter+config.num_iter/4])
-        sbplt[1][0].plot(iteration,acf_error,'+b')
+        sbplt[1][0].plot(iteration+ckpt_name,acf_error,'+b')
         sbplt[1][0].set_title('AC error')
         sbplt[1][0].set_xlabel('iterations')
         sbplt[1][0].set_ylabel('L1 error')
         sbplt[1][0].set_xlim([0-config.num_iter/4, config.num_iter+config.num_iter/4])
-        sbplt[1][1].plot(iteration,corr_error,'+b')
+        sbplt[1][1].plot(iteration+ckpt_name,corr_error,'+b')
         sbplt[1][1].set_title('corr error')
         sbplt[1][1].set_xlabel('iterations')
         sbplt[1][1].set_ylabel('L1 error')
@@ -475,10 +475,12 @@ class WGAN_conv(object):
     
       self.saver.restore(self.sess, os.path.join(self.checkpoint_dir, ckpt_name))
       print(" [*] Success to read {}".format(ckpt_name))
-      return True
+      index = ckpt_name.find('-')
+      
+      return True, int(ckpt_name[index+1:])
     else:
       print(" [*] Failed to find a checkpoint")
-      return False          
+      return False, 0          
 
  
     
