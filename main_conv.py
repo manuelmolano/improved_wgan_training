@@ -46,6 +46,7 @@ flags.DEFINE_string("training_stage", '', "stage of the training used for the GA
 flags.DEFINE_integer("num_layers", 4, "number of convolutional layers [4]")
 flags.DEFINE_integer("num_features", 4, "features in first layers [4]")
 flags.DEFINE_integer("kernel_width", 4, "width of kernel [4]")
+flags.DEFINE_integer("num_units", 512, "num units per layer in the fc GAN")
 
 #parameter set specifiying data
 flags.DEFINE_string("dataset", "uniform", "type of neural activity. It can be simulated  or retina")
@@ -68,19 +69,35 @@ def main(_):
   pp.pprint(flags.FLAGS.__flags)
   #folders
   if FLAGS.dataset=='uniform':
-      FLAGS.sample_dir = 'samples ' + FLAGS.architecture + '/' + 'dataset_' + FLAGS.dataset + '_num_samples_' + str(FLAGS.num_samples) +\
-      '_num_neurons_' + str(FLAGS.num_neurons) + '_num_bins_' + str(FLAGS.num_bins)\
-      + '_ref_period_' + str(FLAGS.ref_period) + '_firing_rate_' + str(FLAGS.firing_rate) + '_correlation_' + str(FLAGS.correlation) +\
-      '_group_size_' + str(FLAGS.group_size)  + '_critic_iters_' + str(FLAGS.critic_iters) + '_lambda_' + str(FLAGS.lambd) +\
-      '_num_layers_' + str(FLAGS.num_layers)  + '_num_features_' + str(FLAGS.num_features) + '_kernel_' + str(FLAGS.kernel_width) +\
-      '_iteration_' + FLAGS.iteration + '/'
+      if FLAGS.architecture=='fc':
+          FLAGS.sample_dir = 'samples fc/' + 'dataset_' + FLAGS.dataset + '_num_samples_' + str(FLAGS.num_samples) +\
+          '_num_neurons_' + str(FLAGS.num_neurons) + '_num_bins_' + str(FLAGS.num_bins)\
+          + '_ref_period_' + str(FLAGS.ref_period) + '_firing_rate_' + str(FLAGS.firing_rate) + '_correlation_' + str(FLAGS.correlation) +\
+          '_group_size_' + str(FLAGS.group_size)  + '_critic_iters_' + str(FLAGS.critic_iters) + '_lambda_' + str(FLAGS.lambd) +\
+          '_num_layers_' + str(FLAGS.num_layers)  + '_num_units_' + str(FLAGS.units) +\
+          '_iteration_' + FLAGS.iteration + '/'
+      elif FLAGS.architecture=='conv':
+          FLAGS.sample_dir = 'samples conv/' + 'dataset_' + FLAGS.dataset + '_num_samples_' + str(FLAGS.num_samples) +\
+          '_num_neurons_' + str(FLAGS.num_neurons) + '_num_bins_' + str(FLAGS.num_bins)\
+          + '_ref_period_' + str(FLAGS.ref_period) + '_firing_rate_' + str(FLAGS.firing_rate) + '_correlation_' + str(FLAGS.correlation) +\
+          '_group_size_' + str(FLAGS.group_size)  + '_critic_iters_' + str(FLAGS.critic_iters) + '_lambda_' + str(FLAGS.lambd) +\
+          '_num_layers_' + str(FLAGS.num_layers)  + '_num_features_' + str(FLAGS.num_features) + '_kernel_' + str(FLAGS.kernel_width) +\
+          '_iteration_' + FLAGS.iteration + '/'
   elif FLAGS.dataset=='packets':
-      FLAGS.sample_dir = 'samples ' + FLAGS.architecture + '/' + 'dataset_' + FLAGS.dataset + '_num_samples_' + str(FLAGS.num_samples) +\
-      '_num_neurons_' + str(FLAGS.num_neurons) + '_num_bins_' + str(FLAGS.num_bins) + 'packet_prob_' + str(FLAGS.packet_prob)\
-      + '_firing_rate_' + str(FLAGS.firing_rate) + '_group_size_' + str(FLAGS.group_size)  + '_critic_iters_' +\
-      str(FLAGS.critic_iters) + '_lambda_' + str(FLAGS.lambd) +\
-      '_num_layers_' + str(FLAGS.num_layers)  + '_num_features_' + str(FLAGS.num_features) + '_kernel_' + str(FLAGS.kernel_width) +\
-      '_iteration_' + FLAGS.iteration + '/'
+      if FLAGS.architecture=='fc':
+          FLAGS.sample_dir = 'samples fc/' + 'dataset_' + FLAGS.dataset + '_num_samples_' + str(FLAGS.num_samples) +\
+          '_num_neurons_' + str(FLAGS.num_neurons) + '_num_bins_' + str(FLAGS.num_bins) + '_packet_prob_' + str(FLAGS.packet_prob)\
+          + '_firing_rate_' + str(FLAGS.firing_rate) + '_group_size_' + str(FLAGS.group_size)  + '_critic_iters_' +\
+          str(FLAGS.critic_iters) + '_lambda_' + str(FLAGS.lambd) +\
+          '_num_layers_' + str(FLAGS.num_layers)  + '_num_units_' + str(FLAGS.units) +\
+          '_iteration_' + FLAGS.iteration + '/'
+      elif FLAGS.architecture=='conv':
+          FLAGS.sample_dir = 'samples conv/' + 'dataset_' + FLAGS.dataset + '_num_samples_' + str(FLAGS.num_samples) +\
+          '_num_neurons_' + str(FLAGS.num_neurons) + '_num_bins_' + str(FLAGS.num_bins) + '_packet_prob_' + str(FLAGS.packet_prob)\
+          + '_firing_rate_' + str(FLAGS.firing_rate) + '_group_size_' + str(FLAGS.group_size)  + '_critic_iters_' +\
+          str(FLAGS.critic_iters) + '_lambda_' + str(FLAGS.lambd) +\
+          '_num_layers_' + str(FLAGS.num_layers)  + '_num_features_' + str(FLAGS.num_features) + '_kernel_' + str(FLAGS.kernel_width) +\
+          '_iteration_' + FLAGS.iteration + '/'
   elif FLAGS.dataset=='retina':
      FLAGS.sample_dir = 'samples ' + FLAGS.architecture + '/' + 'dataset_' + FLAGS.dataset + '_instance_' + FLAGS.data_instance +\
       '_num_neurons_' + str(FLAGS.num_neurons) + '_num_bins_' + str(FLAGS.num_bins) +\
@@ -101,10 +118,10 @@ def main(_):
   run_config.gpu_options.allow_growth=True
   
   with tf.Session(config=run_config) as sess:
-    wgan = WGAN_conv(sess,
+    wgan = WGAN_conv(sess, architecture=FLAGS.architecture,
         num_neurons=FLAGS.num_neurons,
         num_bins=FLAGS.num_bins,
-        num_layers=FLAGS.num_layers,
+        num_layers=FLAGS.num_layers, num_units=FLAGS.num_units,
         num_features=FLAGS.num_features,
         kernel_width=FLAGS.kernel_width,
         lambd=FLAGS.lambd,
