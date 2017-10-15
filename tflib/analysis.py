@@ -47,9 +47,8 @@ def get_stats(X, num_neurons, num_bins, folder, name, firing_rate_mat=[],correla
     
     cov_mat, k_probs, mean_spike_count, autocorrelogram_mat, firing_average_time_course, lag_cov_mat = get_stats_aux(X, num_neurons, num_bins)
     variances = np.diag(cov_mat)
-    only_cov_mat = cov_mat
+    only_cov_mat = cov_mat.copy()
     only_cov_mat[np.diag_indices(num_neurons)] = np.nan
-    
     
     #PLOT
     index = np.linspace(-10,10,2*10+1)
@@ -84,7 +83,7 @@ def get_stats(X, num_neurons, num_bins, folder, name, firing_rate_mat=[],correla
     #plot covariances
     if name!='real':
         variances_real = np.diag(cov_mat_real)
-        only_cov_mat_real = cov_mat_real
+        only_cov_mat_real = cov_mat_real.copy()
         only_cov_mat_real[np.diag_indices(num_neurons)] = np.nan
         sbplt[0][1].plot([np.nanmin(only_cov_mat_real.flatten()),np.nanmax(only_cov_mat_real.flatten())],\
                         [np.nanmin(only_cov_mat_real.flatten()),np.nanmax(only_cov_mat_real.flatten())],'k')
