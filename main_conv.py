@@ -43,9 +43,9 @@ flags.DEFINE_string("checkpoint_dir", "checkpoint", "Directory name to save the 
 flags.DEFINE_boolean("is_train", False, "True for training, False for testing [False]")
 flags.DEFINE_integer("training_step", 200, "number of batches between weigths and performance saving")
 flags.DEFINE_string("training_stage", '', "stage of the training used for the GAN")
-flags.DEFINE_integer("num_layers", 4, "number of convolutional layers [4]")
+flags.DEFINE_integer("num_layers", 2, "number of convolutional layers [4]")
 flags.DEFINE_integer("num_features", 4, "features in first layers [4]")
-flags.DEFINE_integer("kernel_width", 4, "width of kernel [4]")
+flags.DEFINE_integer("kernel_width", 5, "width of kernel [4]")
 flags.DEFINE_integer("num_units", 512, "num units per layer in the fc GAN")
 
 #parameter set specifiying data
@@ -59,7 +59,7 @@ flags.DEFINE_string("iteration", "0", "in case several instances are run with th
 flags.DEFINE_integer("ref_period", 2, "minimum number of ms between spikes (if < 0, no refractory period is imposed)")
 flags.DEFINE_float("firing_rate", 0.25, "maximum firing rate of the simulated responses")
 flags.DEFINE_float("correlation", 0.9, "correlation between neurons")
-flags.DEFINE_integer("group_size", 2, "size of the correlated groups (e.g. 2 means pairwise correlations)")
+flags.DEFINE_integer("group_size", 4, "size of the correlated groups (e.g. 2 means pairwise correlations)")
 flags.DEFINE_integer("critic_iters", 5, "number of times the discriminator will be updated")
 flags.DEFINE_float("lambd", 10, "parameter gradient penalization")
 FLAGS = flags.FLAGS
@@ -74,7 +74,7 @@ def main(_):
           '_num_neurons_' + str(FLAGS.num_neurons) + '_num_bins_' + str(FLAGS.num_bins)\
           + '_ref_period_' + str(FLAGS.ref_period) + '_firing_rate_' + str(FLAGS.firing_rate) + '_correlation_' + str(FLAGS.correlation) +\
           '_group_size_' + str(FLAGS.group_size)  + '_critic_iters_' + str(FLAGS.critic_iters) + '_lambda_' + str(FLAGS.lambd) +\
-          '_num_layers_' + str(FLAGS.num_layers)  + '_num_units_' + str(FLAGS.units) +\
+          '_num_layers_' + str(FLAGS.num_layers)  + '_num_units_' + str(FLAGS.num_units) +\
           '_iteration_' + FLAGS.iteration + '/'
       elif FLAGS.architecture=='conv':
           FLAGS.sample_dir = 'samples conv/' + 'dataset_' + FLAGS.dataset + '_num_samples_' + str(FLAGS.num_samples) +\
@@ -89,7 +89,7 @@ def main(_):
           '_num_neurons_' + str(FLAGS.num_neurons) + '_num_bins_' + str(FLAGS.num_bins) + '_packet_prob_' + str(FLAGS.packet_prob)\
           + '_firing_rate_' + str(FLAGS.firing_rate) + '_group_size_' + str(FLAGS.group_size)  + '_critic_iters_' +\
           str(FLAGS.critic_iters) + '_lambda_' + str(FLAGS.lambd) +\
-          '_num_layers_' + str(FLAGS.num_layers)  + '_num_units_' + str(FLAGS.units) +\
+          '_num_layers_' + str(FLAGS.num_layers)  + '_num_units_' + str(FLAGS.num_units) +\
           '_iteration_' + FLAGS.iteration + '/'
       elif FLAGS.architecture=='conv':
           FLAGS.sample_dir = 'samples conv/' + 'dataset_' + FLAGS.dataset + '_num_samples_' + str(FLAGS.num_samples) +\
@@ -135,6 +135,7 @@ def main(_):
       if not wgan.load(FLAGS.training_stage):
         raise Exception("[!] Train a model first, then run test mode")      
 
+
     #get filters
     print('get activations -----------------------------------')
     output,units,inputs = wgan.get_units(num_samples=2**15)  
@@ -171,8 +172,6 @@ def main(_):
                             group_size=FLAGS.group_size,refr_per=FLAGS.ref_period)
 
 
-
-    
     
 if __name__ == '__main__':
   tf.app.run()

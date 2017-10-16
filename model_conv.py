@@ -78,12 +78,12 @@ class WGAN_conv(object):
     self.sample_inputs = self.Generator(self.batch_size)
     
     #discriminator output
-    self.disc_real = self.Discriminator(self.inputs)
+    disc_real = self.Discriminator(self.inputs)
     disc_fake = self.Discriminator(self.sample_inputs)
 
     #generator and discriminator cost
     self.gen_cost = -tf.reduce_mean(disc_fake)
-    self.disc_cost = tf.reduce_mean(disc_fake) - tf.reduce_mean(self.disc_real)
+    self.disc_cost = tf.reduce_mean(disc_fake) - tf.reduce_mean(disc_real)
     
     #penalize gradients
     alpha = tf.random_uniform(shape=[self.batch_size,1], minval=0., maxval=1.)
@@ -154,7 +154,7 @@ class WGAN_conv(object):
         else:
             #we shuffle neurons to test if the network still learns the packets
             shuffled_index = np.arange(self.num_neurons)
-            #np.random.shuffle(shuffled_index)
+            np.random.shuffle(shuffled_index)
             firing_rates_mat = config.firing_rate+2*(np.random.random(size=(self.num_neurons,1))-0.5)*config.firing_rate/2 
             self.real_samples = sim_pop_activity.get_samples(num_samples=config.num_samples, num_bins=self.num_bins, refr_per=config.ref_period,\
                                  num_neurons=self.num_neurons, group_size=config.group_size, firing_rates_mat=firing_rates_mat, packets_on=True,\
