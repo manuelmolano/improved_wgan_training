@@ -78,12 +78,12 @@ class WGAN_conv(object):
     self.sample_inputs = self.Generator(self.batch_size)
     
     #discriminator output
-    disc_real = self.Discriminator(self.inputs)
-    disc_fake = self.Discriminator(self.sample_inputs)
+    self.disc_real = self.Discriminator(self.inputs)
+    self.disc_fake = self.Discriminator(self.sample_inputs)
 
     #generator and discriminator cost
-    self.gen_cost = -tf.reduce_mean(disc_fake)
-    self.disc_cost = tf.reduce_mean(disc_fake) - tf.reduce_mean(disc_real)
+    self.gen_cost = -tf.reduce_mean(self.disc_fake)
+    self.disc_cost = tf.reduce_mean(self.disc_fake) - tf.reduce_mean(self.disc_real)
     
     #penalize gradients
     alpha = tf.random_uniform(shape=[self.batch_size,1], minval=0., maxval=1.)
@@ -405,8 +405,8 @@ class WGAN_conv(object):
           output = act_funct.LeakyReLULayer('Discriminator.{}'.format(i), self.num_units, self.num_units, output)
           outputs_mat.append(output)
       output = linear.Linear('Discriminator.Out', self.num_units, 1, output)
-    
-      return tf.reshape(output, [-1]), outputs_mat
+      filters = []
+      return tf.reshape(output, [-1]), filters, outputs_mat
   
   # Generator
   def FCGenerator(self, n_samples, noise=None):
@@ -454,8 +454,15 @@ class WGAN_conv(object):
       #aux = np.load(self.sample_dir+ '/stats_real.npz')
       noise = tf.constant(((np.zeros((num_samples, self.output_dim)) + 0.5) > np.random.random((num_samples, self.output_dim))).astype('float32'))
       output,_,units = self.Discriminator_sampler(noise)
-      return output, units, noise    
+      return output, units, noise  
   
+  #get units STA from the discriminator
+  def get_critics_output(self, samples):
+      #aux = np.load(self.sample_dir+ '/stats_real.npz')
+      output,_,_ = self.Discriminator_sampler(samples)
+      return output
+  
+    
   #this is to save the network parameters  
   def save(self, step=0):
     model_name = "WGAN.model"
