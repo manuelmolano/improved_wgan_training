@@ -18,7 +18,7 @@ top = 0.9      # the top of the subplots of the figure
 wspace = 0.4   # the amount of width reserved for blank space between subplots
 hspace = 0.4   # the amount of height reserved for white space between subplots
 
-def plot_filters(filters, sess, config):
+def plot_filters(filters, sess, config, index):
     for ind_layer in range(len(filters)):
         filter_temp = filters[ind_layer].eval(session=sess)
         my_cmap = plt.cm.gray
@@ -34,6 +34,7 @@ def plot_filters(filters, sess, config):
             filter_aux = filter_temp[:,:,ind_f]
             filter_aux = filter_aux[:,:].T
             filter_aux = filter_aux/np.max(np.abs(filter_aux))
+            filter_aux = filter_aux[index,:]
             sbplt[int(np.floor(ind_f/num_rows))][ind_f%num_cols].imshow(filter_aux, interpolation='nearest', cmap = my_cmap)
             sbplt[int(np.floor(ind_f/num_rows))][ind_f%num_cols].axis('off')
           
@@ -41,23 +42,8 @@ def plot_filters(filters, sess, config):
         f.savefig(config.sample_dir+'filters_layer_' + str(ind_layer) + '.svg',dpi=600, bbox_inches='tight')
         plt.close(f)  
         
-        f,sbplt = plt.subplots(num_rows,num_cols,figsize=(8, 8),dpi=250)
-        matplotlib.rcParams.update({'font.size': 8})
-        plt.subplots_adjust(left=left, bottom=bottom, right=right, top=top, wspace=wspace, hspace=hspace)   
-        #all_filters = np.empty(shape=(num_filters,FLAGS.num_neurons))
-        for ind_f in range(num_filters):
-            filter_aux = filter_temp[:,:,ind_f]
-            filter_aux = np.mean(filter_aux[:,:],axis=0)
-            #all_filters[ind_f,:] = filter_aux
-            #filter_aux = filter_aux/np.max(np.abs(filter_aux))
-            sbplt[int(np.floor(ind_f/num_rows))][ind_f%num_cols].plot(filter_aux)
-    #        sbplt[int(np.floor(ind_f/num_rows))][ind_f%num_cols].axis('off')
-          
-        f.savefig(config.sample_dir+'filters_neurons_dim_layer_' + str(ind_layer) + '.svg',dpi=600, bbox_inches='tight')
-        plt.close(f)    
-        
 
-def plot_untis_rf_conv(activations, outputs, inputs, sess, config):
+def plot_untis_rf_conv(activations, outputs, inputs, sess, config, index):
     my_cmap = plt.cm.gray
     num_layers = len(activations)
     critics_decision = outputs.eval(session=sess)
@@ -80,7 +66,7 @@ def plot_untis_rf_conv(activations, outputs, inputs, sess, config):
             for ind_feature in range(num_features):
                     act_aux = act_temp[:,ind_feature,ind_bin].reshape(1,act_temp.shape[0])
                     aux = np.corrcoef(np.concatenate((act_aux,critics_decision),axis=0))
-                    corr_with_decision[ind_feature] = aux[1,0]
+                    corr_with_decision[ind_feature] = abs(aux[1,0])
                 
             sbplt[int(np.floor(ind_f/num_rows))][ind_f%num_cols].hist(corr_with_decision)  
             sbplt[int(np.floor(ind_f/num_rows))][ind_f%num_cols].set_title(str(np.mean(np.abs(corr_with_decision))))
@@ -96,6 +82,7 @@ def plot_untis_rf_conv(activations, outputs, inputs, sess, config):
                 act_aux = most_corr[:,ind_unit].reshape(act_temp.shape[0],1)
                 spk = np.sum(inputs*act_aux,axis=0)
                 spk = spk.reshape(config.num_neurons,config.num_bins)
+                spk = spk[index,:]
                 sbplt2[int(np.floor(ind_unit/10))][ind_unit%10].imshow(spk,interpolation='nearest', cmap = my_cmap)  
                 sbplt2[int(np.floor(ind_unit/10))][ind_unit%10].axis('off')  
             print(config.sample_dir+'sta_layer_' + str(ind_f) + '_bin_' + str(ind_bin) + '_most_corr.svg')  
@@ -109,7 +96,7 @@ def plot_untis_rf_conv(activations, outputs, inputs, sess, config):
     
     
 
-def plot_untis_rf(activations, outputs, inputs, sess, config, portion=0.1):
+def plot_untis_rf(activations, outputs, inputs, sess, config, index):
     my_cmap = plt.cm.gray
     num_layers = len(activations)
     critics_decision = outputs.eval(session=sess)
@@ -131,42 +118,29 @@ def plot_untis_rf(activations, outputs, inputs, sess, config, portion=0.1):
         for ind_unit in range(num_units):
             act_aux = act_temp[:,ind_unit].reshape(1,act_temp.shape[0])
             aux = np.corrcoef(np.concatenate((act_aux,critics_decision),axis=0))
-            corr_with_decision[counter] = aux[1,0]
+            corr_with_decision[counter] = abs(aux[1,0])
             counter += 1
         sbplt[int(np.floor(ind_f/num_rows))][ind_f%num_cols].hist(corr_with_decision)  
         sbplt[int(np.floor(ind_f/num_rows))][ind_f%num_cols].set_title('L'+ str(ind_f) +' '+ str('{0:.2f}'.format(np.mean(np.abs(corr_with_decision)))))
         
-        f2,sbplt2 = plt.subplots(8,8,figsize=(8, 8),dpi=250)
+        f2,sbplt2 = plt.subplots(10,10,figsize=(8, 8),dpi=250)
         matplotlib.rcParams.update({'font.size': 8})
         plt.subplots_adjust(left=left, bottom=bottom, right=right, top=top, wspace=wspace, hspace=hspace)  
    
         #get STA for most correlated
+        portion = np.min([100/num_units,1])
         most_corr = corr_with_decision>np.percentile(corr_with_decision,100-portion*100)
         most_corr = act_temp[:,most_corr]
         for ind_unit in range(most_corr.shape[1]):
             act_aux = most_corr[:,ind_unit].reshape(act_temp.shape[0],1)
             spk = np.sum(inputs*act_aux,axis=0)
             spk = spk.reshape(config.num_neurons,config.num_bins)
-            sbplt2[int(np.floor(ind_unit/8))][ind_unit%8].imshow(spk,interpolation='nearest', cmap = my_cmap)  
-            sbplt2[int(np.floor(ind_unit/8))][ind_unit%8].axis('off')  
+            spk = spk[index,:]
+            sbplt2[int(np.floor(ind_unit/10))][ind_unit%10].imshow(spk,interpolation='nearest', cmap = my_cmap)  
+            sbplt2[int(np.floor(ind_unit/10))][ind_unit%10].axis('off')  
         f2.savefig(config.sample_dir+'sta_layer_' + str(ind_f) + '_most_corr.svg',dpi=600, bbox_inches='tight')
         plt.close(f2)  
         
-        
-        f3,sbplt3 = plt.subplots(8,8,figsize=(8, 8),dpi=250)
-        matplotlib.rcParams.update({'font.size': 8})
-        plt.subplots_adjust(left=left, bottom=bottom, right=right, top=top, wspace=wspace, hspace=hspace)  
-        #get STA for least correlated
-        least_corr = corr_with_decision<np.percentile(corr_with_decision,portion*100)
-        least_corr = act_temp[:,least_corr]
-        for ind_unit in range(least_corr.shape[1]):
-            act_aux = least_corr[:,ind_unit].reshape(act_temp.shape[0],1)
-            spk = np.sum(inputs*act_aux,axis=0)
-            spk = spk.reshape(config.num_neurons,config.num_bins)
-            sbplt3[int(np.floor(ind_unit/8))][ind_unit%8].imshow(spk,interpolation='nearest', cmap = my_cmap)  
-            sbplt3[int(np.floor(ind_unit/8))][ind_unit%8].axis('off')  
-        f3.savefig(config.sample_dir+'sta_layer_' + str(ind_f) + '_least_corr.svg',dpi=600, bbox_inches='tight')
-        plt.close(f3)  
         
         
     f.savefig(config.sample_dir+'correlations.svg',dpi=600, bbox_inches='tight')

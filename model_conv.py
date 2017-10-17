@@ -461,8 +461,7 @@ class WGAN_conv(object):
       #aux = np.load(self.sample_dir+ '/stats_real.npz')
       output,_,_ = self.Discriminator_sampler(samples)
       return output
-  
-    
+   
   #this is to save the network parameters  
   def save(self, step=0):
     model_name = "WGAN.model"

@@ -135,18 +135,19 @@ def main(_):
       if not wgan.load(FLAGS.training_stage):
         raise Exception("[!] Train a model first, then run test mode")      
 
-
+    original_dataset = np.load(FLAGS.sample_dir+ '/stats_real.npz')
+    index = np.argsort(original_dataset['shuffled_index'])
     #get filters
     print('get activations -----------------------------------')
-    output,units,inputs = wgan.get_units(num_samples=2**15)  
+    output,units,inputs = wgan.get_units(num_samples=2**14)  
     if FLAGS.architecture=='conv':
-        visualize_filters_and_units.plot_untis_rf_conv(units,output, inputs, sess, FLAGS)
+        visualize_filters_and_units.plot_untis_rf_conv(units,output, inputs, sess, FLAGS, index)
     elif FLAGS.architecture=='fc':
-        visualize_filters_and_units.plot_untis_rf(units, output, inputs, sess, FLAGS)
+        visualize_filters_and_units.plot_untis_rf(units, output, inputs, sess, FLAGS, index)
         
     print('get filters -----------------------------------')
     filters = wgan.get_filters(num_samples=64)
-    visualize_filters_and_units.plot_filters(filters, sess, FLAGS)
+    visualize_filters_and_units.plot_filters(filters, sess, FLAGS, index)
     
     #get samples and their statistics
     fake_samples = wgan.get_samples(num_samples=FLAGS.num_samples)
@@ -156,8 +157,8 @@ def main(_):
 
     #plot samples
     sim_pop_activity.plot_samples(fake_samples.T, FLAGS.num_neurons, FLAGS.sample_dir, 'fake')
-    aux = np.load(FLAGS.sample_dir+ '/stats_real.npz')
-    real_samples = aux['samples']
+    
+    real_samples = original_dataset['samples']
     sim_pop_activity.plot_samples(real_samples, FLAGS.num_neurons, FLAGS.sample_dir, 'real')
     
     #compare with k-pairwise model samples
