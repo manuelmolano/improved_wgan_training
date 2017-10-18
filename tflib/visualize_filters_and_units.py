@@ -33,9 +33,8 @@ def plot_filters(filters, sess, config, index):
         for ind_f in range(num_filters):
             filter_aux = filter_temp[:,:,ind_f]
             filter_aux = filter_aux[:,:].T
-            filter_aux = filter_aux/np.max(np.abs(filter_aux))
             filter_aux = filter_aux[index,:]
-            sbplt[int(np.floor(ind_f/num_rows))][ind_f%num_cols].imshow(filter_aux, interpolation='nearest', cmap = my_cmap)
+            sbplt[int(np.floor(ind_f/num_rows))][ind_f%num_cols].imshow(filter_aux, interpolation='nearest', cmap = my_cmap)#,clim=(np.min(filter_temp.flatten()), np.max(filter_temp.flatten())))
             sbplt[int(np.floor(ind_f/num_rows))][ind_f%num_cols].axis('off')
           
           
@@ -83,7 +82,7 @@ def plot_untis_rf_conv(activations, outputs, inputs, sess, config, index):
                 spk = np.sum(inputs*act_aux,axis=0)
                 spk = spk.reshape(config.num_neurons,config.num_bins)
                 spk = spk[index,:]
-                sbplt2[int(np.floor(ind_unit/10))][ind_unit%10].imshow(spk,interpolation='nearest', cmap = my_cmap)  
+                sbplt2[int(np.floor(ind_unit/10))][ind_unit%10].imshow(spk,interpolation='nearest', cmap = my_cmap)#, clim=(np.min(most_corr.flatten()), np.max(most_corr.flatten())))  
                 sbplt2[int(np.floor(ind_unit/10))][ind_unit%10].axis('off')  
             print(config.sample_dir+'sta_layer_' + str(ind_f) + '_bin_' + str(ind_bin) + '_most_corr.svg')  
             f2.savefig(config.sample_dir+'sta_layer_' + str(ind_f) + '_bin_' + str(ind_bin) + '_most_corr.svg',dpi=600, bbox_inches='tight')
@@ -136,7 +135,7 @@ def plot_untis_rf(activations, outputs, inputs, sess, config, index):
             spk = np.sum(inputs*act_aux,axis=0)
             spk = spk.reshape(config.num_neurons,config.num_bins)
             spk = spk[index,:]
-            sbplt2[int(np.floor(ind_unit/10))][ind_unit%10].imshow(spk,interpolation='nearest', cmap = my_cmap)  
+            sbplt2[int(np.floor(ind_unit/10))][ind_unit%10].imshow(spk,interpolation='nearest', cmap = my_cmap)#, clim=(np.min(most_corr.flatten()), np.max(most_corr.flatten())))  
             sbplt2[int(np.floor(ind_unit/10))][ind_unit%10].axis('off')  
         f2.savefig(config.sample_dir+'sta_layer_' + str(ind_f) + '_most_corr.svg',dpi=600, bbox_inches='tight')
         plt.close(f2)  
@@ -144,5 +143,14 @@ def plot_untis_rf(activations, outputs, inputs, sess, config, index):
         
         
     f.savefig(config.sample_dir+'correlations.svg',dpi=600, bbox_inches='tight')
+    plt.close(f)  
+
+
+def plot_histogram(values, folder, name):
+    f,ax = plt.subplots(1,1,figsize=(8, 8),dpi=250)
+    matplotlib.rcParams.update({'font.size': 8})
+    plt.subplots_adjust(left=left, bottom=bottom, right=right, top=top, wspace=wspace, hspace=hspace)  
+    plt.hist(values)
+    f.savefig(folder + name + 'critics_output.svg',dpi=600, bbox_inches='tight')
     plt.close(f)  
     

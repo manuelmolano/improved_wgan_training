@@ -155,10 +155,22 @@ def main(_):
     fake_samples = wgan.binarize(samples=fake_samples)    
     _,_,_,_,_ = analysis.get_stats(X=fake_samples.T, num_neurons=FLAGS.num_neurons, num_bins= FLAGS.num_bins, folder=FLAGS.sample_dir, name='fake', instance=FLAGS.data_instance)
 
+    real_samples = original_dataset['samples']
+    #get critic's output distribution
+    noise = ((np.zeros((FLAGS.num_samples, FLAGS.num_neurons*FLAGS.num_bins)) + 0.5) > np.random.random((FLAGS.num_samples, FLAGS.num_neurons*FLAGS.num_bins))).astype('float32')
+    output_real = wgan.get_critics_output(real_samples)
+    output_fake = wgan.get_critics_output(fake_samples)
+    output_noise = wgan.get_critics_output(noise)
+    output_real = output_real.eval(session=sess)
+    output_fake = output_fake.eval(session=sess)
+    output_noise = output_noise.eval(session=sess)
+    visualize_filters_and_units.plot_histogram(output_real, FLAGS.sample_dir, 'real')
+    visualize_filters_and_units.plot_histogram(output_fake, FLAGS.sample_dir, 'fake')
+    visualize_filters_and_units.plot_histogram(output_noise, FLAGS.sample_dir, 'noise')
     #plot samples
     sim_pop_activity.plot_samples(fake_samples.T, FLAGS.num_neurons, FLAGS.sample_dir, 'fake')
     
-    real_samples = original_dataset['samples']
+    
     sim_pop_activity.plot_samples(real_samples, FLAGS.num_neurons, FLAGS.sample_dir, 'real')
     
     #compare with k-pairwise model samples
