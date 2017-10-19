@@ -119,30 +119,34 @@ class WGAN_conv(object):
             firing_rates_mat = aux['firing_rate_mat']
             correlations_mat = aux['correlation_mat']
             activity_peaks = aux['activity_peaks']
+            shuffled_index = aux['shuffled_index']
         else:
+            #we shuffle neurons to test if the network still learns the packets
+            shuffled_index = np.arange(self.num_neurons)
+            np.random.shuffle(shuffled_index)
             firing_rates_mat = config.firing_rate+2*(np.random.random(int(self.num_neurons/config.group_size),)-0.5)*config.firing_rate/2    
             correlations_mat = config.correlation+2*(np.random.random(int(self.num_neurons/config.group_size),)-0.5)*config.correlation/2   
             #peaks of activity
             #sequence response
-            #        aux = np.arange(int(self.num_neurons/config.group_size))
-            #        activity_peaks = [[x]*config.group_size for x in aux]#np.random.randint(0,high=self.num_bins,size=(1,self.num_neurons)).reshape(self.num_neurons,1)
-            #        activity_peaks = np.asarray(activity_peaks)
-            #        activity_peaks = activity_peaks.flatten()
-            #        activity_peaks = activity_peaks*config.group_size*self.num_bins/self.num_neurons
-            #        activity_peaks = activity_peaks.reshape(self.num_neurons,1)
+            aux = np.arange(int(self.num_neurons/config.group_size))
+            activity_peaks = [[x]*config.group_size for x in aux]#np.random.randint(0,high=self.num_bins,size=(1,self.num_neurons)).reshape(self.num_neurons,1)
+            activity_peaks = np.asarray(activity_peaks)
+            activity_peaks = activity_peaks.flatten()
+            activity_peaks = activity_peaks*config.group_size*self.num_bins/self.num_neurons
+            activity_peaks = activity_peaks.reshape(self.num_neurons,1)
             #peak of activity equal for all neurons 
-            activity_peaks = np.zeros((self.num_neurons,1))+self.num_bins/4
+            #activity_peaks = np.zeros((self.num_neurons,1))+self.num_bins/4
             self.real_samples = sim_pop_activity.get_samples(num_samples=config.num_samples, num_bins=self.num_bins,\
-                                num_neurons=self.num_neurons, correlations_mat=correlations_mat, group_size=config.group_size,\
+                                num_neurons=self.num_neurons, correlations_mat=correlations_mat, group_size=config.group_size, shuffled_index=shuffled_index,\
                                 refr_per=config.ref_period,firing_rates_mat=firing_rates_mat, activity_peaks=activity_peaks, folder=config.sample_dir)
             
             #save original statistics
-            analysis.get_stats(X=self.real_samples, num_neurons=self.num_neurons, num_bins=self.num_bins, folder=self.sample_dir,\
+            analysis.get_stats(X=self.real_samples, num_neurons=self.num_neurons, num_bins=self.num_bins, folder=self.sample_dir, shuffled_index=shuffled_index,\
                                name='real',firing_rate_mat=firing_rates_mat, correlation_mat=correlations_mat, activity_peaks=activity_peaks)
             
         #get dev samples
         dev_samples = sim_pop_activity.get_samples(num_samples=int(config.num_samples/4), num_bins=self.num_bins,\
-                       num_neurons=self.num_neurons, correlations_mat=correlations_mat, group_size=config.group_size,\
+                       num_neurons=self.num_neurons, correlations_mat=correlations_mat, group_size=config.group_size, shuffled_index=shuffled_index,\
                        refr_per=config.ref_period,firing_rates_mat=firing_rates_mat, activity_peaks=activity_peaks)
         
     elif config.dataset=='packets':
@@ -321,7 +325,6 @@ class WGAN_conv(object):
       conv1d_II.set_weights_stdev(0.02)
       deconv1d_II.set_weights_stdev(0.02)
       linear.set_weights_stdev(0.02)
-      print('DISCRIMINATOR. -------------------------------')
       out_puts_mat = []
       filters_mat = []
 

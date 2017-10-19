@@ -139,7 +139,7 @@ def main(_):
     index = np.argsort(original_dataset['shuffled_index'])
     #get filters
     print('get activations -----------------------------------')
-    output,units,inputs = wgan.get_units(num_samples=2**14)  
+    output,units,inputs = wgan.get_units(num_samples=2**13)  
     if FLAGS.architecture=='conv':
         visualize_filters_and_units.plot_untis_rf_conv(units,output, inputs, sess, FLAGS, index)
     elif FLAGS.architecture=='fc':

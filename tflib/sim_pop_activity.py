@@ -90,7 +90,8 @@ def get_samples(num_samples=2**13,num_bins=64, num_neurons=32, correlations_mat=
                     group_size=group_size, firing_rates_mat=firing_rates_mat, refr_per=refr_per, activity_peaks=activity_peaks)
         else:
             sample = spike_train_packets(num_bins=num_bins, num_neurons=num_neurons, group_size=group_size, prob_packets=prob_packets, firing_rates_mat=firing_rates_mat, refr_per=refr_per,)
-            sample = sample[shuffled_index,:]
+        
+        sample = sample[shuffled_index,:]
         
         X[:,ind] = sample.reshape((num_neurons*num_bins,-1))[:,0]
     if folder!='':
@@ -176,25 +177,25 @@ if __name__ == '__main__':
     plt.colorbar()
     
     
-    asdsadds
-    
-    import analysis
-    num_tr = 1000
-    num_bins = 64
-    num_neurons = 32
-    lag = 10
-    refr_per_mat = [0.1,0.8,1,1.3,1.6]
-    f = plt.figure()
-    for ind_rp in range(len(refr_per_mat)):
-        X = np.zeros((num_neurons*num_bins,num_tr))
-        autocorrelogram_mat = np.zeros(2*lag+1)
-        for ind in range(num_tr):
-            sample = spike_train_packets(refr_per=refr_per_mat[ind_rp])
-            X[:,ind] = sample.reshape((num_neurons*num_bins,-1))[:,0]
-            autocorrelogram_mat += analysis.autocorrelogram(sample,lag=lag)
-        autocorrelogram_mat = autocorrelogram_mat/np.max(autocorrelogram_mat)
-        autocorrelogram_mat[lag] = 0 
-        plt.plot(autocorrelogram_mat)
-
+#    asdsadds
+#    
+#    import analysis
+#    num_tr = 1000
+#    num_bins = 64
+#    num_neurons = 32
+#    lag = 10
+#    refr_per_mat = [0.1,0.8,1,1.3,1.6]
+#    f = plt.figure()
+#    for ind_rp in range(len(refr_per_mat)):
+#        X = np.zeros((num_neurons*num_bins,num_tr))
+#        autocorrelogram_mat = np.zeros(2*lag+1)
+#        for ind in range(num_tr):
+#            sample = spike_train_packets(refr_per=refr_per_mat[ind_rp])
+#            X[:,ind] = sample.reshape((num_neurons*num_bins,-1))[:,0]
+#            autocorrelogram_mat += analysis.autocorrelogram(sample,lag=lag)
+#        autocorrelogram_mat = autocorrelogram_mat/np.max(autocorrelogram_mat)
+#        autocorrelogram_mat[lag] = 0 
+#        plt.plot(autocorrelogram_mat)
+#
 
 
