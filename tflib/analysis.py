@@ -10,7 +10,7 @@ sys.path.append('/home/manuel/improved_wgan_training/')
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
-from tflib import sim_pop_activity, retinal_data
+from tflib import sim_pop_activity, retinal_data, data_provider
 import time
 
 #parameters for figure
@@ -292,7 +292,7 @@ def evaluate_approx_distribution(X, folder, num_samples_theoretical_distr=2**15,
             
             if ind_surr==num_surr:
                 num_impossible_samples_original = np.count_nonzero(numerical_prob_aux==0)
-                assert not any(freq_in_training_dataset_aux==0)
+                assert all(freq_in_training_dataset_aux!=0)
             else:
                 freq_in_training_dataset_surrogates[counter:counter+len(freq_in_training_dataset_aux)] = freq_in_training_dataset_aux
                 numerical_prob_surrogates[counter:counter+len(freq_in_training_dataset_aux)] = numerical_prob_aux
@@ -434,10 +434,12 @@ def autocorrelogram(r,lag):
     return ac    
     
     
-def plot_samples(samples, samples_binnarized, num_neurons, num_bins, folder):
-    num_rows = 4
-    num_cols = 4
-    f,sbplt = plt.subplots(num_rows,num_cols,figsize=(8, 8),dpi=250)
+def plot_samples(samples, num_neurons, num_bins, folder):
+    num_rows = 2
+    num_cols = 2
+    samples_binnarized = (samples > np.random.random(samples.shape)).astype(float)  
+    
+    f,sbplt = plt.subplots(num_rows,num_cols,figsize=(4, 8),dpi=250)
     
     matplotlib.rcParams.update({'font.size': 8})
     plt.subplots_adjust(left=left, bottom=bottom, right=right, top=top, wspace=wspace, hspace=hspace)
@@ -447,12 +449,39 @@ def plot_samples(samples, samples_binnarized, num_neurons, num_bins, folder):
         for ind_n in range(num_neurons):
 #            sbplt.plot(sample[ind_n,:]+2*ind_n,'k')
 #            sbplt.plot(sample_binnarized[ind_n,:]+2*ind_n,'r')
-            sbplt[int(np.floor(ind_s/num_rows))][ind_s%num_cols].plot(sample[ind_n,:]+1.1*ind_n,'k')
-            sbplt[int(np.floor(ind_s/num_rows))][ind_s%num_cols].plot(sample_binnarized[ind_n,:]+1.1*ind_n,'r')
+            sbplt[int(np.floor(ind_s/num_rows))][ind_s%num_cols].plot(sample[ind_n,:]+4*ind_n,'k')
+            spks = np.nonzero(sample_binnarized[ind_n,:])[0]
+            for ind_spk in range(len(spks)):
+                sbplt[int(np.floor(ind_s/num_rows))][ind_s%num_cols].plot(np.ones((2,))*spks[ind_spk],4*ind_n+np.array([2.2,3.2]),'r')
         #sbplt.axis('off')
         sbplt[int(np.floor(ind_s/num_rows))][ind_s%num_cols].axis('off')
     f.savefig(folder+'samples.svg',dpi=600, bbox_inches='tight')
     plt.close(f)
     
+ 
+if __name__ == '__main__':
+    group_size = 2
+    num_neurons = 16
+    num_bins = 32
+    correlation = 0.3
+    firing_rate = 0.25
+    sample_dir = '/home/manuel/improved_wgan_training/figure 1/'
+    ref_period = 2
+    num_samples = 64
+    shuffled_index = np.arange(num_neurons)
+    np.random.shuffle(shuffled_index)
+    firing_rates_mat = firing_rate+2*(np.random.random(int(num_neurons/group_size),)-0.5)*firing_rate/2    
+    correlations_mat = correlation+2*(np.random.random(int(num_neurons/group_size),)-0.5)*correlation/2   
+    #peaks of activity
+    #sequence response
+    aux = np.arange(int(num_neurons/group_size))
+    activity_peaks = [[x]*group_size for x in aux]#np.random.randint(0,high=num_bins,size=(1,num_neurons)).reshape(num_neurons,1)
+    activity_peaks = np.asarray(activity_peaks)
+    activity_peaks = activity_peaks.flatten()
+    activity_peaks = activity_peaks*group_size*num_bins/num_neurons
+    activity_peaks = activity_peaks.reshape(num_neurons,1)
+    real_samples = sim_pop_activity.get_samples(num_samples=num_samples, num_bins=num_bins,\
+                        num_neurons=num_neurons, correlations_mat=correlations_mat, group_size=group_size, shuffled_index=shuffled_index,\
+                        refr_per=ref_period,firing_rates_mat=firing_rates_mat, activity_peaks=activity_peaks, folder=sample_dir)
     
-    
+    plot_samples(real_samples, num_neurons, num_bins, sample_dir)
