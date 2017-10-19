@@ -141,10 +141,10 @@ class WGAN_conv(object):
       disc_iters = config.critic_iters
       for i in range(disc_iters):
         #get batch and update critic
-        _data = self.real_samples[:,counter_batch*config.batch_size:(counter_batch+1)*config.batch_size].T
+        _data = self.training_samples[:,counter_batch*config.batch_size:(counter_batch+1)*config.batch_size].T
         _disc_cost, _ = self.sess.run([self.disc_cost, self.d_optim], feed_dict={self.inputs: _data})
         #if we have reached the end of the real samples set, we start over and increment the number of epochs
-        if counter_batch==int(self.real_samples.shape[1]/self.batch_size)-1:
+        if counter_batch==int(self.training_samples.shape[1]/self.batch_size)-1:
             counter_batch = 0
             epoch += 1
         else:
@@ -159,8 +159,8 @@ class WGAN_conv(object):
         if config.dataset=='uniform' or config.dataset=='packets':
             #this is to evaluate whether the discriminator has overfit 
             dev_disc_costs = []
-            for ind_dev in range(int(dev_samples.shape[1]/self.batch_size)):
-              images = dev_samples[:,ind_dev*config.batch_size:(ind_dev+1)*config.batch_size].T
+            for ind_dev in range(int(self.dev_samples.shape[1]/self.batch_size)):
+              images = self.dev_samples[:,ind_dev*config.batch_size:(ind_dev+1)*config.batch_size].T
               _dev_disc_cost = self.sess.run(self.disc_cost, feed_dict={self.inputs: images}) 
               dev_disc_costs.append(_dev_disc_cost)
             #plot the dev loss  

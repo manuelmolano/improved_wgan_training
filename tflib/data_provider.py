@@ -11,18 +11,10 @@ Created on Thu Oct 19 11:44:19 2017
 import numpy as np
 from tflib import sim_pop_activity, retinal_data, analysis
 
-class DataProvider(object):
 
-    def __init__(self, parameters=None):
-        self.data, self.labels = generate_spike_trains(parameters)
-        
-
-    def visualize(self):
-        pass
-
-def generate_spike_trains(parameters, config, reused_data):
+def generate_spike_trains(config, reuse_data):
     if config.dataset=='uniform':
-        if reused_data:
+        if reuse_data:
             aux = np.load(config.sample_dir+ '/stats_real.npz')
             config.real_samples = aux['samples']
             firing_rates_mat = aux['firing_rate_mat']
@@ -59,7 +51,7 @@ def generate_spike_trains(parameters, config, reused_data):
                        refr_per=config.ref_period,firing_rates_mat=firing_rates_mat, activity_peaks=activity_peaks)
         
     elif config.dataset=='packets':
-        if reused_data:
+        if reuse_data:
             aux = np.load(config.sample_dir+ '/stats_real.npz')
             real_samples = aux['samples']
             firing_rates_mat = aux['firing_rate_mat']

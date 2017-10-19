@@ -24,7 +24,7 @@ Created on Thu Feb 23 11:27:20 2017
 import os
 import pprint
 from model_conv import WGAN_conv
-from tflib import analysis, retinal_data, visualize_filters_and_units, sim_pop_activity
+from tflib import analysis, retinal_data, visualize_filters_and_units, sim_pop_activity, data_provider
 import numpy as np
 #from utils import pp, get_samples_autocorrelogram, get_samples
 
@@ -62,6 +62,7 @@ flags.DEFINE_float("correlation", 0.9, "correlation between neurons")
 flags.DEFINE_integer("group_size", 4, "size of the correlated groups (e.g. 2 means pairwise correlations)")
 flags.DEFINE_integer("critic_iters", 5, "number of times the discriminator will be updated")
 flags.DEFINE_float("lambd", 10, "parameter gradient penalization")
+
 FLAGS = flags.FLAGS
 pp = pprint.PrettyPrinter()
 def main(_):
@@ -112,7 +113,7 @@ def main(_):
   if not os.path.exists(FLAGS.sample_dir):
     os.makedirs(FLAGS.sample_dir)
 
-  
+  reuse_data = 0
   #gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.333)
   run_config = tf.ConfigProto()
   run_config.gpu_options.allow_growth=True
@@ -128,12 +129,16 @@ def main(_):
         batch_size=FLAGS.batch_size,
         checkpoint_dir=FLAGS.checkpoint_dir,
         sample_dir=FLAGS.sample_dir)
-
-    if FLAGS.is_train:
-      wgan.train(FLAGS)
+    
+    
+    if FLAGS.is_train:  
+        training_samples, dev_samples = data_provider.generate_spike_trains(FLAGS, reuse_data)
+        wgan.training_samples = training_samples
+        wgan.dev_samples = dev_samples
+        wgan.train(FLAGS)
     else:
-      if not wgan.load(FLAGS.training_stage):
-        raise Exception("[!] Train a model first, then run test mode")      
+        if not wgan.load(FLAGS.training_stage):
+            raise Exception("[!] Train a model first, then run test mode")      
 
     original_dataset = np.load(FLAGS.sample_dir+ '/stats_real.npz')
     index = np.argsort(original_dataset['shuffled_index'])
@@ -180,7 +185,7 @@ def main(_):
         _,_,_,_ ,_ = analysis.get_stats(X=k_pairwise_samples, num_neurons=FLAGS.num_neurons, num_bins= FLAGS.num_bins, folder=FLAGS.sample_dir, name='k_pairwise', instance=FLAGS.data_instance)
     
     #evaluate high order features approximation
-    if FLAGS.dataset=='uniform' and False:
+    if FLAGS.dataset=='uniform':
         analysis.evaluate_approx_distribution(X=fake_samples.T, folder=FLAGS.sample_dir, num_samples_theoretical_distr=2**21,num_bins=FLAGS.num_bins, num_neurons=FLAGS.num_neurons,\
                             group_size=FLAGS.group_size,refr_per=FLAGS.ref_period)
 
