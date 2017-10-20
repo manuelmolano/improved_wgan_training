@@ -115,16 +115,18 @@ def main(_):
             sample_dir=FLAGS.sample_dir)
             if not wgan.load(FLAGS.training_stage):
                 raise Exception("[!] Train a model first, then run test mode")      
-            aux = np.load(FLAGS.sample_dir+ '/stats_real.npz')
-            samples = aux['samples'][:,0:int(FLAGS.batch_size)].T
+            original_dataset = np.load(FLAGS.sample_dir+ '/stats_real.npz')
+            samples = original_dataset['samples'][:,0:int(FLAGS.batch_size)].T
+            
+            index = np.argsort(original_dataset['shuffled_index'])
             #fake_samples = (np.zeros((FLAGS.num_neurons,FLAGS.num_bins)) + aux['firing_rates_mat']) > np.random.random((FLAGS.num_neurons,FLAGS.num_bins))
             
             #samples = tf.placeholder("float", [FLAGS.batch_size, FLAGS.num_neurons*FLAGS.num_bins])
-            labels = tf.placeholder(tf.float32, [FLAGS.batch_size, 1])
-            critics_output = tf.reshape(tf.sigmoid(wgan.disc_cost),[FLAGS.batch_size, 1])
+            #labels = tf.placeholder(tf.float32, [FLAGS.batch_size, 1])
+            #critics_output = tf.reshape(tf.sigmoid(wgan.disc_real),[FLAGS.batch_size, 1])
             
-            cost_all = (critics_output - labels) ** 2
-            cost = tf.reduce_sum(cost_all)
+            #cost_all = critics_output
+            #cost = tf.reduce_sum(cost_all)
             #train = tf.train.GradientDescentOptimizer(0.0001).minimize(cost)
 
             # Get last convolutional layer gradient for generating gradCAM visualization
@@ -132,7 +134,7 @@ def main(_):
             #target_conv_layer_grad = tf.gradients(cost, target_conv_layer)[0]
     
             # Guided backpropagtion back to input layer
-            gb_grad = tf.gradients(cost, wgan.inputs)[0]
+            gb_grad = tf.gradients(wgan.disc_real, wgan.inputs)[0]
             #print(gb_grad)
             # Normalizing the gradients    
             #target_conv_layer_grad_norm = tf.div(target_conv_layer_grad, tf.sqrt(tf.reduce_mean(tf.square(target_conv_layer_grad))) + tf.constant(1e-5))
@@ -141,12 +143,12 @@ def main(_):
             
             #gb_grad_value, target_conv_layer_value, target_conv_layer_grad_value = sess.run([gb_grad], feed_dict={wgan.inputs: samples})
             #print(samples)
-            gb_grad_value, critic_values, cost_values = sess.run([gb_grad,wgan.disc_cost,cost_all], feed_dict={wgan.inputs: samples, labels: np.zeros((FLAGS.batch_size,1))})
-            f,sbplt = plt.subplots(1,2,figsize=(8, 8),dpi=250)
+            gb_grad_value, critic_values = sess.run([gb_grad,wgan.disc_real], feed_dict={wgan.inputs: samples})#, labels: np.zeros((FLAGS.batch_size,1))})
+            f,sbplt = plt.subplots(1,1,figsize=(8, 8),dpi=250)
             matplotlib.rcParams.update({'font.size': 8})
             plt.subplots_adjust(left=left, bottom=bottom, right=right, top=top, wspace=wspace, hspace=hspace)
-            sbplt[0].plot(critic_values)
-            sbplt[1].plot(cost_values)
+            sbplt.plot(critic_values)
+            #sbplt[1].plot(cost_values)
             f.savefig(FLAGS.sample_dir+'critic_values_guided_bp_test.svg',dpi=600, bbox_inches='tight')
             plt.close(f) 
             my_cmap = plt.cm.gray
@@ -159,11 +161,13 @@ def main(_):
             for i in range(samples.shape[0]):
                 sample = gb_grad_value[i,:]
                 sample = sample.reshape(FLAGS.num_neurons,FLAGS.num_bins)
+                sample = sample[index,:]
                 sbplt1[int(np.floor(i/8))][i%8].imshow(sample,interpolation='nearest', cmap = my_cmap)  
                 sbplt1[int(np.floor(i/8))][i%8].axis('off')  
                 sbplt1[int(np.floor(i/8))][i%8].set_title('min:' + str(np.min(sample.flatten())) + '  max:' + str(np.max(sample.flatten())))
                 sample = samples[i,:]
                 sample = sample.reshape(FLAGS.num_neurons,FLAGS.num_bins)
+                sample = sample[index,:]
                 sbplt2[int(np.floor(i/8))][i%8].imshow(sample,interpolation='nearest', cmap = my_cmap)  
                 sbplt2[int(np.floor(i/8))][i%8].axis('off')  
                 
