@@ -285,7 +285,7 @@ def evaluate_approx_distribution(X, folder, num_samples_theoretical_distr=2**15,
             else:
                 surrogate = sim_pop_activity.get_samples(num_samples=X.shape[1], num_bins=num_bins,\
                     num_neurons=num_neurons, correlations_mat=original_data['correlation_mat'], group_size=group_size, refr_per=refr_per,\
-                    firing_rates_mat=original_data['firing_rate_mat'], activity_peaks=original_data['activity_peaks'])
+                    firing_rates_mat=original_data['firing_rate_mat'], activity_peaks=original_data['activity_peaks'],shuffled_index=original_data['shuffled_index'])
                 
             freq_in_training_dataset_aux, numerical_prob_aux, samples_freqs_aux = comparison_to_original_and_gt_datasets(samples=surrogate, real_samples=real_samples,\
                 ground_truth_samples=samples_theoretical_probs, ground_truth_probs=theoretical_probs)

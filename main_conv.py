@@ -140,6 +140,18 @@ def main(_):
         if not wgan.load(FLAGS.training_stage):
             raise Exception("[!] Train a model first, then run test mode")      
 
+
+    #get generated samples and their statistics
+    fake_samples = wgan.get_samples(num_samples=FLAGS.num_samples)
+    fake_samples = fake_samples.eval(session=sess)
+    fake_samples = wgan.binarize(samples=fake_samples)    
+    _,_,_,_,_ = analysis.get_stats(X=fake_samples.T, num_neurons=FLAGS.num_neurons, num_bins= FLAGS.num_bins, folder=FLAGS.sample_dir, name='fake', instance=FLAGS.data_instance)
+
+    #evaluate high order features approximation
+    if FLAGS.dataset=='uniform':
+        analysis.evaluate_approx_distribution(X=fake_samples.T, folder=FLAGS.sample_dir, num_samples_theoretical_distr=2**21,num_bins=FLAGS.num_bins, num_neurons=FLAGS.num_neurons,\
+                            group_size=FLAGS.group_size,refr_per=FLAGS.ref_period)
+
     original_dataset = np.load(FLAGS.sample_dir+ '/stats_real.npz')
     index = np.argsort(original_dataset['shuffled_index'])
     #get filters
@@ -154,12 +166,7 @@ def main(_):
     filters = wgan.get_filters(num_samples=64)
     visualize_filters_and_units.plot_filters(filters, sess, FLAGS, index)
     
-    #get samples and their statistics
-    fake_samples = wgan.get_samples(num_samples=FLAGS.num_samples)
-    fake_samples = fake_samples.eval(session=sess)
-    fake_samples = wgan.binarize(samples=fake_samples)    
-    _,_,_,_,_ = analysis.get_stats(X=fake_samples.T, num_neurons=FLAGS.num_neurons, num_bins= FLAGS.num_bins, folder=FLAGS.sample_dir, name='fake', instance=FLAGS.data_instance)
-
+    
     real_samples = original_dataset['samples']
     #get critic's output distribution
     noise = ((np.zeros((FLAGS.num_samples, FLAGS.num_neurons*FLAGS.num_bins)) + 0.5) > np.random.random((FLAGS.num_samples, FLAGS.num_neurons*FLAGS.num_bins))).astype('float32')
@@ -173,10 +180,10 @@ def main(_):
     visualize_filters_and_units.plot_histogram(output_fake, FLAGS.sample_dir, 'fake')
     visualize_filters_and_units.plot_histogram(output_noise, FLAGS.sample_dir, 'noise')
     #plot samples
-    sim_pop_activity.plot_samples(fake_samples.T, FLAGS.num_neurons, FLAGS.sample_dir, 'fake')
+    analysis.plot_samples(fake_samples.T, FLAGS.num_neurons, FLAGS.sample_dir, 'fake')
     
     
-    sim_pop_activity.plot_samples(real_samples, FLAGS.num_neurons, FLAGS.sample_dir, 'real')
+    analysis.plot_samples(real_samples, FLAGS.num_neurons, FLAGS.sample_dir, 'real')
     
     #compare with k-pairwise model samples
     if FLAGS.dataset=='retina':
@@ -184,11 +191,7 @@ def main(_):
         print(k_pairwise_samples.shape)
         _,_,_,_ ,_ = analysis.get_stats(X=k_pairwise_samples, num_neurons=FLAGS.num_neurons, num_bins= FLAGS.num_bins, folder=FLAGS.sample_dir, name='k_pairwise', instance=FLAGS.data_instance)
     
-    #evaluate high order features approximation
-    if FLAGS.dataset=='uniform':
-        analysis.evaluate_approx_distribution(X=fake_samples.T, folder=FLAGS.sample_dir, num_samples_theoretical_distr=2**21,num_bins=FLAGS.num_bins, num_neurons=FLAGS.num_neurons,\
-                            group_size=FLAGS.group_size,refr_per=FLAGS.ref_period)
-
+    
 
     
 if __name__ == '__main__':
