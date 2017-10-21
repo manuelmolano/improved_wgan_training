@@ -100,14 +100,20 @@ def main(_):
           '_num_layers_' + str(FLAGS.num_layers)  + '_num_features_' + str(FLAGS.num_features) + '_kernel_' + str(FLAGS.kernel_width) +\
           '_iteration_' + FLAGS.iteration + '/'
   elif FLAGS.dataset=='retina':
-     FLAGS.sample_dir = 'samples ' + FLAGS.architecture + '/' + 'dataset_' + FLAGS.dataset + '_instance_' + FLAGS.data_instance +\
-      '_num_neurons_' + str(FLAGS.num_neurons) + '_num_bins_' + str(FLAGS.num_bins) +\
-       '_critic_iters_' + str(FLAGS.critic_iters) + '_lambda_' + str(FLAGS.lambd) +\
-       '_num_layers_' + str(FLAGS.num_layers)  + '_num_features_' + str(FLAGS.num_features) + '_kernel_' + str(FLAGS.kernel_width) +\
-      '_iteration_' + FLAGS.iteration + '/'
+     if FLAGS.architecture=='fc':
+          FLAGS.sample_dir = 'samples fc/' + 'dataset_' + FLAGS.dataset  +\
+          '_num_neurons_' + str(FLAGS.num_neurons) + '_num_bins_' + str(FLAGS.num_bins)\
+          + '_critic_iters_' + str(FLAGS.critic_iters) + '_lambda_' + str(FLAGS.lambd) +\
+          '_num_layers_' + str(FLAGS.num_layers)  + '_num_units_' + str(FLAGS.num_units) +\
+          '_iteration_' + FLAGS.iteration + '/'
+     elif FLAGS.architecture=='conv':
+          FLAGS.sample_dir = 'samples conv/' + 'dataset_' + FLAGS.dataset + '_num_samples_' + str(FLAGS.num_samples) +\
+          '_num_neurons_' + str(FLAGS.num_neurons) + '_num_bins_' + str(FLAGS.num_bins)\
+          + '_critic_iters_' + str(FLAGS.critic_iters) + '_lambda_' + str(FLAGS.lambd) +\
+          '_num_layers_' + str(FLAGS.num_layers)  + '_num_features_' + str(FLAGS.num_features) + '_kernel_' + str(FLAGS.kernel_width) +\
+          '_iteration_' + FLAGS.iteration + '/'
       
   FLAGS.checkpoint_dir = FLAGS.sample_dir + 'checkpoint/'
-
   if not os.path.exists(FLAGS.checkpoint_dir):
     os.makedirs(FLAGS.checkpoint_dir)
   if not os.path.exists(FLAGS.sample_dir):

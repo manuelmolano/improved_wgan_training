@@ -76,5 +76,10 @@ def generate_spike_trains(config, reuse_data):
         real_samples = retinal_data.get_samples(num_bins=config.num_bins, num_neurons=config.num_neurons, instance=config.data_instance)
         #save original statistics
         analysis.get_stats(X=real_samples, num_neurons=config.num_neurons, num_bins=config.num_bins, folder=config.sample_dir, name='real',instance=config.data_instance)
-
+        dev_samples = []
     return real_samples, dev_samples
+
+
+
+
+
