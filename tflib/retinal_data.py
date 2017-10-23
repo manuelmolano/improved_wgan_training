@@ -19,7 +19,6 @@ import matplotlib.pyplot as plt
 
 def get_samples(num_bins=27, num_neurons=10, instance='1'):                        
     
-    
     mat_contents = sio.loadmat('/home/manuel/generative-neural-models-master/k_pairwise/results/data_num_neurons_' + str(num_neurons) + '_' + instance + '.mat')    
     data = mat_contents['data']
     
@@ -35,6 +34,7 @@ def get_samples(num_bins=27, num_neurons=10, instance='1'):
         
         
 def load_samples_from_k_pairwise_model(num_samples=2**13, num_bins=27, num_neurons=10, instance='1'):
+    #get samples produced by k-pairwise model
     mat_contents = sio.loadmat('/home/manuel/generative-neural-models-master/k_pairwise/results/simulated_samples_num_neurons_' + str(num_neurons) + '_' + instance + '.mat')    
     data = mat_contents['samples_batch_all']
     
