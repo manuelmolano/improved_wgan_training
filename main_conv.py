@@ -150,7 +150,7 @@ def main(_):
     #get generated samples and their statistics
     fake_samples = wgan.get_samples(num_samples=FLAGS.num_samples)
     fake_samples = fake_samples.eval(session=sess)
-    fake_samples = wgan.binarize(samples=fake_samples)    
+     
     _,_,_,_,_ = analysis.get_stats(X=fake_samples.T, num_neurons=FLAGS.num_neurons, num_bins= FLAGS.num_bins, folder=FLAGS.sample_dir, name='fake', instance=FLAGS.data_instance)
 
     #evaluate high order features approximation

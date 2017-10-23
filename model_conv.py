@@ -172,7 +172,6 @@ class WGAN_conv(object):
         #get simulated samples, calculate their statistics and compare them with the original ones
         fake_samples = self.get_samples(num_samples=2**13)
         fake_samples = fake_samples.eval(session=self.sess)
-        fake_samples = self.binarize(samples=fake_samples)    
         acf_error, mean_error, corr_error, time_course_error,_ = analysis.get_stats(X=fake_samples.T, num_neurons=config.num_neurons,\
             num_bins=config.num_bins, folder=config.sample_dir, name='fake'+str(iteration+ckpt_name), critic_cost=-_disc_cost,instance=config.data_instance) 
         #plot the fitting errors
