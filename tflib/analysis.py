@@ -461,25 +461,55 @@ def plot_samples(samples, num_neurons, num_bins, folder):
     
  
 def compare_GANs(folder, name, variables_compared):
-    variables = {'num_layers':np.nan, 'num_features':np.nan, 'kernel_width':np.nan, 'num_units':np.nan, 'dataset':np.nan, 'num_samples':np.nan, 'num_neurons':np.nan,\
-    'packet_prob':np.nan, 'num_bins':np.nan, 'iteration':np.nan, 'ref_period':np.nan, 'firing_rate':np.nan, 'correlation':np.nan, 'group_size':np.nan, 'critic_iters':np.nan, 'lambda':np.nan}
-    variables_keys = list(variables.keys())
-      
+    variables = {}
+    
     folders = glob.glob(folder+name)
+    num_rows = 1
+    num_cols = 1
+    
+    leyenda = []
+    variables = np.zeros((len(folders),len(variables_compared)))
+    all_errors = np.zeros((len(folders),7))
     for ind_f in range(len(folders)):
-        for ind in range(len(variables_keys)):
-            variables[variables_keys[ind]] = find_value(folders[ind_f], variables_keys[ind])
-        variables['architecture'] = folder[8:folder.find('/')]
-        
+        experiment = ''
+        for ind in range(len(variables_compared)):
+            variables[ind_f,ind] = float(find_value(folders[ind_f], variables_compared[ind]))
+            experiment +=  str(variables[ind_f,ind]) + '  '
+        leyenda.append(experiment)
         if os.path.exists(folders[ind_f]+'/errors_fake.npz'):
             errors = np.load(folders[ind_f]+'/errors_fake.npz')
         else:
             files = glob.glob(folders[ind_f]+'/errors_fake*.npz')
             latest_file = 'errors_fake'+str(find_latest_file(files,'errors_fake'))+'.npz'
             errors = np.load(folders[ind_f]+'/'+latest_file)
-            
-        print(errors.keys())                 
+            print(latest_file)
+         
+        errors_keys = errors.keys()  
+        errors_keys.sort()
+        counter = 0
+        for key in errors_keys:
+            all_errors[ind_f,counter] = errors[key]
+            counter += 1
+        
+   
     
+    maximos = np.max(all_errors,axis=0).reshape((1,all_errors.shape[1]))
+    all_errors = np.divide(all_errors,maximos)
+    print(all_errors.shape)
+    mean_for_each_exp = np.mean(all_errors,axis=1).reshape((all_errors.shape[0],1))
+    print(errors_keys)
+    print(list(errors_keys))
+    all_errors = np.concatenate((all_errors,mean_for_each_exp),axis=1)
+    f,sbplt = plt.subplots(num_rows,num_cols,figsize=(10, 8),dpi=250)    
+    matplotlib.rcParams.update({'font.size': 8})
+    plt.subplots_adjust(left=left, bottom=bottom, right=right, top=top, wspace=wspace, hspace=hspace)
+    sbplt.plot(all_errors.T)
+    sbplt.legend(leyenda,loc='upper center', bbox_to_anchor=(0.5, 1), ncol=3)
+    errors_keys = list(errors_keys)
+    errors_keys.append('mean')
+    plt.setp(sbplt, xticks=np.arange(8), xticklabels=errors_keys)
+    sbplt.set_xlim([-1,8])
+   #f.savefig('/home/manuel/improved_wgan_training/comparisons/'+name)
 
 def find_value(string, variable):
     index1 = string.find(variable)+len(variable)+1
@@ -499,14 +529,17 @@ def find_latest_file(files,name):
     maximo = 0
     for ind in range(len(files)):
         file = files[ind]
-        aux = file[file.find(name)+len(name)+1:file.find('.')]
+        aux = file[file.find(name)+len(name):file.find('.')]
         maximo = np.max([float(aux),maximo])
         
     return str(int(maximo))
     
 
 if __name__ == '__main__':
-    compare_GANs('/home/manuel/improved_wgan_training/', 'samples conv/dataset_retina_num_samples_8192_num_neurons_20_num_bins_32_critic_iters_5_lambda_10_num_layers_*_num_features_*_kernel_*_iteration_20')
+    plt.close('all')
+    compare_GANs('/home/manuel/improved_wgan_training/', \
+                 'samples conv/dataset_retina_num_samples_8192_num_neurons_20_num_bins_32_critic_iters_5_lambda_10_num_layers_*_num_features_*_kernel_*_iteration_20',\
+                 ['num_layers','kernel','num_features'])
     asdasd
     
     group_size = 2
