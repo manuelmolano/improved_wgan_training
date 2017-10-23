@@ -40,6 +40,7 @@ flags.DEFINE_float("beta1", 0., "Momentum term of adam [0.]")
 flags.DEFINE_float("beta2", 0.9, "Momentum term of adam [0.9]")
 flags.DEFINE_integer("batch_size", 64, "The size of batch images [64]")
 flags.DEFINE_string("checkpoint_dir", "checkpoint", "Directory name to save the checkpoints [checkpoint]")
+flags.DEFINE_string("recovery_dir", "", "in case the real samples are already stored in another folder")
 flags.DEFINE_boolean("is_train", False, "True for training, False for testing [False]")
 flags.DEFINE_integer("training_step", 200, "number of batches between weigths and performance saving")
 flags.DEFINE_string("training_stage", '', "stage of the training used for the GAN")
@@ -117,8 +118,10 @@ def main(_):
     os.makedirs(FLAGS.checkpoint_dir)
   if not os.path.exists(FLAGS.sample_dir):
     os.makedirs(FLAGS.sample_dir)
-
-  reuse_data = 1
+  
+  if FLAGS.recovery_dir=="" and os.path.exists(FLAGS.sample_dir+'/stats_real.npz'):
+      FLAGS.recovery_dir = FLAGS.sample_dir
+      
   #gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.333)
   run_config = tf.ConfigProto()
   run_config.gpu_options.allow_growth=True
@@ -137,7 +140,7 @@ def main(_):
     
     
     if FLAGS.is_train:  
-        training_samples, dev_samples = data_provider.generate_spike_trains(FLAGS, reuse_data)
+        training_samples, dev_samples = data_provider.generate_spike_trains(FLAGS, FLAGS.recovery_dir)
         wgan.training_samples = training_samples
         wgan.dev_samples = dev_samples
         wgan.train(FLAGS)
@@ -158,7 +161,10 @@ def main(_):
                             group_size=FLAGS.group_size,refr_per=FLAGS.ref_period)
 
     original_dataset = np.load(FLAGS.sample_dir+ '/stats_real.npz')
-    index = np.argsort(original_dataset['shuffled_index'])
+    if FLAGS.dataset=='retina':
+        index = np.arange(FLAGS.num_neurons)
+    else:
+        index = np.argsort(original_dataset['shuffled_index'])
     #get filters
     print('get activations -----------------------------------')
     output,units,inputs = wgan.get_units(num_samples=2**13)  

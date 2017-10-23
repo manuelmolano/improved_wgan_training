@@ -12,10 +12,10 @@ import numpy as np
 from tflib import sim_pop_activity, retinal_data, analysis
 
 
-def generate_spike_trains(config, reuse_data):
+def generate_spike_trains(config, recovery_dir):
     if config.dataset=='uniform':
-        if reuse_data:
-            aux = np.load(config.sample_dir+ '/stats_real.npz')
+        if recovery_dir!="":
+            aux = np.load(recovery_dir+ '/stats_real.npz')
             real_samples = aux['samples']
             firing_rates_mat = aux['firing_rate_mat']
             correlations_mat = aux['correlation_mat']
@@ -41,9 +41,9 @@ def generate_spike_trains(config, reuse_data):
                                 num_neurons=config.num_neurons, correlations_mat=correlations_mat, group_size=config.group_size, shuffled_index=shuffled_index,\
                                 refr_per=config.ref_period,firing_rates_mat=firing_rates_mat, activity_peaks=activity_peaks, folder=config.sample_dir)
             
-            #save original statistics
-            analysis.get_stats(X=real_samples, num_neurons=config.num_neurons, num_bins=config.num_bins, folder=config.sample_dir, shuffled_index=shuffled_index,\
-                               name='real',firing_rate_mat=firing_rates_mat, correlation_mat=correlations_mat, activity_peaks=activity_peaks)
+        #save original statistics
+        analysis.get_stats(X=real_samples, num_neurons=config.num_neurons, num_bins=config.num_bins, folder=config.sample_dir, shuffled_index=shuffled_index,\
+                           name='real',firing_rate_mat=firing_rates_mat, correlation_mat=correlations_mat, activity_peaks=activity_peaks)
             
         #get dev samples
         dev_samples = sim_pop_activity.get_samples(num_samples=int(config.num_samples/4), num_bins=config.num_bins,\
@@ -51,8 +51,8 @@ def generate_spike_trains(config, reuse_data):
                        refr_per=config.ref_period,firing_rates_mat=firing_rates_mat, activity_peaks=activity_peaks)
         
     elif config.dataset=='packets':
-        if reuse_data:
-            aux = np.load(config.sample_dir+ '/stats_real.npz')
+        if recovery_dir!="":
+            aux = np.load(recovery_dir+ '/stats_real.npz')
             real_samples = aux['samples']
             firing_rates_mat = aux['firing_rate_mat']
             shuffled_index = aux['shuffled_index']
@@ -64,9 +64,9 @@ def generate_spike_trains(config, reuse_data):
             real_samples = sim_pop_activity.get_samples(num_samples=config.num_samples, num_bins=config.num_bins, refr_per=config.ref_period,\
                                  num_neurons=config.num_neurons, group_size=config.group_size, firing_rates_mat=firing_rates_mat, packets_on=True,\
                                  prob_packets=config.packet_prob, shuffled_index=shuffled_index, folder=config.sample_dir)
-            #save original statistics
-            analysis.get_stats(X=real_samples, num_neurons=config.num_neurons, num_bins=config.num_bins, folder=config.sample_dir, name='real',\
-                           firing_rate_mat=firing_rates_mat, shuffled_index=shuffled_index)
+        #save original statistics
+        analysis.get_stats(X=real_samples, num_neurons=config.num_neurons, num_bins=config.num_bins, folder=config.sample_dir, name='real',\
+                       firing_rate_mat=firing_rates_mat, shuffled_index=shuffled_index)
         #get dev samples
         dev_samples = sim_pop_activity.get_samples(num_samples=int(config.num_samples/4), num_bins=config.num_bins, refr_per=config.ref_period,\
                        num_neurons=config.num_neurons, group_size=config.group_size, firing_rates_mat=firing_rates_mat, packets_on=True,\
