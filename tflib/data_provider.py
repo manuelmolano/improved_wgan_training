@@ -16,7 +16,7 @@ def generate_spike_trains(config, reuse_data):
     if config.dataset=='uniform':
         if reuse_data:
             aux = np.load(config.sample_dir+ '/stats_real.npz')
-            config.real_samples = aux['samples']
+            real_samples = aux['samples']
             firing_rates_mat = aux['firing_rate_mat']
             correlations_mat = aux['correlation_mat']
             activity_peaks = aux['activity_peaks']

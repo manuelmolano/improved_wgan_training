@@ -172,7 +172,8 @@ def get_stats(X, num_neurons, num_bins, folder, name, firing_rate_mat=[],correla
         'firing_rate_mat':firing_rate_mat, 'correlation_mat':correlation_mat, 'activity_peaks':activity_peaks, 'shuffled_index':shuffled_index, 'firing_average_time_course':firing_average_time_course}
         np.savez(folder + '/stats_'+name+'.npz', **data)    
     else:
-        data = {'mean':mean_spike_count, 'acf':autocorrelogram_mat, 'cov_mat':cov_mat, 'k_probs':k_probs, 'firing_average_time_course':firing_average_time_course, 'critic_cost':critic_cost}
+        data = {'mean':mean_spike_count, 'acf':autocorrelogram_mat, 'cov_mat':cov_mat, 'k_probs':k_probs, 'firing_average_time_course':firing_average_time_course,\
+                'critic_cost':critic_cost, 'lag_cov_mat':lag_cov_mat}
         np.savez(folder + '/stats_'+name+'.npz', **data)   
         if resave_real_data:
             if 'firing_rate_mat' in original_data:
@@ -542,7 +543,7 @@ def find_latest_file(files,name):
     maximo = 0
     for ind in range(len(files)):
         file = files[ind]
-        aux = file[file.find(name)+len(name):file.find('.')]
+        aux = file[file.find(name)+len(name):file.find('npz')-1]
         maximo = np.max([float(aux),maximo])
         
     return str(int(maximo))
@@ -558,9 +559,7 @@ def merge_iterations(mat,parameters,leyenda):
         index = np.sum(parameters==unique_param[ind_p,:],axis=1)==3
         mean_mat[ind_p,:] = np.mean(mat[index,:], axis=0)
         std_mat[ind_p,:] = np.std(mat[index,:], axis=0)
-        print(np.nonzero(index)[0])
         leyenda_red.append(leyenda[np.nonzero(index)[0][0]])
-    print(leyenda_red)
     return mean_mat, std_mat, unique_param, leyenda_red
 
 if __name__ == '__main__':
