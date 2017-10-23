@@ -170,9 +170,9 @@ def spikes_relevance(sample, wgan, sess):
         
     return grad
         
-def patterns_relevance(sample, num_neurons, wgan, sess, pattern_size):
-    dim = sample.shape[0]
-    sample = sample.copy()
+def patterns_relevance(sample_original, num_neurons, wgan, sess, pattern_size):
+    dim = sample_original.shape[0]
+    sample = sample_original.copy()
     sample = sample.reshape((sample.shape[0],1))
     score = wgan.get_critics_output(np.concatenate((sample,sample),axis=1))[0].eval(session=sess)
     sample = sample.reshape((num_neurons,-1))
@@ -180,21 +180,19 @@ def patterns_relevance(sample, num_neurons, wgan, sess, pattern_size):
     num_patterns_2 = int(sample.shape[1]/pattern_size[1])
     samples_shuffled = np.zeros((dim,num_patterns_1*num_patterns_2))
     counter = 0
-    for ind_1 in range(num_patterns_1):
-        for ind_2 in range(num_patterns_2):
-            aux_sample = sample.copy()
-            aux_pattern = aux_sample[ind_1*pattern_size[0]:(ind_1+1)*pattern_size[0],ind_2*pattern_size[1]:(ind_2+1)*pattern_size[1]]
-            np.random.shuffle(aux_pattern.T)
-            samples_shuffled[:,counter] = aux_sample.flatten()
-            counter += 1
+    for ind_2 in range(num_patterns_2):
+        aux_sample = sample.copy()
+        aux_pattern = aux_sample[:,ind_2*pattern_size[1]:(ind_2+1)*pattern_size[1]]
+        np.random.shuffle(aux_pattern.T)
+        samples_shuffled[:,counter] = aux_sample.flatten()
+        counter += 1
     grad = wgan.get_critics_output(samples_shuffled).eval(session=sess) - score
     counter = 0
     grad_map = np.zeros(sample.shape)
-    for ind_1 in range(num_patterns_1):
-        for ind_2 in range(num_patterns_2):
-            grad_map[ind_1*pattern_size[0]:(ind_1+1)*pattern_size[0],ind_2*pattern_size[1]:(ind_2+1)*pattern_size[1]] = grad[counter]
-            counter += 1
-            #grad[spikes[ind_spk]] = aux
+    for ind_2 in range(num_patterns_2):
+        grad_map[:,ind_2*pattern_size[1]:(ind_2+1)*pattern_size[1]] = grad[counter]*sample_original
+        counter += 1
+        #grad[spikes[ind_spk]] = aux
         
     return grad    
     
