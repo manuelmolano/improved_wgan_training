@@ -24,7 +24,7 @@ Created on Thu Feb 23 11:27:20 2017
 import os
 import pprint
 from model_conv import WGAN_conv
-from tflib import analysis, retinal_data, visualize_filters_and_units, sim_pop_activity, data_provider
+from tflib import analysis, retinal_data, visualize_filters_and_units, data_provider
 import numpy as np
 #from utils import pp, get_samples_autocorrelogram, get_samples
 
@@ -75,7 +75,7 @@ def main(_):
           '_num_neurons_' + str(FLAGS.num_neurons) + '_num_bins_' + str(FLAGS.num_bins)\
           + '_ref_period_' + str(FLAGS.ref_period) + '_firing_rate_' + str(FLAGS.firing_rate) + '_correlation_' + str(FLAGS.correlation) +\
           '_group_size_' + str(FLAGS.group_size)  + '_critic_iters_' + str(FLAGS.critic_iters) + '_lambda_' + str(FLAGS.lambd) +\
-          '_num_layers_' + str(FLAGS.num_layers)  + '_num_units_' + str(FLAGS.num_units) +\
+           '_num_units_' + str(FLAGS.num_units) +\
           '_iteration_' + FLAGS.iteration + '/'
       elif FLAGS.architecture=='conv':
           FLAGS.sample_dir = 'samples conv/' + 'dataset_' + FLAGS.dataset + '_num_samples_' + str(FLAGS.num_samples) +\
@@ -89,8 +89,7 @@ def main(_):
           FLAGS.sample_dir = 'samples fc/' + 'dataset_' + FLAGS.dataset + '_num_samples_' + str(FLAGS.num_samples) +\
           '_num_neurons_' + str(FLAGS.num_neurons) + '_num_bins_' + str(FLAGS.num_bins) + '_packet_prob_' + str(FLAGS.packet_prob)\
           + '_firing_rate_' + str(FLAGS.firing_rate) + '_group_size_' + str(FLAGS.group_size)  + '_critic_iters_' +\
-          str(FLAGS.critic_iters) + '_lambda_' + str(FLAGS.lambd) +\
-          '_num_layers_' + str(FLAGS.num_layers)  + '_num_units_' + str(FLAGS.num_units) +\
+          str(FLAGS.critic_iters) + '_lambda_' + str(FLAGS.lambd) + '_num_units_' + str(FLAGS.num_units) +\
           '_iteration_' + FLAGS.iteration + '/'
       elif FLAGS.architecture=='conv':
           FLAGS.sample_dir = 'samples conv/' + 'dataset_' + FLAGS.dataset + '_num_samples_' + str(FLAGS.num_samples) +\
@@ -104,7 +103,7 @@ def main(_):
           FLAGS.sample_dir = 'samples fc/' + 'dataset_' + FLAGS.dataset  +\
           '_num_neurons_' + str(FLAGS.num_neurons) + '_num_bins_' + str(FLAGS.num_bins)\
           + '_critic_iters_' + str(FLAGS.critic_iters) + '_lambda_' + str(FLAGS.lambd) +\
-          '_num_layers_' + str(FLAGS.num_layers)  + '_num_units_' + str(FLAGS.num_units) +\
+          '_num_units_' + str(FLAGS.num_units) +\
           '_iteration_' + FLAGS.iteration + '/'
      elif FLAGS.architecture=='conv':
           FLAGS.sample_dir = 'samples conv/' + 'dataset_' + FLAGS.dataset + '_num_samples_' + str(FLAGS.num_samples) +\
@@ -119,7 +118,7 @@ def main(_):
   if not os.path.exists(FLAGS.sample_dir):
     os.makedirs(FLAGS.sample_dir)
 
-  reuse_data = 0
+  reuse_data = 1
   #gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.333)
   run_config = tf.ConfigProto()
   run_config.gpu_options.allow_growth=True
