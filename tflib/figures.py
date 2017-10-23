@@ -26,7 +26,7 @@ def figure_1():
     print('to do')
     
     
-def figure_2_4(num_neurons, num_bins, folder, folder_fc, fig_2_or_4):
+def figure_2_4(num_samples, num_neurons, num_bins, folder, folder_fc, fig_2_or_4):
     original_data = np.load(folder + '/stats_real.npz')   
     mean_spike_count_real, autocorrelogram_mat_real, firing_average_time_course_real, cov_mat_real, k_probs_real, lag_cov_mat_real = \
     [original_data["mean"], original_data["acf"], original_data["firing_average_time_course"], original_data["cov_mat"], original_data["k_probs"], original_data["lag_cov_mat"]]
@@ -36,7 +36,6 @@ def figure_2_4(num_neurons, num_bins, folder, folder_fc, fig_2_or_4):
     conv_data_bin = (conv_data > np.random.random(conv_data.shape)).astype(float)   
     cov_mat_conv, k_probs_conv, mean_spike_count_conv, autocorrelogram_mat_conv, firing_average_time_course_conv, lag_cov_mat_conv = \
         analysis.get_stats_aux(conv_data_bin, num_neurons, num_bins)
-    print(cov_mat_conv.shape)                                                                           
     #load fc information
     if fig_2_or_4==2:
         fc_data = np.load(folder_fc + '/samples_fake.npz')['samples']
@@ -146,22 +145,22 @@ def figure_2_4(num_neurons, num_bins, folder, folder_fc, fig_2_or_4):
     
 if __name__ == '__main__':
     #FIGURE 4
-#    dataset = 'retina'
-#    num_samples = '8192'
-#    num_neurons = '50'
-#    num_bins = '32'
-#    critic_iters = '5'
-#    lambd = '10' 
-#    num_layers = '2'
-#    num_features = '128'
-#    kernel = '5'
-#    iteration = '21'
-#    sample_dir = '/home/manuel/improved_wgan_training/samples conv/' + 'dataset_' + dataset + '_num_samples_' + num_samples +\
-#          '_num_neurons_' + num_neurons + '_num_bins_' + num_bins\
-#          + '_critic_iters_' + critic_iters + '_lambda_' + lambd +\
-#          '_num_layers_' + num_layers + '_num_features_' + num_features + '_kernel_' + kernel +\
-#          '_iteration_' + iteration + '/'
-#    figure_2_4(num_neurons=int(num_neurons), num_bins=int(num_bins), folder=sample_dir, fig_2_or_4=4)
+    dataset = 'retina'
+    num_samples = '8192'
+    num_neurons = '50'
+    num_bins = '32'
+    critic_iters = '5'
+    lambd = '10' 
+    num_layers = '2'
+    num_features = '128'
+    kernel = '5'
+    iteration = '21'
+    sample_dir = '/home/manuel/improved_wgan_training/samples conv/' + 'dataset_' + dataset + '_num_samples_' + num_samples +\
+          '_num_neurons_' + num_neurons + '_num_bins_' + num_bins\
+          + '_critic_iters_' + critic_iters + '_lambda_' + lambd +\
+          '_num_layers_' + num_layers + '_num_features_' + num_features + '_kernel_' + kernel +\
+          '_iteration_' + iteration + '/'
+    figure_2_4(num_samples=int(num_samples), num_neurons=int(num_neurons), num_bins=int(num_bins), folder=sample_dir,folder_fc='', fig_2_or_4=4)
     
     #FIGURE 2
     dataset = 'uniform'
@@ -191,7 +190,7 @@ if __name__ == '__main__':
           '_group_size_' + group_size + '_critic_iters_' + critic_iters + '_lambda_' + lambd + '_num_units_' + num_units +\
           '_iteration_' + iteration + '/'
           
-    figure_2_4(num_neurons=int(num_neurons), num_bins=int(num_bins), folder=sample_dir, folder_fc=sample_dir_fc, fig_2_or_4=2)
+    figure_2_4(num_samples=int(num_samples), num_neurons=int(num_neurons), num_bins=int(num_bins), folder=sample_dir, folder_fc=sample_dir_fc, fig_2_or_4=2)
     
     
     
