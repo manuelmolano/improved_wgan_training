@@ -29,6 +29,7 @@ def get_stats(X, num_neurons, num_bins, folder, name, firing_rate_mat=[],correla
     if name!='real' then it compares the above stats with the original ones 
     
     '''
+    X_binnarized = (X > np.random.random(X.shape)).astype(float)   
     resave_real_data = False
     if name!='real':
         original_data = np.load(folder + '/stats_real.npz')   
@@ -46,7 +47,7 @@ def get_stats(X, num_neurons, num_bins, folder, name, firing_rate_mat=[],correla
             mean_spike_count_real, autocorrelogram_mat_real, firing_average_time_course_real, cov_mat_real, k_probs_real, lag_cov_mat_real = \
             [original_data["mean"], original_data["acf"], original_data["firing_average_time_course"], original_data["cov_mat"], original_data["k_probs"], original_data["lag_cov_mat"]]
     
-    cov_mat, k_probs, mean_spike_count, autocorrelogram_mat, firing_average_time_course, lag_cov_mat = get_stats_aux(X, num_neurons, num_bins)
+    cov_mat, k_probs, mean_spike_count, autocorrelogram_mat, firing_average_time_course, lag_cov_mat = get_stats_aux(X_binnarized, num_neurons, num_bins)
     variances = np.diag(cov_mat)
     only_cov_mat = cov_mat.copy()
     only_cov_mat[np.diag_indices(num_neurons)] = np.nan
@@ -186,6 +187,8 @@ def get_stats(X, num_neurons, num_bins, folder, name, firing_rate_mat=[],correla
             errors_mat = {'acf_error':acf_error, 'mean_error':mean_error, 'corr_error':corr_error, 'time_course_error':time_course_error, 'k_probs_error':k_probs_error,\
                           'variance_error':variance_error, 'lag_corr_error':lag_corr_error}
             np.savez(folder + '/errors_'+name+'.npz', **errors_mat)
+            samples_fake = {'samples':X}
+            np.savez(folder + '/samples_fake.npz', **samples_fake)
             return acf_error, mean_error, corr_error, time_course_error, k_probs_error
     
 
@@ -448,8 +451,6 @@ def plot_samples(samples, num_neurons, num_bins, folder):
         sample = samples[:,ind_s].reshape((num_neurons,-1))
         sample_binnarized = samples_binnarized[:,ind_s].reshape((num_neurons,-1))
         for ind_n in range(num_neurons):
-#            sbplt.plot(sample[ind_n,:]+2*ind_n,'k')
-#            sbplt.plot(sample_binnarized[ind_n,:]+2*ind_n,'r')
             sbplt[int(np.floor(ind_s/num_rows))][ind_s%num_cols].plot(sample[ind_n,:]+4*ind_n,'k')
             spks = np.nonzero(sample_binnarized[ind_n,:])[0]
             for ind_spk in range(len(spks)):
@@ -470,9 +471,11 @@ def compare_GANs(folder, name, variables_compared):
     leyenda = []
     variables = np.zeros((len(folders),len(variables_compared)))
     all_errors = np.zeros((len(folders),7))
+    #go over all folders
     for ind_f in range(len(folders)):
         experiment = ''
         for ind in range(len(variables_compared)):
+            #save parameter value
             variables[ind_f,ind] = float(find_value(folders[ind_f], variables_compared[ind]))
             experiment +=  str(variables[ind_f,ind]) + '  '
         leyenda.append(experiment)
@@ -482,7 +485,7 @@ def compare_GANs(folder, name, variables_compared):
             files = glob.glob(folders[ind_f]+'/errors_fake*.npz')
             latest_file = 'errors_fake'+str(find_latest_file(files,'errors_fake'))+'.npz'
             errors = np.load(folders[ind_f]+'/'+latest_file)
-            print(latest_file)
+            
          
         errors_keys = errors.keys()  
         errors_keys.sort()
@@ -493,17 +496,25 @@ def compare_GANs(folder, name, variables_compared):
         
    
     
-    maximos = np.max(all_errors,axis=0).reshape((1,all_errors.shape[1]))
-    all_errors = np.divide(all_errors,maximos)
-    print(all_errors.shape)
-    mean_for_each_exp = np.mean(all_errors,axis=1).reshape((all_errors.shape[0],1))
-    print(errors_keys)
-    print(list(errors_keys))
-    all_errors = np.concatenate((all_errors,mean_for_each_exp),axis=1)
+    
+    #put together different interations of same experiment
+    all_errors_mean, all_errors_std, unique_param, leyenda = merge_iterations(all_errors, variables, leyenda)
+    
+    maximos = np.max(all_errors_mean,axis=0).reshape((1,all_errors_mean.shape[1]))
+    all_errors_mean = np.divide(all_errors_mean,maximos)
+    mean_for_each_exp = np.mean(all_errors_mean,axis=1).reshape((all_errors_mean.shape[0],1))
+    std_for_each_exp = np.std(all_errors_mean,axis=1).reshape((all_errors_mean.shape[0],1))
+    all_errors_mean = np.concatenate((all_errors_mean,mean_for_each_exp),axis=1)
+    all_errors_std = np.concatenate((all_errors_std,std_for_each_exp),axis=1)
     f,sbplt = plt.subplots(num_rows,num_cols,figsize=(10, 8),dpi=250)    
     matplotlib.rcParams.update({'font.size': 8})
     plt.subplots_adjust(left=left, bottom=bottom, right=right, top=top, wspace=wspace, hspace=hspace)
-    sbplt.plot(all_errors.T)
+    #print(all_errors_mean.shape)
+    print(all_errors_std)
+    for ind_exp in range(all_errors_mean.shape[0]):
+        
+        sbplt.errorbar(np.arange(8), all_errors_mean[ind_exp,:], yerr=all_errors_std[ind_exp,:])
+        
     sbplt.legend(leyenda,loc='upper center', bbox_to_anchor=(0.5, 1), ncol=3)
     errors_keys = list(errors_keys)
     errors_keys.append('mean')
@@ -512,6 +523,7 @@ def compare_GANs(folder, name, variables_compared):
    #f.savefig('/home/manuel/improved_wgan_training/comparisons/'+name)
 
 def find_value(string, variable):
+    #find value in a string of a network parameter (e.g. num_layers)
     index1 = string.find(variable)+len(variable)+1
     if index1==len(variable):
         return np.nan
@@ -526,6 +538,7 @@ def find_value(string, variable):
     return value
 
 def find_latest_file(files,name):
+    #if the training has not finished, it will find the file corresponding to the latest training stage
     maximo = 0
     for ind in range(len(files)):
         file = files[ind]
@@ -533,12 +546,27 @@ def find_latest_file(files,name):
         maximo = np.max([float(aux),maximo])
         
     return str(int(maximo))
-    
+
+
+def merge_iterations(mat,parameters,leyenda):
+    #merges rows in mat that have equal parameters
+    unique_param = np.unique(parameters, axis=0)
+    mean_mat = np.zeros((unique_param.shape[0],mat.shape[1]))
+    std_mat = np.zeros((unique_param.shape[0],mat.shape[1]))
+    leyenda_red = []
+    for ind_p in range(unique_param.shape[0]):
+        index = np.sum(parameters==unique_param[ind_p,:],axis=1)==3
+        mean_mat[ind_p,:] = np.mean(mat[index,:], axis=0)
+        std_mat[ind_p,:] = np.std(mat[index,:], axis=0)
+        print(np.nonzero(index)[0])
+        leyenda_red.append(leyenda[np.nonzero(index)[0][0]])
+    print(leyenda_red)
+    return mean_mat, std_mat, unique_param, leyenda_red
 
 if __name__ == '__main__':
     plt.close('all')
     compare_GANs('/home/manuel/improved_wgan_training/', \
-                 'samples conv/dataset_retina_num_samples_8192_num_neurons_20_num_bins_32_critic_iters_5_lambda_10_num_layers_*_num_features_*_kernel_*_iteration_20',\
+                 'samples conv/dataset_retina_num_samples_8192_num_neurons_20_num_bins_32_critic_iters_5_lambda_10_num_layers_*_num_features_*_kernel_*_iteration_*',\
                  ['num_layers','kernel','num_features'])
     asdasd
     
