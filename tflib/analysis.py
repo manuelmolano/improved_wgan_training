@@ -240,7 +240,7 @@ def evaluate_approx_distribution(X, folder, num_samples_theoretical_distr=2**15,
     #get freqs of real samples
     original_data = np.load(folder + '/stats_real.npz')        
     real_samples = original_data['samples']    
-    
+    X = X[:,0:2000]
     if os.path.exists(folder+'/probs_ns_' + str(X.shape[1]) + '_ns_gt_' + str(num_samples_theoretical_distr) + '.npz'):
         probs = np.load(folder+'/probs_ns_' + str(X.shape[1]) + '_ns_gt_' + str(num_samples_theoretical_distr) + '.npz')
         sim_samples_freqs = probs['sim_samples_freqs']        
@@ -273,7 +273,7 @@ def evaluate_approx_distribution(X, folder, num_samples_theoretical_distr=2**15,
         #'impossible' samples: samples for which the theoretical prob is 0
         num_impossible_samples = np.count_nonzero(numerical_prob==0)
         #we will now perform the same calculation for several datasets extracted from the ground truth distribution        
-        num_surr = 1000  
+        num_surr = 100
         freq_in_training_dataset_surrogates = np.zeros((num_surr*X.shape[1],)) 
         numerical_prob_surrogates = np.zeros((num_surr*X.shape[1],))
         surr_samples_freqs = np.zeros((num_surr*X.shape[1],))
@@ -437,14 +437,14 @@ def autocorrelogram(r,lag):
         ac = ac + r_flat[spike-lag:spike+lag+1]
         
     return ac    
-    
+ 
     
 def plot_samples(samples, num_neurons, num_bins, folder):
-    num_rows = 2
-    num_cols = 2
+    num_rows = 1
+    num_cols = 1
     samples_binnarized = (samples > np.random.random(samples.shape)).astype(float)  
     
-    f,sbplt = plt.subplots(num_rows,num_cols,figsize=(4, 8),dpi=250)
+    f,sbplt = plt.subplots(num_rows,num_cols,figsize=(8, 4),dpi=250)
     
     matplotlib.rcParams.update({'font.size': 8})
     plt.subplots_adjust(left=left, bottom=bottom, right=right, top=top, wspace=wspace, hspace=hspace)
@@ -452,12 +452,17 @@ def plot_samples(samples, num_neurons, num_bins, folder):
         sample = samples[:,ind_s].reshape((num_neurons,-1))
         sample_binnarized = samples_binnarized[:,ind_s].reshape((num_neurons,-1))
         for ind_n in range(num_neurons):
-            sbplt[int(np.floor(ind_s/num_rows))][ind_s%num_cols].plot(sample[ind_n,:]+4*ind_n,'k')
+            sbplt.plot(sample[ind_n,:]+4*ind_n,'k')
+            #sbplt[int(np.floor(ind_s/num_rows))][ind_s%num_cols].plot(sample[ind_n,:]+4*ind_n,'k')
             spks = np.nonzero(sample_binnarized[ind_n,:])[0]
             for ind_spk in range(len(spks)):
-                sbplt[int(np.floor(ind_s/num_rows))][ind_s%num_cols].plot(np.ones((2,))*spks[ind_spk],4*ind_n+np.array([2.2,3.2]),'r')
+                sbplt.plot(np.ones((2,))*spks[ind_spk],4*ind_n+np.array([2.2,3.2]),'r')
+                #sbplt[int(np.floor(ind_s/num_rows))][ind_s%num_cols].plot(np.ones((2,))*spks[ind_spk],4*ind_n+np.array([2.2,3.2]),'r')
         #sbplt.axis('off')
-        sbplt[int(np.floor(ind_s/num_rows))][ind_s%num_cols].axis('off')
+        sbplt.axis('off')
+        sbplt.set_xlim(0,128)
+        sbplt.set_ylim(-1,65)
+        #sbplt[int(np.floor(ind_s/num_rows))][ind_s%num_cols].axis('off')
     f.savefig(folder+'samples.svg',dpi=600, bbox_inches='tight')
     plt.close(f)
     
@@ -562,7 +567,25 @@ def merge_iterations(mat,parameters,leyenda):
         leyenda_red.append(leyenda[np.nonzero(index)[0][0]])
     return mean_mat, std_mat, unique_param, leyenda_red
 
+
+def compute_num_variables(num_bins=128, num_neurons=16, num_features=128, num_layers=2, kernel=5, num_units=490):
+    num_features *= 2
+    print('conv')
+    print(((num_neurons*num_features*kernel + num_features) + (num_features*2*num_features*kernel + 2*num_features) + (2*num_features*num_bins/num_layers**2) + 1) +\
+          ((128*2*num_features*num_bins/num_layers**2 + 2*num_features*num_bins/num_layers**2) + (num_features*2*num_features*kernel + num_features) + (num_neurons*num_features*kernel + num_neurons)))
+
+    print('fc')
+    print(((num_neurons*num_bins*num_units) + 3*(num_units**2) + 4*(num_units) + num_units + 1) + \
+          ((128*num_units) + 3*(num_units**2) + 4*(num_units) + (num_units*num_bins*num_neurons) + (num_bins*num_neurons)))
 if __name__ == '__main__':
+    
+    folder = '/home/manuel/improved_wgan_training/samples conv/dataset_uniform_num_samples_8192_num_neurons_16_num_bins_128_ref_period_2_firing_rate_0.25_correlation_0.3_group_size_2_critic_iters_5_lambda_10_num_layers_2_num_features_128_kernel_5_iteration_20/'
+    samples = np.load(folder + 'samples_fake.npz')['samples']
+    plot_samples(samples=samples, num_neurons=16, num_bins=128, folder=folder)
+    
+    asdasd
+    compute_num_variables(num_bins=128, num_neurons=16, num_features=128, num_layers=2, kernel=5, num_units=490)
+    asdasd
     plt.close('all')
     compare_GANs('/home/manuel/improved_wgan_training/', \
                  'samples conv/dataset_retina_num_samples_8192_num_neurons_20_num_bins_32_critic_iters_5_lambda_10_num_layers_*_num_features_*_kernel_*_iteration_*',\
