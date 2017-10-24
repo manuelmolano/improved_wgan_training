@@ -156,7 +156,7 @@ def main(_):
     _,_,_,_,_ = analysis.get_stats(X=fake_samples.T, num_neurons=FLAGS.num_neurons, num_bins= FLAGS.num_bins, folder=FLAGS.sample_dir, name='fake', instance=FLAGS.data_instance)
 
     #evaluate high order features approximation
-    if FLAGS.dataset=='uniform':
+    if FLAGS.dataset=='uniform' and FLAGS.num_bins*FLAGS.num_neurons<40:
         analysis.evaluate_approx_distribution(X=fake_samples.T, folder=FLAGS.sample_dir, num_samples_theoretical_distr=2**21,num_bins=FLAGS.num_bins, num_neurons=FLAGS.num_neurons,\
                             group_size=FLAGS.group_size,refr_per=FLAGS.ref_period)
 

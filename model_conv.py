@@ -118,6 +118,9 @@ class WGAN_conv(object):
     for variable in tf.trainable_variables():
         # shape is an array of tf.Dimension
         shape = variable.get_shape()
+        
+        print(variable.name)
+        print(shape)
         variable_parameters = 1
         for dim in shape:
             variable_parameters *= dim.value

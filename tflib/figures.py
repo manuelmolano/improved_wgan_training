@@ -5,14 +5,15 @@ Created on Mon Oct 23 12:13:56 2017
 
 @author: manuel
 """
-#import sys, os
-#sys.path.append('/home/manuel/improved_wgan_training/')
+import sys#, os
+sys.path.append('/home/manuel/improved_wgan_training/')
 #import glob
 
 import numpy as np
 from tflib import  retinal_data, analysis
 import matplotlib.pyplot as plt
 import matplotlib
+from matplotlib.ticker import FormatStrFormatter
 #parameters for figure
 left  = 0.125  # the left side of the subplots of the figure
 right = 0.9    # the right side of the subplots of the figure
@@ -20,7 +21,7 @@ bottom = 0.1   # the bottom of the subplots of the figure
 top = 0.9      # the top of the subplots of the figure
 wspace = 0.4   # the amount of width reserved for blank space between subplots
 hspace = 0.4   # the amount of height reserved for white space between subplots
-
+font_size = 14
 def figure_1():
     #plot real samples
     print('to do')
@@ -54,12 +55,38 @@ def figure_2_4(num_samples, num_neurons, num_bins, folder, folder_fc, fig_2_or_4
     only_cov_mat_comp[np.diag_indices(num_neurons)] = np.nan
 
     #PLOT
+    
     index = np.linspace(-10,10,2*10+1)
     #figure for all training error across epochs (supp. figure 2)
-    f = plt.figure(figsize=(10, 10),dpi=250)
+    
+    f = plt.figure(figsize=(8, 10),dpi=250)
     matplotlib.rcParams.update({'font.size': 8})
     plt.subplots_adjust(left=left, bottom=bottom, right=right, top=top, wspace=wspace, hspace=hspace)
-    plt.subplot(2,3,5)
+    
+    
+    if fig_2_or_4==2:
+        plt.subplot(3,1,1)
+        num_rows = 1
+        num_cols = 1
+        for ind_s in range(num_rows*num_cols):
+            sample = conv_data[:,ind_s].reshape((num_neurons,-1))
+            sample_binnarized = conv_data_bin[:,ind_s].reshape((num_neurons,-1))
+            for ind_n in range(num_neurons):
+                plt.plot(sample[ind_n,:]+4*ind_n,'k')
+                spks = np.nonzero(sample_binnarized[ind_n,:])[0]
+                for ind_spk in range(len(spks)):
+                    plt.plot(np.ones((2,))*spks[ind_spk],4*ind_n+np.array([2.2,3.2]),'r')
+            #sbplt.axis('off')
+            plt.axis('off')
+            plt.xlim(0,num_bins)
+            plt.ylim(-1,65)
+            plt.annotate('A',xy=(0,65),fontsize=font_size)
+            
+            
+    if fig_2_or_4==2:
+        plt.subplot(3,3,8)
+    else:
+        plt.subplot(2,3,5)
     #plot autocorrelogram(s)
     plt.plot(index, autocorrelogram_mat_conv,'r')
     plt.plot(index, autocorrelogram_mat_comp,'g')
@@ -67,23 +94,43 @@ def figure_2_4(num_samples, num_neurons, num_bins, folder, folder_fc, fig_2_or_4
     plt.title('Autocorrelogram')
     plt.xlabel('time (ms)')
     plt.ylabel('number of spikes')
+    if fig_2_or_4==2:
+        plt.annotate('D',xy=(-10,np.max(autocorrelogram_mat_real)),fontsize=font_size)
+    else:
+        plt.annotate('E',xy=(-10,np.max(autocorrelogram_mat_real)),fontsize=font_size)
     
     #plot mean firing rates
     mean_spike_count_real = mean_spike_count_real*1000/num_bins
     mean_spike_count_conv = mean_spike_count_conv*1000/num_bins
     mean_spike_count_comp = mean_spike_count_comp*1000/num_bins
-    plt.subplot(2,3,1)
+    if fig_2_or_4==2:
+        plt.subplot(3,3,4)
+    else:
+        plt.subplot(2,3,1)
+    axis_ticks = np.linspace(np.min(mean_spike_count_real),np.max(mean_spike_count_real),3)
     plt.plot([np.min(mean_spike_count_real),np.max(mean_spike_count_real)],[np.min(mean_spike_count_real),np.max(mean_spike_count_real)],'k')
     plt.plot(mean_spike_count_real,mean_spike_count_conv,'.r')
     plt.plot(mean_spike_count_real,mean_spike_count_comp,'.g')
     plt.xlabel('mean firing rate expt (Hz)')
     plt.ylabel('mean firing rate models (Hz)')   
     plt.title('mean firing rates')
-
+    if fig_2_or_4==2:
+        plt.annotate('B',xy=(np.min(mean_spike_count_real),np.max(mean_spike_count_real)),fontsize=font_size)
+    else:
+        plt.annotate('A',xy=(np.min(mean_spike_count_real),np.max(mean_spike_count_real)),fontsize=font_size)
+    plt.xticks(axis_ticks)
+    plt.yticks(axis_ticks)
+    ax = plt.gca()
+    ax.yaxis.set_major_formatter(FormatStrFormatter('%.0f'))
+    ax.xaxis.set_major_formatter(FormatStrFormatter('%.0f'))
     #plot covariances
-    plt.subplot(2,3,2)
+    if fig_2_or_4==2:
+        plt.subplot(3,3,5)
+    else:
+        plt.subplot(2,3,2)
     only_cov_mat_real = cov_mat_real.copy()
     only_cov_mat_real[np.diag_indices(num_neurons)] = np.nan
+    axis_ticks = np.linspace(np.nanmin(only_cov_mat_real.flatten()),np.nanmax(only_cov_mat_real.flatten()),3)
     plt.plot([np.nanmin(only_cov_mat_real.flatten()),np.nanmax(only_cov_mat_real.flatten())],\
                     [np.nanmin(only_cov_mat_real.flatten()),np.nanmax(only_cov_mat_real.flatten())],'k')
     plt.plot(only_cov_mat_real.flatten(),only_cov_mat_conv.flatten(),'.r')
@@ -91,39 +138,76 @@ def figure_2_4(num_samples, num_neurons, num_bins, folder, folder_fc, fig_2_or_4
     plt.title('pairwise covariances')
     plt.xlabel('covariances expt')
     plt.ylabel('covariances models')
-  
-        
+    if fig_2_or_4==2:
+        plt.annotate('C',xy=(0,np.nanmax(only_cov_mat_real.flatten())),fontsize=font_size)
+    else:
+        plt.annotate('B',xy=(0,np.nanmax(only_cov_mat_real.flatten())),fontsize=font_size)
+    plt.xticks(axis_ticks)
+    plt.yticks(axis_ticks)
+    ax = plt.gca()
+    ax.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
+    ax.xaxis.set_major_formatter(FormatStrFormatter('%.2f'))
         
     #plot k-statistics
-    plt.subplot(2,3,3)
+    if fig_2_or_4==2:
+        plt.subplot(3,3,6)
+    else:
+        plt.subplot(2,3,3)
+    axis_ticks = np.linspace(0,np.max(k_probs_real),3)
     plt.plot([0,np.max(k_probs_real)],[0,np.max(k_probs_real)],'k')        
     plt.plot(k_probs_real,k_probs_conv,'.r')        
     plt.plot(k_probs_real,k_probs_comp,'.g')  
     plt.xlabel('k-probs expt')
     plt.ylabel('k-probs models')
-    plt.title('k statistics')        
-      
+    plt.title('k statistics')   
+    if fig_2_or_4==2:
+        plt.annotate('D',xy=(0,np.max(k_probs_real)),fontsize=font_size)
+    else:
+        plt.annotate('C',xy=(0,np.max(k_probs_real)),fontsize=font_size)
+    plt.xticks(axis_ticks)
+    plt.yticks(axis_ticks)
+    ax = plt.gca()
+    ax.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
+    ax.xaxis.set_major_formatter(FormatStrFormatter('%.2f'))
+    
     #plot average time course
     #firing_average_time_course[firing_average_time_course>0.048] = 0.048
-    plt.subplot(6,3,10)
-    firing_average_time_course_real = firing_average_time_course_real*1000/num_bins
-    firing_average_time_course_conv = firing_average_time_course_conv*1000/num_bins
-    firing_average_time_course_comp = firing_average_time_course_comp*1000/num_bins
-    maximo = np.max(firing_average_time_course_real.flatten())
-    minimo = np.min(firing_average_time_course_real.flatten())
-    plt.imshow(firing_average_time_course_real,interpolation='nearest')
-   
+    if fig_2_or_4==2:
+        plt.subplot(9,3,19)
+    else:
+        plt.subplot(6,3,10)
+    firing_average_time_course_real_section = firing_average_time_course_real[:,0:32]*1000/num_bins
+    firing_average_time_course_conv_section = firing_average_time_course_conv[:,0:32]*1000/num_bins
+    firing_average_time_course_comp_section = firing_average_time_course_comp[:,0:32]*1000/num_bins
+    maximo = np.max(firing_average_time_course_real_section.flatten())
+    minimo = np.min(firing_average_time_course_real_section.flatten())
+    plt.imshow(firing_average_time_course_real_section,interpolation='nearest')
     plt.title('Real time course (Hz)')
     plt.xticks([])
     plt.yticks([])
-    plt.subplot(6,3,13)
-    plt.imshow(firing_average_time_course_conv,interpolation='nearest', clim=(minimo,maximo))
+    if fig_2_or_4==2:
+        plt.annotate('E',xy=(0,1),fontsize=font_size)
+    else:
+        plt.annotate('D',xy=(0,1),fontsize=font_size)
+    if fig_2_or_4==2:
+        plt.subplot(9,3,22)
+    else:
+        plt.subplot(6,3,13)
+    
+    plt.imshow(firing_average_time_course_conv_section,interpolation='nearest', clim=(minimo,maximo))
     plt.title('Spike-GAN time course (Hz)')
     plt.xticks([])
     plt.yticks([])
-    plt.subplot(6,3,16)
-    plt.imshow(firing_average_time_course_comp,interpolation='nearest', clim=(minimo,maximo))#map_aux = 
-    plt.title('FC time course (Hz)')
+    if fig_2_or_4==2:
+        plt.subplot(9,3,25)
+    else:
+        plt.subplot(6,3,16)
+    
+    plt.imshow(firing_average_time_course_comp_section,interpolation='nearest', clim=(minimo,maximo))#map_aux = 
+    if fig_2_or_4==2:
+        plt.title('MLP GAN time course (Hz)')
+    else:
+        plt.title('k-pairwise time course (Hz)')
     plt.xlabel('time (ms)')
     plt.ylabel('neuron')
     #f.colorbar(map_aux,orientation='horizontal')
@@ -131,7 +215,11 @@ def figure_2_4(num_samples, num_neurons, num_bins, folder, folder_fc, fig_2_or_4
     plt.yticks([])
         
     #plot lag covariance
-    plt.subplot(2,3,6)
+    if fig_2_or_4==2:
+        plt.subplot(3,3,9)
+    else:
+        plt.subplot(2,3,6)
+    axis_ticks = np.linspace(np.min(lag_cov_mat_real.flatten()),np.max(lag_cov_mat_real.flatten()),3)
     plt.plot([np.min(lag_cov_mat_real.flatten()),np.max(lag_cov_mat_real.flatten())],\
                         [np.min(lag_cov_mat_real.flatten()),np.max(lag_cov_mat_real.flatten())],'k')        
     plt.plot(lag_cov_mat_real,lag_cov_mat_conv,'.r')
@@ -139,11 +227,57 @@ def figure_2_4(num_samples, num_neurons, num_bins, folder, folder_fc, fig_2_or_4
     plt.xlabel('lag cov real')
     plt.ylabel('lag cov models')
     plt.title('lag covarainces')
-    f.savefig(folder+'figure_2.svg',dpi=600, bbox_inches='tight')
+    if fig_2_or_4==2:
+        plt.annotate('G',xy=(0,np.max(lag_cov_mat_real.flatten())),fontsize=font_size)
+    else:
+        plt.annotate('F',xy=(0,np.max(lag_cov_mat_real.flatten())),fontsize=font_size)
+    plt.xticks(axis_ticks)
+    plt.yticks(axis_ticks)
+    ax = plt.gca()
+    ax.yaxis.set_major_formatter(FormatStrFormatter('%.2f'))
+    ax.xaxis.set_major_formatter(FormatStrFormatter('%.2f'))
+    
+    
+    
+    f.savefig(folder+'figure_'+str(fig_2_or_4)+'.svg',dpi=600, bbox_inches='tight')
     plt.close(f)
     
     
 if __name__ == '__main__':
+    plt.close('all')
+    
+    
+    #FIGURE 2
+    dataset = 'uniform'
+    num_samples = '8192'
+    num_neurons = '16'
+    num_bins = '128'
+    ref_period = '2'
+    firing_rate = '0.25'
+    correlation = '0.3'
+    group_size = '2'
+    critic_iters = '5'
+    lambd = '10' 
+    num_layers = '2'
+    num_features = '128'
+    kernel = '5'
+    iteration = '20'
+    num_units = '490'
+    sample_dir = '/home/manuel/improved_wgan_training/samples conv/' + 'dataset_' + dataset + '_num_samples_' + num_samples +\
+          '_num_neurons_' + num_neurons + '_num_bins_' + num_bins\
+          + '_ref_period_' + ref_period + '_firing_rate_' + firing_rate + '_correlation_' + correlation +\
+          '_group_size_' + group_size + '_critic_iters_' + critic_iters + '_lambda_' + lambd +\
+          '_num_layers_' + num_layers + '_num_features_' + num_features + '_kernel_' + kernel +\
+          '_iteration_' + iteration + '/'
+    sample_dir_fc = '/home/manuel/improved_wgan_training/samples fc/' + 'dataset_' + dataset + '_num_samples_' + num_samples +\
+          '_num_neurons_' + num_neurons + '_num_bins_' + num_bins\
+          + '_ref_period_' + ref_period + '_firing_rate_' + firing_rate + '_correlation_' + correlation +\
+          '_group_size_' + group_size + '_critic_iters_' + critic_iters + '_lambda_' + lambd + '_num_units_' + num_units +\
+          '_iteration_' + iteration + 'bis/'
+          
+    figure_2_4(num_samples=int(num_samples), num_neurons=int(num_neurons), num_bins=int(num_bins), folder=sample_dir, folder_fc=sample_dir_fc, fig_2_or_4=2)
+    
+    
     #FIGURE 4
     dataset = 'retina'
     num_samples = '8192'
@@ -161,38 +295,5 @@ if __name__ == '__main__':
           '_num_layers_' + num_layers + '_num_features_' + num_features + '_kernel_' + kernel +\
           '_iteration_' + iteration + '/'
     figure_2_4(num_samples=int(num_samples), num_neurons=int(num_neurons), num_bins=int(num_bins), folder=sample_dir,folder_fc='', fig_2_or_4=4)
-    
-    #FIGURE 2
-    dataset = 'uniform'
-    num_samples = '8192'
-    num_neurons = '32'
-    num_bins = '64'
-    ref_period = '2'
-    firing_rate = '0.25'
-    correlation = '0.3'
-    group_size = '2'
-    critic_iters = '5'
-    lambd = '10' 
-    num_layers = '2'
-    num_features = '128'
-    kernel = '5'
-    iteration = '20'
-    num_units = '400'
-    sample_dir = '/home/manuel/improved_wgan_training/samples conv/' + 'dataset_' + dataset + '_num_samples_' + num_samples +\
-          '_num_neurons_' + num_neurons + '_num_bins_' + num_bins\
-          + '_ref_period_' + ref_period + '_firing_rate_' + firing_rate + '_correlation_' + correlation +\
-          '_group_size_' + group_size + '_critic_iters_' + critic_iters + '_lambda_' + lambd +\
-          '_num_layers_' + num_layers + '_num_features_' + num_features + '_kernel_' + kernel +\
-          '_iteration_' + iteration + '/'
-    sample_dir_fc = '/home/manuel/improved_wgan_training/samples fc/' + 'dataset_' + dataset + '_num_samples_' + num_samples +\
-          '_num_neurons_' + num_neurons + '_num_bins_' + num_bins\
-          + '_ref_period_' + ref_period + '_firing_rate_' + firing_rate + '_correlation_' + correlation +\
-          '_group_size_' + group_size + '_critic_iters_' + critic_iters + '_lambda_' + lambd + '_num_units_' + num_units +\
-          '_iteration_' + iteration + '/'
-          
-    figure_2_4(num_samples=int(num_samples), num_neurons=int(num_neurons), num_bins=int(num_bins), folder=sample_dir, folder_fc=sample_dir_fc, fig_2_or_4=2)
-    
-    
-    
     
     
