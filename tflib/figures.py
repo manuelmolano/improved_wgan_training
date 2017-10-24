@@ -1,3 +1,5 @@
+
+
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
@@ -22,10 +24,8 @@ top = 0.9      # the top of the subplots of the figure
 wspace = 0.4   # the amount of width reserved for blank space between subplots
 hspace = 0.4   # the amount of height reserved for white space between subplots
 font_size = 14
-def figure_1():
-    #plot real samples
-    print('to do')
-    
+margin = 0.02
+     
     
 def figure_2_4(num_samples, num_neurons, num_bins, folder, folder_fc, fig_2_or_4):
     original_data = np.load(folder + '/stats_real.npz')   
@@ -58,8 +58,11 @@ def figure_2_4(num_samples, num_neurons, num_bins, folder, folder_fc, fig_2_or_4
     
     index = np.linspace(-10,10,2*10+1)
     #figure for all training error across epochs (supp. figure 2)
+    if fig_2_or_4==2:
+        f = plt.figure(figsize=(8, 10),dpi=250)
+    else:
+        f = plt.figure(figsize=(8, 6),dpi=250)
     
-    f = plt.figure(figsize=(8, 10),dpi=250)
     matplotlib.rcParams.update({'font.size': 8})
     plt.subplots_adjust(left=left, bottom=bottom, right=right, top=top, wspace=wspace, hspace=hspace)
     
@@ -80,7 +83,10 @@ def figure_2_4(num_samples, num_neurons, num_bins, folder, folder_fc, fig_2_or_4
             plt.axis('off')
             plt.xlim(0,num_bins)
             plt.ylim(-1,65)
-            plt.annotate('A',xy=(0,65),fontsize=font_size)
+            ax = plt.gca()
+            points = ax.get_position().get_points()
+            plt.text(points[0][0]-margin,points[1][1]+margin, 'A', fontsize=font_size, transform=plt.gcf().transFigure)
+            
             
             
     if fig_2_or_4==2:
@@ -94,10 +100,13 @@ def figure_2_4(num_samples, num_neurons, num_bins, folder, folder_fc, fig_2_or_4
     plt.title('Autocorrelogram')
     plt.xlabel('time (ms)')
     plt.ylabel('number of spikes')
+    ax = plt.gca()
+    points = ax.get_position().get_points()
     if fig_2_or_4==2:
-        plt.annotate('D',xy=(-10,np.max(autocorrelogram_mat_real)),fontsize=font_size)
+        plt.text(points[0][0]-margin,points[1][1]+margin, 'F', fontsize=font_size, transform=plt.gcf().transFigure)
     else:
-        plt.annotate('E',xy=(-10,np.max(autocorrelogram_mat_real)),fontsize=font_size)
+        plt.text(points[0][0]-margin,points[1][1]+margin, 'E', fontsize=font_size, transform=plt.gcf().transFigure)
+               
     
     #plot mean firing rates
     mean_spike_count_real = mean_spike_count_real*1000/num_bins
@@ -107,17 +116,24 @@ def figure_2_4(num_samples, num_neurons, num_bins, folder, folder_fc, fig_2_or_4
         plt.subplot(3,3,4)
     else:
         plt.subplot(2,3,1)
-    axis_ticks = np.linspace(np.min(mean_spike_count_real),np.max(mean_spike_count_real),3)
-    plt.plot([np.min(mean_spike_count_real),np.max(mean_spike_count_real)],[np.min(mean_spike_count_real),np.max(mean_spike_count_real)],'k')
+    axis_ticks = np.linspace(np.min(mean_spike_count_comp),np.max(mean_spike_count_comp),3)
+    plt.plot([np.min(mean_spike_count_comp),np.max(mean_spike_count_comp)],[np.min(mean_spike_count_comp),np.max(mean_spike_count_comp)],'k')
     plt.plot(mean_spike_count_real,mean_spike_count_conv,'.r')
     plt.plot(mean_spike_count_real,mean_spike_count_comp,'.g')
     plt.xlabel('mean firing rate expt (Hz)')
     plt.ylabel('mean firing rate models (Hz)')   
     plt.title('mean firing rates')
+    ax = plt.gca()
+    points = ax.get_position().get_points()
     if fig_2_or_4==2:
-        plt.annotate('B',xy=(np.min(mean_spike_count_real),np.max(mean_spike_count_real)),fontsize=font_size)
+        plt.text(points[0][0]-margin,points[1][1]+margin, 'B', fontsize=font_size, transform=plt.gcf().transFigure)
+        plt.annotate('Spike-GAN',xy=(np.min(mean_spike_count_comp),np.max(mean_spike_count_comp)-(np.max(mean_spike_count_comp)-np.min(mean_spike_count_comp))/10),fontsize=8,color='r')
+        plt.annotate('MLP GAN',xy=(np.min(mean_spike_count_comp),np.max(mean_spike_count_comp)-2*(np.max(mean_spike_count_comp)-np.min(mean_spike_count_comp))/10),fontsize=8,color='g')
     else:
-        plt.annotate('A',xy=(np.min(mean_spike_count_real),np.max(mean_spike_count_real)),fontsize=font_size)
+        plt.text(points[0][0]-margin,points[1][1]+margin, 'A', fontsize=font_size, transform=plt.gcf().transFigure)
+        plt.annotate('Spike-GAN',xy=(np.min(mean_spike_count_comp),np.max(mean_spike_count_comp)-(np.max(mean_spike_count_comp)-np.min(mean_spike_count_comp))/10),fontsize=8,color='r')
+        plt.annotate('k-pairwise model',xy=(np.min(mean_spike_count_comp),np.max(mean_spike_count_comp)-2*(np.max(mean_spike_count_comp)-np.min(mean_spike_count_comp))/10),fontsize=8,color='g')
+
     plt.xticks(axis_ticks)
     plt.yticks(axis_ticks)
     ax = plt.gca()
@@ -138,10 +154,12 @@ def figure_2_4(num_samples, num_neurons, num_bins, folder, folder_fc, fig_2_or_4
     plt.title('pairwise covariances')
     plt.xlabel('covariances expt')
     plt.ylabel('covariances models')
+    ax = plt.gca()
+    points = ax.get_position().get_points()
     if fig_2_or_4==2:
-        plt.annotate('C',xy=(0,np.nanmax(only_cov_mat_real.flatten())),fontsize=font_size)
+        plt.text(points[0][0]-margin,points[1][1]+margin, 'C', fontsize=font_size, transform=plt.gcf().transFigure)
     else:
-        plt.annotate('B',xy=(0,np.nanmax(only_cov_mat_real.flatten())),fontsize=font_size)
+        plt.text(points[0][0]-margin,points[1][1]+margin, 'B', fontsize=font_size, transform=plt.gcf().transFigure)
     plt.xticks(axis_ticks)
     plt.yticks(axis_ticks)
     ax = plt.gca()
@@ -159,11 +177,13 @@ def figure_2_4(num_samples, num_neurons, num_bins, folder, folder_fc, fig_2_or_4
     plt.plot(k_probs_real,k_probs_comp,'.g')  
     plt.xlabel('k-probs expt')
     plt.ylabel('k-probs models')
-    plt.title('k statistics')   
+    plt.title('k statistics') 
+    ax = plt.gca()
+    points = ax.get_position().get_points()
     if fig_2_or_4==2:
-        plt.annotate('D',xy=(0,np.max(k_probs_real)),fontsize=font_size)
+        plt.text(points[0][0]-margin,points[1][1]+margin, 'D', fontsize=font_size, transform=plt.gcf().transFigure)
     else:
-        plt.annotate('C',xy=(0,np.max(k_probs_real)),fontsize=font_size)
+        plt.text(points[0][0]-margin,points[1][1]+margin, 'C', fontsize=font_size, transform=plt.gcf().transFigure)
     plt.xticks(axis_ticks)
     plt.yticks(axis_ticks)
     ax = plt.gca()
@@ -185,10 +205,12 @@ def figure_2_4(num_samples, num_neurons, num_bins, folder, folder_fc, fig_2_or_4
     plt.title('Real time course (Hz)')
     plt.xticks([])
     plt.yticks([])
+    ax = plt.gca()
+    points = ax.get_position().get_points()
     if fig_2_or_4==2:
-        plt.annotate('E',xy=(0,1),fontsize=font_size)
+        plt.text(points[0][0]-margin,points[1][1]+margin, 'E', fontsize=font_size, transform=plt.gcf().transFigure)
     else:
-        plt.annotate('D',xy=(0,1),fontsize=font_size)
+        plt.text(points[0][0]-margin,points[1][1]+margin, 'D', fontsize=font_size, transform=plt.gcf().transFigure)
     if fig_2_or_4==2:
         plt.subplot(9,3,22)
     else:
@@ -227,10 +249,12 @@ def figure_2_4(num_samples, num_neurons, num_bins, folder, folder_fc, fig_2_or_4
     plt.xlabel('lag cov real')
     plt.ylabel('lag cov models')
     plt.title('lag covarainces')
+    ax = plt.gca()
+    points = ax.get_position().get_points()
     if fig_2_or_4==2:
-        plt.annotate('G',xy=(0,np.max(lag_cov_mat_real.flatten())),fontsize=font_size)
+        plt.text(points[0][0]-margin,points[1][1]+margin, 'G', fontsize=font_size, transform=plt.gcf().transFigure)
     else:
-        plt.annotate('F',xy=(0,np.max(lag_cov_mat_real.flatten())),fontsize=font_size)
+        plt.text(points[0][0]-margin,points[1][1]+margin, 'F', fontsize=font_size, transform=plt.gcf().transFigure)
     plt.xticks(axis_ticks)
     plt.yticks(axis_ticks)
     ax = plt.gca()

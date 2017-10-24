@@ -237,12 +237,13 @@ def evaluate_approx_distribution(X, folder, num_samples_theoretical_distr=2**15,
     if name!='real' then it compares the above stats with the original ones 
     
     '''
+    num_samples = 3000
     #get freqs of real samples
     original_data = np.load(folder + '/stats_real.npz')        
-    real_samples = original_data['samples']    
-    X = X[:,0:2000]
-    if os.path.exists(folder+'/probs_ns_' + str(X.shape[1]) + '_ns_gt_' + str(num_samples_theoretical_distr) + '.npz'):
-        probs = np.load(folder+'/probs_ns_' + str(X.shape[1]) + '_ns_gt_' + str(num_samples_theoretical_distr) + '.npz')
+    real_samples = original_data['samples'][:,0:num_samples]
+    X = X[:,0:num_samples]
+    if os.path.exists(folder+'/probs_ns_' + str(num_samples) + '_ns_gt_' + str(num_samples_theoretical_distr) + '.npz'):
+        probs = np.load(folder+'/probs_ns_' + str(num_samples) + '_ns_gt_' + str(num_samples_theoretical_distr) + '.npz')
         sim_samples_freqs = probs['sim_samples_freqs']        
         numerical_prob = probs['numerical_prob']
         freq_in_training_dataset = probs['freq_in_training_dataset']
@@ -273,10 +274,10 @@ def evaluate_approx_distribution(X, folder, num_samples_theoretical_distr=2**15,
         #'impossible' samples: samples for which the theoretical prob is 0
         num_impossible_samples = np.count_nonzero(numerical_prob==0)
         #we will now perform the same calculation for several datasets extracted from the ground truth distribution        
-        num_surr = 100
-        freq_in_training_dataset_surrogates = np.zeros((num_surr*X.shape[1],)) 
-        numerical_prob_surrogates = np.zeros((num_surr*X.shape[1],))
-        surr_samples_freqs = np.zeros((num_surr*X.shape[1],))
+        num_surr = 5
+        freq_in_training_dataset_surrogates = np.zeros((num_surr*num_samples,)) 
+        numerical_prob_surrogates = np.zeros((num_surr*num_samples,))
+        surr_samples_freqs = np.zeros((num_surr*num_samples,))
         num_impossible_samples_surrogates =  np.zeros((num_surr, ))
         counter = 0
         for ind_surr in range(num_surr+1):
@@ -286,9 +287,9 @@ def evaluate_approx_distribution(X, folder, num_samples_theoretical_distr=2**15,
                 #as a control, the last surrogate is the original dataset itself
                 surrogate= real_samples
                 np.random.shuffle(surrogate.T)
-                surrogate = surrogate[:,0:np.min((X.shape[1],surrogate.shape[1]))]
+                surrogate = surrogate[:,0:np.min((num_samples,surrogate.shape[1]))]
             else:
-                surrogate = sim_pop_activity.get_samples(num_samples=X.shape[1], num_bins=num_bins,\
+                surrogate = sim_pop_activity.get_samples(num_samples=num_samples, num_bins=num_bins,\
                     num_neurons=num_neurons, correlations_mat=original_data['correlation_mat'], group_size=group_size, refr_per=refr_per,\
                     firing_rates_mat=original_data['firing_rate_mat'], activity_peaks=original_data['activity_peaks'],shuffled_index=original_data['shuffled_index'])
                 
@@ -312,10 +313,10 @@ def evaluate_approx_distribution(X, folder, num_samples_theoretical_distr=2**15,
                 'surr_samples_freqs':surr_samples_freqs, 'freq_in_training_dataset_surrogates':freq_in_training_dataset_surrogates, 'numerical_prob_surrogates': numerical_prob_surrogates,\
                 'num_impossible_samples_surrogates': num_impossible_samples_surrogates, 'num_impossible_samples_original':num_impossible_samples_original}
         
-        np.savez(folder+'/probs_ns_' + str(X.shape[1]) + '_ns_gt_' + str(num_samples_theoretical_distr) + '.npz',**probs)
+        np.savez(folder+'/probs_ns_' + str(num_samples) + '_ns_gt_' + str(num_samples_theoretical_distr) + '.npz',**probs)
         
         
-    
+    print(np.unique(sim_samples_freqs))
     f,sbplt = plt.subplots(2,2,figsize=(8, 8),dpi=250)
     matplotlib.rcParams.update({'font.size': 8})
     plt.subplots_adjust(left=left, bottom=bottom, right=right, top=top, wspace=wspace, hspace=hspace)  
