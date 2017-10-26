@@ -46,7 +46,7 @@ def spike_trains_corr(num_bins=64, num_neurons=32, correlations_mat=np.zeros((16
 
 
 def spike_train_packets(num_bins=32, num_neurons=16, group_size=4, prob_packets=0.02, firing_rates_mat=np.zeros((16,1))+0.25, refr_per=2):
-    X = (np.zeros((num_neurons,num_bins)) + firing_rates_mat) > np.random.random((num_neurons,num_bins))
+    X = ((np.zeros((num_neurons,num_bins)) + firing_rates_mat) > np.random.random((num_neurons,num_bins))).astype('int32')
     for ind_n in range(num_neurons):
         X[ind_n,:] = refractory_period(refr_per, X[ind_n,:].reshape(1,num_bins), firing_rates_mat[ind_n])
     packets_activity = np.zeros((num_neurons,num_bins))
@@ -64,6 +64,38 @@ def spike_train_packets(num_bins=32, num_neurons=16, group_size=4, prob_packets=
     result[result>1] = 1
     return result
    
+def spike_train_transient_packets(num_samples=2**13, num_bins=32, num_neurons=16, group_size=4, prob_packets=0.02,\
+                                  firing_rates_mat=np.zeros((16,1))+0.25, refr_per=2, shuffled_index=np.arange(32), limits=[16,32], groups=[1]):
+    X = np.zeros((num_neurons*num_bins,num_samples))
+    for ind in range(num_samples):
+        sample = ((np.zeros((num_neurons,num_bins)) + firing_rates_mat) > np.random.random((num_neurons,num_bins))).astype('int32')
+        for ind_n in range(num_neurons):
+            sample[ind_n,:] = refractory_period(refr_per, sample[ind_n,:].reshape(1,num_bins), firing_rates_mat[ind_n])
+        packets_activity = np.zeros((num_neurons,num_bins))
+        packet = np.eye(group_size)
+        for ind_p in range(len(groups)):
+            aux = np.zeros((1,num_bins)) + prob_packets > np.random.random((1,num_bins))
+            aux[:,-group_size:] = 0
+            aux = refractory_period_hard(group_size, aux, prob_packets)
+            packets_timing = np.nonzero(aux[0])[0]
+            packets_timing = np.delete(packets_timing,np.nonzero((packets_timing<limits[0])))
+            packets_timing = np.delete(packets_timing,np.nonzero((packets_timing>limits[1])))
+            assert all(np.diff(packets_timing)>group_size)
+            for ind_t in range(len(packets_timing)):
+                packets_activity[groups[ind_p]*group_size:(groups[ind_p]+1)*group_size,packets_timing[ind_t]:packets_timing[ind_t]+group_size] = (groups[ind_p]+2)*packet
+                if ind==0 and ind_p==0 and ind_t==0:
+                    plt.subplot(6,3,1)
+                    plt.imshow(packets_activity,interpolation='nearest',cmap=plt.cm.gray)
+        sample[packets_activity>0] = packets_activity[packets_activity>0]#        sample[np.nonzero(packets_activity>0)] = packets_activity[np.nonzero(packets_activity>0)]
+        plt.subplot(6,3,3)
+        plt.imshow(sample,interpolation='nearest',cmap=plt.cm.hot)
+        result = sample[shuffled_index,:]
+        plt.subplot(6,3,2)
+        plt.imshow(result,interpolation='nearest',cmap=plt.cm.hot)
+        X[:,ind] = result.reshape((num_neurons*num_bins,-1))[:,0]
+    return X    
+
+
 def plot_samples(X, num_neurons, folder, name):
     my_cmap = plt.cm.gray
     num1 = 8

@@ -23,12 +23,12 @@ from tensorflow.python.ops import gen_nn_ops
 import os
 import pprint
 from model_conv import WGAN_conv
-#from tflib import analysis, retinal_data, visualize_filters_and_units, sim_pop_activity
+from tflib import sim_pop_activity#analysis, retinal_data, visualize_filters_and_units, sim_pop_activity
 import numpy as np
 #from utils import pp, get_samples_autocorrelogram, get_samples
 import matplotlib.pyplot as plt
 import matplotlib
-
+import time
 #parameters for figure
 left  = 0.125  # the left side of the subplots of the figure
 right = 0.9    # the right side of the subplots of the figure
@@ -124,39 +124,69 @@ def main(_):
             
         num1 = 4
         num2 = 4
+        f = plt.figure(figsize=(8, 10),dpi=250)
+        matplotlib.rcParams.update({'font.size': 8})
+        plt.subplots_adjust(left=left, bottom=bottom, right=right, top=top, wspace=wspace, hspace=hspace)
         original_dataset = np.load(FLAGS.sample_dir+ '/stats_real.npz')
-        samples = original_dataset['samples'][:,0:num1*num2].T
+        samples = original_dataset['samples'].T
         
         index = np.argsort(original_dataset['shuffled_index'])
-        my_cmap = plt.cm.gray
-        
+        samples = sim_pop_activity.spike_train_transient_packets(num_samples=1000, num_bins=FLAGS.num_bins, num_neurons=FLAGS.num_neurons, group_size=FLAGS.group_size,\
+                                                                 prob_packets=FLAGS.packet_prob,firing_rates_mat=original_dataset['firing_rate_mat'], refr_per=FLAGS.ref_period,\
+                                                                 shuffled_index=original_dataset['shuffled_index'], limits=[16,32], groups=[0]).T
+        #my_cmap = plt.cm.gray
         f1,sbplt1 = plt.subplots(num1,num2,figsize=(8, 8),dpi=250)
         matplotlib.rcParams.update({'font.size': 8})
         plt.subplots_adjust(left=left, bottom=bottom, right=right, top=top, wspace=wspace, hspace=hspace)
         f2,sbplt2 = plt.subplots(num1,num2,figsize=(8, 8),dpi=250)
         matplotlib.rcParams.update({'font.size': 8})
         plt.subplots_adjust(left=left, bottom=bottom, right=right, top=top, wspace=wspace, hspace=hspace)
-        for i in range(num1*num2):
-            print(i)
+        f3,sbplt3 = plt.subplots(num1,num2,figsize=(8, 8),dpi=250)
+        matplotlib.rcParams.update({'font.size': 8})
+        plt.subplots_adjust(left=left, bottom=bottom, right=right, top=top, wspace=wspace, hspace=hspace)
+        num_samples = 250   
+        step = 2
+        pattern_size = 8
+        times = step*np.arange(int(FLAGS.num_bins/step))
+        times = np.delete(times,np.nonzero(times>FLAGS.num_bins-pattern_size))
+        #print(times)
+        importance_time_vector = np.zeros((num_samples,FLAGS.num_bins))
+        importance_neuron_vector = np.zeros((num_samples,FLAGS.num_neurons))
+        for i in range(num_samples):
+            start_time0 = time.time()
             sample = samples[i,:]
-            grads = patterns_relevance(sample, FLAGS.num_neurons, wgan, sess, [8,8])
             sample = sample.reshape(FLAGS.num_neurons,FLAGS.num_bins)
-            sample = sample[index,:]
-            sbplt2[int(np.floor(i/num1))][i%num2].imshow(sample,interpolation='nearest', cmap = my_cmap)  
-            sbplt2[int(np.floor(i/num1))][i%num2].axis('off')  
-    
-            #grads = grads.reshape(FLAGS.num_neurons,FLAGS.num_bins)
-            #grads = (grads[index,:])
-            sbplt1[int(np.floor(i/num1))][i%num2].imshow(grads,interpolation='nearest', cmap = my_cmap)  
-            sbplt1[int(np.floor(i/num1))][i%num2].axis('off')  
+            sample = sample.reshape((FLAGS.num_neurons*FLAGS.num_bins,))
+            grads, _ = patterns_relevance(sample, FLAGS.num_neurons, wgan, sess, pattern_size, times)
             
-        
+            importance_time_vector[i,:] = np.mean(grads,axis=0)#/max(np.mean(grads,axis=0))
+            importance_neuron_vector[i,:]  = np.mean(grads,axis=1)#/max(np.mean(grads,axis=1))
+            if i<num1*num2:
+                sample = sample.reshape(FLAGS.num_neurons,FLAGS.num_bins)
+                sbplt2[int(np.floor(i/num1))][i%num2].imshow(sample,interpolation='nearest')#, cmap = plt.cm.hot)  
+                sbplt2[int(np.floor(i/num1))][i%num2].axis('off')  
+                sample = sample[index,:]
+                sbplt3[int(np.floor(i/num1))][i%num2].imshow(sample,interpolation='nearest')#, cmap = plt.cm.hot)  
+                sbplt3[int(np.floor(i/num1))][i%num2].axis('off')  
+                sbplt1[int(np.floor(i/num1))][i%num2].imshow(grads,interpolation='nearest', cmap = plt.cm.hot)  
+                sbplt1[int(np.floor(i/num1))][i%num2].axis('off')  
+            print(str(i) + ' time ' + str(time.time() - start_time0))
         f1.savefig(FLAGS.sample_dir+'spk_relevance.svg',dpi=600, bbox_inches='tight')
         plt.close(f1)  
         f2.savefig(FLAGS.sample_dir+'_samples_spk_relevance.svg',dpi=600, bbox_inches='tight')
         plt.close(f2)  
-                 
- 
+        f3.savefig(FLAGS.sample_dir+'_sorted_samples_spk_relevance.svg',dpi=600, bbox_inches='tight')
+        plt.close(f3)  
+        f4,sbplt4 = plt.subplots(1,2,figsize=(8, 8),dpi=250)
+        matplotlib.rcParams.update({'font.size': 8})
+        plt.subplots_adjust(left=left, bottom=bottom, right=right, top=top, wspace=wspace, hspace=hspace)         
+        sbplt4[0].errorbar(np.arange(FLAGS.num_bins), np.mean(importance_time_vector,axis=0), yerr=np.std(importance_time_vector,axis=0)/np.sqrt(importance_time_vector.shape[0]))
+        sbplt4[1].errorbar(np.arange(FLAGS.num_neurons), np.mean(importance_neuron_vector,axis=0), yerr=np.std(importance_neuron_vector,axis=0)/np.sqrt(importance_neuron_vector.shape[0]),fmt='+')
+        f4.savefig(FLAGS.sample_dir+'_average_relevance.svg',dpi=600, bbox_inches='tight')
+        plt.close(f4)  
+        importance_vectors = {'time':importance_time_vector,'neurons':importance_neuron_vector}
+        np.savez(FLAGS.sample_dir+'importance_vectors.npz',**importance_vectors)
+        
 def spikes_relevance(sample, wgan, sess):
     sample = sample.reshape((sample.shape[0],1))
     score = wgan.get_critics_output(np.concatenate((sample,sample),axis=1))[0].eval(session=sess)
@@ -170,35 +200,67 @@ def spikes_relevance(sample, wgan, sess):
         
     return grad
         
-def patterns_relevance(sample_original, num_neurons, wgan, sess, pattern_size):
+def patterns_relevance(sample_original, num_neurons, wgan, sess, pattern_size, times):
+    #start_time = time.time()
+    num_sh = 5
     dim = sample_original.shape[0]
     sample = sample_original.copy()
-    sample = sample.reshape((sample.shape[0],1))
-    score = wgan.get_critics_output(np.concatenate((sample,sample),axis=1))[0].eval(session=sess)
+    sample[sample>1] = 1
+    sample = sample.reshape((1,sample.shape[0]))
+    score = wgan.get_critics_output(np.concatenate((sample,sample),axis=0))[0].eval(session=sess)
     sample = sample.reshape((num_neurons,-1))
-    num_patterns_1 = int(num_neurons/pattern_size[0])
-    num_patterns_2 = int(sample.shape[1]/pattern_size[1])
-    samples_shuffled = np.zeros((dim,num_patterns_1*num_patterns_2))
-    counter = 0
-    for ind_2 in range(num_patterns_2):
-        aux_sample = sample.copy()
-        aux_pattern = aux_sample[:,ind_2*pattern_size[1]:(ind_2+1)*pattern_size[1]]
-        np.random.shuffle(aux_pattern.T)
-        samples_shuffled[:,counter] = aux_sample.flatten()
-        counter += 1
-    grad = wgan.get_critics_output(samples_shuffled).eval(session=sess) - score
-    counter = 0
-    grad_map = np.zeros(sample.shape)
-    for ind_2 in range(num_patterns_2):
-        grad_map[:,ind_2*pattern_size[1]:(ind_2+1)*pattern_size[1]] = grad[counter]*sample_original
-        counter += 1
-        #grad[spikes[ind_spk]] = aux
+    #print('time ' + str(time.time() - start_time))
+    
+
+    samples_shuffled = np.zeros((num_sh,num_neurons*times.shape[0],dim))
+    
+    for ind_sh in range(num_sh):
+        counter = 0
+        for ind_1 in range(times.shape[0]):
+            for ind_2 in range(num_neurons):
+                aux_sample = sample.copy()
+                aux_pattern = aux_sample[ind_2,times[ind_1]:times[ind_1]+pattern_size]
+                np.random.shuffle(aux_pattern.T)
+                samples_shuffled[ind_sh,counter,:] = aux_sample.flatten()
+                counter += 1
+        #grad_test[ind_sh,:] = np.abs(score - wgan.get_critics_output(samples_shuffled[ind_sh,:,:]).eval(session=sess))
+        #aux = np.abs(score - wgan.get_critics_output(np.concatenate((samples_shuffled[ind_sh,:,:],samples_shuffled[ind_sh,:,:],samples_shuffled[ind_sh,:,:],samples_shuffled[ind_sh,:,:],\
+                                                                     #samples_shuffled[ind_sh,:,:],samples_shuffled[ind_sh,:,:],samples_shuffled[ind_sh,:,:],samples_shuffled[ind_sh,:,:],\
+                                                                     #samples_shuffled[ind_sh,:,:],samples_shuffled[ind_sh,:,:]),axis=0)).eval(session=sess))
+        #aux2 = np.abs(score - wgan.get_critics_output(samples_shuffled[ind_sh,:,:]).eval(session=sess))
+        #print(grad_test[ind_sh,:])
+        #print(aux[0:4])
+        #print(aux[4:8])
+        #print('----')
+        #assert np.all(aux[0:2]==aux2)
+    aux = samples_shuffled.reshape((num_neurons*times.shape[0]*num_sh,dim))
+    grad = np.abs(score - wgan.get_critics_output(aux).eval(session=sess))
+    grad = grad.reshape((num_sh,num_neurons*times.shape[0]))
         
-    return grad    
+      
+    grad = np.mean(grad,axis=0)
+    grad_map = np.zeros(sample.shape)
+    counting_map = np.zeros(sample.shape)
+    counter = 0
+    for ind_1 in range(times.shape[0]):
+        for ind_2 in range(num_neurons):
+            grad_map[ind_2,times[ind_1]:times[ind_1]+pattern_size] = \
+            grad_map[ind_2,times[ind_1]:times[ind_1]+pattern_size]+grad[counter]*sample[ind_2,times[ind_1]:times[ind_1]+pattern_size]
+            counting_map[ind_2,times[ind_1]:times[ind_1]+pattern_size] = counting_map[ind_2,times[ind_1]:times[ind_1]+pattern_size]+1
+            counter += 1
+#    print(counting_map)
+    grad_map /= counting_map
+    return grad_map, grad   
     
 if __name__ == '__main__':
   tf.app.run()
 
+
+
+
+#[ 0.11054063  0.96706271  0.09767437  0.10173178]
+#[ 0.11054277  0.9670608   0.09767365  0.10172868]
+#[ 0.11054277  0.9670608   0.09767365  0.10172868]
 
 
 
