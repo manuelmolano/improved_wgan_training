@@ -112,12 +112,14 @@ def figure_2_4(num_samples, num_neurons, num_bins, folder, folder_fc, fig_2_or_4
     mean_spike_count_real = mean_spike_count_real*1000/num_bins
     mean_spike_count_conv = mean_spike_count_conv*1000/num_bins
     mean_spike_count_comp = mean_spike_count_comp*1000/num_bins
+    maximo = np.max(np.array([115,np.max(mean_spike_count_real),np.max(mean_spike_count_conv),np.max(mean_spike_count_comp)]))
+    minimo = np.min(np.array([75,np.min(mean_spike_count_real),np.min(mean_spike_count_conv),np.min(mean_spike_count_comp)]))
     if fig_2_or_4==2:
         plt.subplot(3,3,4)
     else:
         plt.subplot(2,3,1)
-    axis_ticks = np.linspace(np.min(mean_spike_count_comp),np.max(mean_spike_count_comp),3)
-    plt.plot([np.min(mean_spike_count_comp),np.max(mean_spike_count_comp)],[np.min(mean_spike_count_comp),np.max(mean_spike_count_comp)],'k')
+    axis_ticks = np.linspace(minimo,maximo,3)
+    plt.plot([minimo,maximo],[minimo,maximo],'k')
     plt.plot(mean_spike_count_real,mean_spike_count_conv,'.r')
     plt.plot(mean_spike_count_real,mean_spike_count_comp,'.g')
     plt.xlabel('mean firing rate expt (Hz)')
@@ -127,12 +129,12 @@ def figure_2_4(num_samples, num_neurons, num_bins, folder, folder_fc, fig_2_or_4
     points = ax.get_position().get_points()
     if fig_2_or_4==2:
         plt.text(points[0][0]-margin,points[1][1]+margin, 'B', fontsize=font_size, transform=plt.gcf().transFigure)
-        plt.annotate('Spike-GAN',xy=(np.min(mean_spike_count_comp),np.max(mean_spike_count_comp)-(np.max(mean_spike_count_comp)-np.min(mean_spike_count_comp))/10),fontsize=8,color='r')
-        plt.annotate('MLP GAN',xy=(np.min(mean_spike_count_comp),np.max(mean_spike_count_comp)-2*(np.max(mean_spike_count_comp)-np.min(mean_spike_count_comp))/10),fontsize=8,color='g')
+        plt.annotate('Spike-GAN',xy=(minimo,maximo-(maximo-minimo)/10),fontsize=8,color='r')
+        plt.annotate('MLP GAN',xy=(minimo,maximo-2*(maximo-minimo)/10),fontsize=8,color='g')
     else:
         plt.text(points[0][0]-margin,points[1][1]+margin, 'A', fontsize=font_size, transform=plt.gcf().transFigure)
-        plt.annotate('Spike-GAN',xy=(np.min(mean_spike_count_comp),np.max(mean_spike_count_comp)-(np.max(mean_spike_count_comp)-np.min(mean_spike_count_comp))/10),fontsize=8,color='r')
-        plt.annotate('k-pairwise model',xy=(np.min(mean_spike_count_comp),np.max(mean_spike_count_comp)-2*(np.max(mean_spike_count_comp)-np.min(mean_spike_count_comp))/10),fontsize=8,color='g')
+        plt.annotate('Spike-GAN',xy=(minimo,maximo-(maximo-minimo)/10),fontsize=8,color='r')
+        plt.annotate('k-pairwise model',xy=(minimo,maximo-2*(maximo-minimo)/10),fontsize=8,color='g')
 
     plt.xticks(axis_ticks)
     plt.yticks(axis_ticks)
@@ -201,7 +203,7 @@ def figure_2_4(num_samples, num_neurons, num_bins, folder, folder_fc, fig_2_or_4
     firing_average_time_course_comp_section = firing_average_time_course_comp[:,0:32]*1000/num_bins
     maximo = np.max(firing_average_time_course_real_section.flatten())
     minimo = np.min(firing_average_time_course_real_section.flatten())
-    plt.imshow(firing_average_time_course_real_section,interpolation='nearest')
+    plt.imshow(firing_average_time_course_real_section,interpolation='nearest', cmap='viridis')
     plt.title('Real time course (Hz)')
     plt.xticks([])
     plt.yticks([])
@@ -216,7 +218,7 @@ def figure_2_4(num_samples, num_neurons, num_bins, folder, folder_fc, fig_2_or_4
     else:
         plt.subplot(6,3,13)
     
-    plt.imshow(firing_average_time_course_conv_section,interpolation='nearest', clim=(minimo,maximo))
+    plt.imshow(firing_average_time_course_conv_section,interpolation='nearest', clim=(minimo,maximo), cmap='viridis')
     plt.title('Spike-GAN time course (Hz)')
     plt.xticks([])
     plt.yticks([])
@@ -225,7 +227,7 @@ def figure_2_4(num_samples, num_neurons, num_bins, folder, folder_fc, fig_2_or_4
     else:
         plt.subplot(6,3,16)
     
-    plt.imshow(firing_average_time_course_comp_section,interpolation='nearest', clim=(minimo,maximo))#map_aux = 
+    map_aux = plt.imshow(firing_average_time_course_comp_section,interpolation='nearest', clim=(minimo,maximo), cmap='viridis')#map_aux = 
     if fig_2_or_4==2:
         plt.title('MLP GAN time course (Hz)')
     else:
@@ -235,7 +237,10 @@ def figure_2_4(num_samples, num_neurons, num_bins, folder, folder_fc, fig_2_or_4
     #f.colorbar(map_aux,orientation='horizontal')
     plt.xticks([])
     plt.yticks([])
-        
+    ax = plt.gca()
+    points = ax.get_position().get_points()
+    cbaxes = f.add_axes([points[0][0], points[0][1]-0.04, (points[1][0]-points[0][0]), 0.01]) 
+    plt.colorbar(map_aux, orientation='horizontal', cax = cbaxes, ticks=[np.floor(minimo), np.floor(maximo)])      
     #plot lag covariance
     if fig_2_or_4==2:
         plt.subplot(3,3,9)
@@ -297,7 +302,7 @@ if __name__ == '__main__':
           '_num_neurons_' + num_neurons + '_num_bins_' + num_bins\
           + '_ref_period_' + ref_period + '_firing_rate_' + firing_rate + '_correlation_' + correlation +\
           '_group_size_' + group_size + '_critic_iters_' + critic_iters + '_lambda_' + lambd + '_num_units_' + num_units +\
-          '_iteration_' + iteration + 'bis/'
+          '_iteration_' + iteration + '/'
           
     figure_2_4(num_samples=int(num_samples), num_neurons=int(num_neurons), num_bins=int(num_bins), folder=sample_dir, folder_fc=sample_dir_fc, fig_2_or_4=2)
     
