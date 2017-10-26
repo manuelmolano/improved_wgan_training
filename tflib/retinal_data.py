@@ -11,10 +11,12 @@ Created on Mon Sep 11 11:31:05 2017
 
 @author: manuel
 """
-
+import sys, os
+print(os.getcwd())
+sys.path.append('/home/manuel/improved_wgan_training/')
 import numpy as np
 import scipy.io as sio
-import matplotlib.pyplot as plt
+from tflib import sim_pop_activity
 #import time
 
 def get_samples(num_bins=27, num_neurons=10, instance='1'):                        
@@ -30,6 +32,8 @@ def get_samples(num_bins=27, num_neurons=10, instance='1'):
             X[:,ind_s] = sample.reshape((num_neurons*num_bins,-1))[:,0] 
     else:
         X = data.T
+    
+    sim_pop_activity.plot_samples(X, num_neurons=num_neurons, folder='/home/manuel/improved_wgan_training/', name='retinal_samples')
     return X
         
         
@@ -58,8 +62,8 @@ def load_samples_from_k_pairwise_model(num_samples=2**13, num_bins=27, num_neuro
 
     
 if __name__ == '__main__':
-    X = get_samples()
-    plt.imshow(X[:,1:1000])
+    X = get_samples(num_bins=32, num_neurons=50, instance='1')
+    sim_pop_activity.plot_samples(X, num_neurons=50, folder='/home/manuel/improved_wgan_training/', name='test')
     
     
     
