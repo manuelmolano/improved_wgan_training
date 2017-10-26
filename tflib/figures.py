@@ -198,9 +198,9 @@ def figure_2_4(num_samples, num_neurons, num_bins, folder, folder_fc, fig_2_or_4
         plt.subplot(9,3,19)
     else:
         plt.subplot(6,3,10)
-    firing_average_time_course_real_section = firing_average_time_course_real[:,0:32]*1000/num_bins
-    firing_average_time_course_conv_section = firing_average_time_course_conv[:,0:32]*1000/num_bins
-    firing_average_time_course_comp_section = firing_average_time_course_comp[:,0:32]*1000/num_bins
+    firing_average_time_course_real_section = firing_average_time_course_real[:,0:32]*1000
+    firing_average_time_course_conv_section = firing_average_time_course_conv[:,0:32]*1000
+    firing_average_time_course_comp_section = firing_average_time_course_comp[:,0:32]*1000
     maximo = np.max(firing_average_time_course_real_section.flatten())
     minimo = np.min(firing_average_time_course_real_section.flatten())
     plt.imshow(firing_average_time_course_real_section,interpolation='nearest', cmap='viridis')
@@ -219,7 +219,7 @@ def figure_2_4(num_samples, num_neurons, num_bins, folder, folder_fc, fig_2_or_4
         plt.subplot(6,3,13)
     
     plt.imshow(firing_average_time_course_conv_section,interpolation='nearest', clim=(minimo,maximo), cmap='viridis')
-    plt.title('Spike-GAN time course (Hz)')
+    plt.title('Spike-GAN time course')
     plt.xticks([])
     plt.yticks([])
     if fig_2_or_4==2:
@@ -229,18 +229,24 @@ def figure_2_4(num_samples, num_neurons, num_bins, folder, folder_fc, fig_2_or_4
     
     map_aux = plt.imshow(firing_average_time_course_comp_section,interpolation='nearest', clim=(minimo,maximo), cmap='viridis')#map_aux = 
     if fig_2_or_4==2:
-        plt.title('MLP GAN time course (Hz)')
+        plt.title('MLP GAN time course')
     else:
-        plt.title('k-pairwise time course (Hz)')
+        plt.title('k-pairwise time course')
     plt.xlabel('time (ms)')
     plt.ylabel('neuron')
     #f.colorbar(map_aux,orientation='horizontal')
     plt.xticks([])
     plt.yticks([])
     ax = plt.gca()
-    points = ax.get_position().get_points()
-    cbaxes = f.add_axes([points[0][0], points[0][1]-0.04, (points[1][0]-points[0][0]), 0.01]) 
-    plt.colorbar(map_aux, orientation='horizontal', cax = cbaxes, ticks=[np.floor(minimo), np.floor(maximo)])      
+    points_colorbar = ax.get_position().get_points()
+    ticks_values = [np.floor(minimo)+1, np.floor((maximo+minimo)/2), np.floor(maximo)]
+    print(ticks_values)
+    if fig_2_or_4==2:
+        cbaxes = f.add_axes([points_colorbar[0][0]+(points_colorbar[1][0]-points_colorbar[0][0])/6, points_colorbar[0][1]-0.03, (points_colorbar[1][0]-points_colorbar[0][0])/1.5, 0.01]) 
+        plt.colorbar(map_aux, orientation='horizontal', cax = cbaxes, ticks=ticks_values)    
+    else:
+        cbaxes = f.add_axes([points_colorbar[0][0]+(points_colorbar[1][0]-points_colorbar[0][0])/6, points_colorbar[0][1]-0.05, (points_colorbar[1][0]-points_colorbar[0][0])/1.5, 0.01]) 
+        plt.colorbar(map_aux, orientation='horizontal', cax = cbaxes, ticks=ticks_values)    
     #plot lag covariance
     if fig_2_or_4==2:
         plt.subplot(3,3,9)
@@ -270,11 +276,27 @@ def figure_2_4(num_samples, num_neurons, num_bins, folder, folder_fc, fig_2_or_4
     
     f.savefig(folder+'figure_'+str(fig_2_or_4)+'.svg',dpi=600, bbox_inches='tight')
     plt.close(f)
-    
+    return points_colorbar, cbaxes, map_aux, maximo, minimo
     
 if __name__ == '__main__':
     plt.close('all')
-    
+     #FIGURE 4
+    dataset = 'retina'
+    num_samples = '8192'
+    num_neurons = '50'
+    num_bins = '32'
+    critic_iters = '5'
+    lambd = '10' 
+    num_layers = '2'
+    num_features = '128'
+    kernel = '5'
+    iteration = '21'
+    sample_dir = '/home/manuel/improved_wgan_training/samples conv/' + 'dataset_' + dataset + '_num_samples_' + num_samples +\
+          '_num_neurons_' + num_neurons + '_num_bins_' + num_bins\
+          + '_critic_iters_' + critic_iters + '_lambda_' + lambd +\
+          '_num_layers_' + num_layers + '_num_features_' + num_features + '_kernel_' + kernel +\
+          '_iteration_' + iteration + '/'
+    figure_2_4(num_samples=int(num_samples), num_neurons=int(num_neurons), num_bins=int(num_bins), folder=sample_dir,folder_fc='', fig_2_or_4=4)
     
     #FIGURE 2
     dataset = 'uniform'
@@ -304,25 +326,9 @@ if __name__ == '__main__':
           '_group_size_' + group_size + '_critic_iters_' + critic_iters + '_lambda_' + lambd + '_num_units_' + num_units +\
           '_iteration_' + iteration + '/'
           
-    figure_2_4(num_samples=int(num_samples), num_neurons=int(num_neurons), num_bins=int(num_bins), folder=sample_dir, folder_fc=sample_dir_fc, fig_2_or_4=2)
+    points_colorbar, cbaxes, map_aux, maximo, minimo= figure_2_4(num_samples=int(num_samples), num_neurons=int(num_neurons), num_bins=int(num_bins), folder=sample_dir, folder_fc=sample_dir_fc, fig_2_or_4=2)
     
-    
-    #FIGURE 4
-    dataset = 'retina'
-    num_samples = '8192'
-    num_neurons = '50'
-    num_bins = '32'
-    critic_iters = '5'
-    lambd = '10' 
-    num_layers = '2'
-    num_features = '128'
-    kernel = '5'
-    iteration = '21'
-    sample_dir = '/home/manuel/improved_wgan_training/samples conv/' + 'dataset_' + dataset + '_num_samples_' + num_samples +\
-          '_num_neurons_' + num_neurons + '_num_bins_' + num_bins\
-          + '_critic_iters_' + critic_iters + '_lambda_' + lambd +\
-          '_num_layers_' + num_layers + '_num_features_' + num_features + '_kernel_' + kernel +\
-          '_iteration_' + iteration + '/'
-    figure_2_4(num_samples=int(num_samples), num_neurons=int(num_neurons), num_bins=int(num_bins), folder=sample_dir,folder_fc='', fig_2_or_4=4)
+    #adasdasdasd
+   
     
     
