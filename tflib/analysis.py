@@ -237,11 +237,12 @@ def evaluate_approx_distribution(X, folder, num_samples_theoretical_distr=2**15,
     if name!='real' then it compares the above stats with the original ones 
     
     '''
-    num_samples = 3000
+    num_samples = 8000
     #get freqs of real samples
     original_data = np.load(folder + '/stats_real.npz')        
     real_samples = original_data['samples'][:,0:num_samples]
     X = X[:,0:num_samples]
+    X_binnarized = (X > np.random.random(X.shape)).astype(float)   
     if os.path.exists(folder+'/probs_ns_' + str(num_samples) + '_ns_gt_' + str(num_samples_theoretical_distr) + '.npz'):
         probs = np.load(folder+'/probs_ns_' + str(num_samples) + '_ns_gt_' + str(num_samples_theoretical_distr) + '.npz')
         sim_samples_freqs = probs['sim_samples_freqs']        
@@ -269,12 +270,12 @@ def evaluate_approx_distribution(X, folder, num_samples_theoretical_distr=2**15,
         #probabilites obtain from a large dataset    
         theoretical_probs = num_probs[1]/np.sum(num_probs[1])
         #get the freq of simulated samples in the original dataset, in the ground truth dataset and in the simulated dataset itself
-        freq_in_training_dataset, numerical_prob, sim_samples_freqs = comparison_to_original_and_gt_datasets(samples=X, real_samples=real_samples,\
+        freq_in_training_dataset, numerical_prob, sim_samples_freqs = comparison_to_original_and_gt_datasets(samples=X_binnarized, real_samples=real_samples,\
                 ground_truth_samples=samples_theoretical_probs, ground_truth_probs=theoretical_probs)
         #'impossible' samples: samples for which the theoretical prob is 0
         num_impossible_samples = np.count_nonzero(numerical_prob==0)
         #we will now perform the same calculation for several datasets extracted from the ground truth distribution        
-        num_surr = 5
+        num_surr = 100
         freq_in_training_dataset_surrogates = np.zeros((num_surr*num_samples,)) 
         numerical_prob_surrogates = np.zeros((num_surr*num_samples,))
         surr_samples_freqs = np.zeros((num_surr*num_samples,))
@@ -316,7 +317,6 @@ def evaluate_approx_distribution(X, folder, num_samples_theoretical_distr=2**15,
         np.savez(folder+'/probs_ns_' + str(num_samples) + '_ns_gt_' + str(num_samples_theoretical_distr) + '.npz',**probs)
         
         
-    print(np.unique(sim_samples_freqs))
     f,sbplt = plt.subplots(2,2,figsize=(8, 8),dpi=250)
     matplotlib.rcParams.update({'font.size': 8})
     plt.subplots_adjust(left=left, bottom=bottom, right=right, top=top, wspace=wspace, hspace=hspace)  
@@ -579,14 +579,14 @@ def compute_num_variables(num_bins=128, num_neurons=16, num_features=128, num_la
     print(((num_neurons*num_bins*num_units) + 3*(num_units**2) + 4*(num_units) + num_units + 1) + \
           ((128*num_units) + 3*(num_units**2) + 4*(num_units) + (num_units*num_bins*num_neurons) + (num_bins*num_neurons)))
 if __name__ == '__main__':
-    
+    compute_num_variables(num_bins=256, num_neurons=16, num_features=128, num_layers=2, kernel=5, num_units=500)
+    asdasd
     folder = '/home/manuel/improved_wgan_training/samples conv/dataset_uniform_num_samples_8192_num_neurons_16_num_bins_128_ref_period_2_firing_rate_0.25_correlation_0.3_group_size_2_critic_iters_5_lambda_10_num_layers_2_num_features_128_kernel_5_iteration_20/'
     samples = np.load(folder + 'samples_fake.npz')['samples']
     plot_samples(samples=samples, num_neurons=16, num_bins=128, folder=folder)
     
     asdasd
-    compute_num_variables(num_bins=128, num_neurons=16, num_features=128, num_layers=2, kernel=5, num_units=490)
-    asdasd
+   
     plt.close('all')
     compare_GANs('/home/manuel/improved_wgan_training/', \
                  'samples conv/dataset_retina_num_samples_8192_num_neurons_20_num_bins_32_critic_iters_5_lambda_10_num_layers_*_num_features_*_kernel_*_iteration_*',\
