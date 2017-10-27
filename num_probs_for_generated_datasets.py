@@ -1,6 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
+Created on Thu Oct 26 19:11:09 2017
+
+@author: manuel
+"""
+
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
 Created on Sun Oct  1 11:35:51 2017
 
 @author: manuel
@@ -152,57 +160,13 @@ def main(_):
     #get generated samples and their statistics
     fake_samples = wgan.get_samples(num_samples=FLAGS.num_samples)
     fake_samples = fake_samples.eval(session=sess)
-     
-    _,_,_,_,_ = analysis.get_stats(X=fake_samples.T, num_neurons=FLAGS.num_neurons, num_bins= FLAGS.num_bins, folder=FLAGS.sample_dir, name='fake', instance=FLAGS.data_instance)
-
     #evaluate high order features approximation
-    if FLAGS.dataset=='uniform' and FLAGS.num_bins*FLAGS.num_neurons<40:
-        analysis.evaluate_approx_distribution(X=fake_samples.T, folder=FLAGS.sample_dir, num_samples_theoretical_distr=2**21,num_bins=FLAGS.num_bins, num_neurons=FLAGS.num_neurons,\
-                            group_size=FLAGS.group_size,refr_per=FLAGS.ref_period)
+    for ind in range(100):
+        print('----------------------------------------------------'+str(ind))
+        analysis.get_num_probs_for_generated_dataset(X=fake_samples.T, folder=FLAGS.sample_dir, num_samples_theoretical_distr=2**21,num_bins=FLAGS.num_bins, num_neurons=FLAGS.num_neurons,\
+                                                     group_size=FLAGS.group_size,refr_per=FLAGS.ref_period)
 
-    original_dataset = np.load(FLAGS.sample_dir+ '/stats_real.npz')
-    if FLAGS.dataset=='retina':
-        index = np.arange(FLAGS.num_neurons)
-    else:
-        index = np.argsort(original_dataset['shuffled_index'])
-    #get filters
-    print('get activations -----------------------------------')
-    output,units,inputs = wgan.get_units(num_samples=2**13)  
-    if FLAGS.architecture=='conv':
-        visualize_filters_and_units.plot_untis_rf_conv(units,output, inputs, sess, FLAGS, index)
-    elif FLAGS.architecture=='fc':
-        visualize_filters_and_units.plot_untis_rf(units, output, inputs, sess, FLAGS, index)
-        
-    print('get filters -----------------------------------')
-    filters = wgan.get_filters(num_samples=64)
-    visualize_filters_and_units.plot_filters(filters, sess, FLAGS, index)
-    
-    
-    real_samples = original_dataset['samples']
-    #get critic's output distribution
-    noise = ((np.zeros((FLAGS.num_samples, FLAGS.num_neurons*FLAGS.num_bins)) + 0.5) > np.random.random((FLAGS.num_samples, FLAGS.num_neurons*FLAGS.num_bins))).astype('float32')
-    output_real = wgan.get_critics_output(real_samples.T)
-    output_fake = wgan.get_critics_output(fake_samples)
-    output_noise = wgan.get_critics_output(noise)
-    output_real = output_real.eval(session=sess)
-    output_fake = output_fake.eval(session=sess)
-    output_noise = output_noise.eval(session=sess)
-    visualize_filters_and_units.plot_histogram(output_real, FLAGS.sample_dir, 'real')
-    visualize_filters_and_units.plot_histogram(output_fake, FLAGS.sample_dir, 'fake')
-    visualize_filters_and_units.plot_histogram(output_noise, FLAGS.sample_dir, 'noise')
-    #plot samples
-    analysis.plot_samples(fake_samples.T, FLAGS.num_neurons, FLAGS.sample_dir, 'fake')
-    
-    
-    analysis.plot_samples(real_samples, FLAGS.num_neurons, FLAGS.sample_dir, 'real')
-    
-    #compare with k-pairwise model samples
-    if FLAGS.dataset=='retina':
-        k_pairwise_samples = retinal_data.load_samples_from_k_pairwise_model(num_samples=FLAGS.num_samples, num_bins=FLAGS.num_bins, num_neurons=FLAGS.num_neurons, instance=FLAGS.data_instance)    
-        print(k_pairwise_samples.shape)
-        _,_,_,_ ,_ = analysis.get_stats(X=k_pairwise_samples, num_neurons=FLAGS.num_neurons, num_bins= FLAGS.num_bins, folder=FLAGS.sample_dir, name='k_pairwise', instance=FLAGS.data_instance)
-    
-    
+  
 
     
 if __name__ == '__main__':
