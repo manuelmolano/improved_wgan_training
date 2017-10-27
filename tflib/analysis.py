@@ -230,6 +230,51 @@ def get_stats_aux(X, num_neurons, num_bins):
             lag_cov_mat[ind_n,ind_n2] = aux[1,0]
             
     return cov_mat, k_probs, mean_spike_count, autocorrelogram_mat, firing_average_time_course, lag_cov_mat
+
+
+def get_num_probs_for_generated_dataset(X, folder, num_samples_theoretical_distr=2**15, num_bins=10, num_neurons=4, group_size=2, refr_per=2, instance=1): 
+    '''
+    compute spike trains spikes: spk-count mean and std, autocorrelogram and correlation mat
+    if name!='real' then it compares the above stats with the original ones 
+    
+    '''
+    num_samples = 8000
+    #get freqs of real samples
+    original_data = np.load(folder + '/stats_real.npz')        
+    real_samples = original_data['samples'][:,0:num_samples]
+    X = X[:,0:num_samples]
+    X_binnarized = (X > np.random.random(X.shape)).astype(float)   
+    
+    #get numerical probabilities
+    if os.path.exists(folder + '/numerical_probs_ns_'+str(num_samples_theoretical_distr)+'.npz'):
+        num_probs = np.load(folder + '/numerical_probs_ns_'+str(num_samples_theoretical_distr)+'.npz')        
+        num_probs = num_probs['num_probs']
+    else:
+        num_probs = sim_pop_activity.get_aproximate_probs(num_samples=num_samples_theoretical_distr,num_bins=num_bins, num_neurons=num_neurons, correlations_mat=original_data['correlation_mat'],\
+                        group_size=group_size,refr_per=refr_per,firing_rates_mat=original_data['firing_rate_mat'], activity_peaks=original_data['activity_peaks'])
+        numerical_probs = {'num_probs':num_probs}
+        np.savez(folder + '/numerical_probs_ns_'+str(num_samples_theoretical_distr)+'.npz',**numerical_probs)
+    
+    #samples
+    samples_theoretical_probs = num_probs[0]
+    #probabilites obtain from a large dataset    
+    theoretical_probs = num_probs[1]/np.sum(num_probs[1])
+    #get the freq of simulated samples in the original dataset, in the ground truth dataset and in the simulated dataset itself
+    freq_in_training_dataset, numerical_prob, sim_samples_freqs = comparison_to_original_and_gt_datasets(samples=X_binnarized, real_samples=real_samples,\
+            ground_truth_samples=samples_theoretical_probs, ground_truth_probs=theoretical_probs)
+    #'impossible' samples: samples for which the theoretical prob is 0
+    num_impossible_samples = np.count_nonzero(numerical_prob==0)
+
+    probs = np.load(folder+'/generated_samples_probs_ns_' + str(num_samples) + '_ns_gt_' + str(num_samples_theoretical_distr) + '.npz')
+    
+    sim_samples_freqs = np.append(probs['sim_samples_freqs'],sim_samples_freqs)
+    freq_in_training_dataset = np.append(probs['freq_in_training_dataset'],freq_in_training_dataset)
+    numerical_prob = np.append(probs['numerical_prob'],numerical_prob)
+    num_impossible_samples = np.append(probs['num_impossible_samples'],num_impossible_samples)
+    probs = {'sim_samples_freqs':sim_samples_freqs, 'freq_in_training_dataset':freq_in_training_dataset, 'numerical_prob':numerical_prob, 'num_impossible_samples':num_impossible_samples}
+       
+    np.savez(folder+'/generated_samples_probs_ns_' + str(num_samples) + '_ns_gt_' + str(num_samples_theoretical_distr) + '.npz',**probs)
+    
     
 def evaluate_approx_distribution(X, folder, num_samples_theoretical_distr=2**15, num_bins=10, num_neurons=4, group_size=2, refr_per=2): 
     '''
@@ -245,13 +290,13 @@ def evaluate_approx_distribution(X, folder, num_samples_theoretical_distr=2**15,
     X_binnarized = (X > np.random.random(X.shape)).astype(float)   
     if os.path.exists(folder+'/probs_ns_' + str(num_samples) + '_ns_gt_' + str(num_samples_theoretical_distr) + '.npz'):
         probs = np.load(folder+'/probs_ns_' + str(num_samples) + '_ns_gt_' + str(num_samples_theoretical_distr) + '.npz')
-        sim_samples_freqs = probs['sim_samples_freqs']        
-        numerical_prob = probs['numerical_prob']
-        freq_in_training_dataset = probs['freq_in_training_dataset']
-        num_impossible_samples = probs['num_impossible_samples']
-        surr_samples_freqs = probs['surr_samples_freqs']
-        freq_in_training_dataset_surrogates = probs['freq_in_training_dataset_surrogates']
-        numerical_prob_surrogates = probs['numerical_prob_surrogates']
+        sim_samples_freqs = probs['sim_samples_freqs'] #frequencies of each different pattern contained in the generated dataset       
+        numerical_prob = probs['numerical_prob']#numerical probs of each different pattern contained in the generated dataset       
+        freq_in_training_dataset = probs['freq_in_training_dataset']#frequencies of each different pattern in the generated dataset wrt the ground truth dataset
+        num_impossible_samples = probs['num_impossible_samples'] #number of patterns with numerical prob = 0
+        surr_samples_freqs = probs['surr_samples_freqs']#frequencies of each different pattern contained in all surrogate datasets (num surrogates = 100 so the vector sums up to 100)
+        freq_in_training_dataset_surrogates = probs['freq_in_training_dataset_surrogates']#frequencies of each different pattern in in all surrogate datasets wrt the ground truth dataset
+        numerical_prob_surrogates = probs['numerical_prob_surrogates']#numerical probs of each different pattern contained in the surrogate datasets       
         num_impossible_samples_surrogates = probs['num_impossible_samples_surrogates']
         #num_impossible_samples_original = probs['num_impossible_samples_original']
     else:
@@ -569,7 +614,7 @@ def merge_iterations(mat,parameters,leyenda):
     return mean_mat, std_mat, unique_param, leyenda_red
 
 
-def compute_num_variables(num_bins=128, num_neurons=16, num_features=128, num_layers=2, kernel=5, num_units=490):
+def compute_num_variables(num_bins=256, num_neurons=32, num_features=128, num_layers=2, kernel=5, num_units=490):
     num_features *= 2
     print('conv')
     print(((num_neurons*num_features*kernel + num_features) + (num_features*2*num_features*kernel + 2*num_features) + (2*num_features*num_bins/num_layers**2) + 1) +\
