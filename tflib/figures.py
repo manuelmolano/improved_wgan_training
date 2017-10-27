@@ -61,7 +61,7 @@ def figure_2_4(num_samples, num_neurons, num_bins, folder, folder_fc, fig_2_or_4
     if fig_2_or_4==2:
         f = plt.figure(figsize=(8, 10),dpi=250)
     else:
-        f = plt.figure(figsize=(8, 6),dpi=250)
+        f = plt.figure(figsize=(10, 6),dpi=250)
     
     matplotlib.rcParams.update({'font.size': 8})
     plt.subplots_adjust(left=left, bottom=bottom, right=right, top=top, wspace=wspace, hspace=hspace)
@@ -118,6 +118,7 @@ def figure_2_4(num_samples, num_neurons, num_bins, folder, folder_fc, fig_2_or_4
         plt.subplot(3,3,4)
     else:
         plt.subplot(2,3,1)
+    
     axis_ticks = np.linspace(minimo,maximo,3)
     plt.plot([minimo,maximo],[minimo,maximo],'k')
     plt.plot(mean_spike_count_real,mean_spike_count_conv,'.r')
@@ -277,6 +278,75 @@ def figure_2_4(num_samples, num_neurons, num_bins, folder, folder_fc, fig_2_or_4
     f.savefig(folder+'figure_'+str(fig_2_or_4)+'.svg',dpi=600, bbox_inches='tight')
     plt.close(f)
     return points_colorbar, cbaxes, map_aux, maximo, minimo
+
+def figure_5(num_samples, num_neurons, num_bins, folder):
+    #original_data = np.load(folder + '/stats_real.npz') 
+    importance_maps = np.load(folder+'importance_vectors.npz')
+    packet = np.load(folder+'packet.npz')
+    f = plt.figure(figsize=(8, 10),dpi=250)
+    matplotlib.rcParams.update({'font.size': 8})
+    plt.subplots_adjust(left=left, bottom=bottom, right=right, top=top, wspace=wspace, hspace=hspace)
+    maximo = np.max(packet['packet'].flatten())
+    cbaxes = f.add_axes([0.1,0.85,0.4,0.25]) 
+    
+    plt.imshow(packet['packet'],interpolation='nearest',clim=[0,maximo],cmap='gray')
+    plt.xlabel('time (ms)')
+    plt.ylabel('neurons')
+    plt.title('original packet')
+    ax = plt.gca()
+    points_colorbar = ax.get_position().get_points()
+    plt.text(0.04,1.075, 'A', fontsize=14, transform=plt.gcf().transFigure)
+    cbaxes = f.add_axes([0.57,0.85,0.4,0.25]) 
+    plt.imshow(packet['result'],interpolation='nearest',clim=[0,maximo],cmap='gray')
+    plt.axis('off')
+    plt.title('actual population activity')
+    plt.text(0.55,1.075, 'B', fontsize=14, transform=plt.gcf().transFigure)
+    #title
+    plt.text(0.53,points_colorbar[0][1]-0.005, 'Importance Maps', ha='center', fontsize=14, transform=plt.gcf().transFigure)
+    plt.text(0.04,points_colorbar[0][1]-0.005, 'c', fontsize=14, transform=plt.gcf().transFigure)
+
+    #index = np.argsort(original_data['shuffled_index'])
+    num_cols = 5
+    num_rows = 1
+    num_samples = num_cols*num_rows
+    grad_maps = importance_maps['grad_maps'][0:num_samples]
+    grad_maps = grad_maps
+    samples = importance_maps['samples']
+    num_cols = 5
+    width = 0.17
+    height = width*num_bins/(3*num_neurons)
+    margin = width/10
+    factor = 0.045
+    for i in range(num_samples):
+        cbaxes = f.add_axes([(points_colorbar[0][0]-0.03)+(i%num_cols)*(width+margin), (points_colorbar[0][1]-0.11)-2*(height-factor+0.005)*np.floor(i/num_cols), width, height]) 
+        sample = samples[i,:]
+        sample = sample.reshape(num_neurons,num_bins)
+        cbaxes.imshow(sample,interpolation='nearest',clim=[0,np.max(samples.flatten())],cmap='gray')
+        cbaxes.axis('off')  
+        cbaxes = f.add_axes([(points_colorbar[0][0]-0.03)+(i%num_cols)*(width+margin), (points_colorbar[0][1]-0.11)-2*(height-factor+0.005)*np.floor(i/num_cols)-height+factor, width, height]) 
+        cbaxes.imshow(grad_maps[i,:,:],interpolation='nearest', cmap = plt.cm.hot, clim=[0,np.max(grad_maps.flatten())])  
+        cbaxes.axis('off')  
+        reference = (points_colorbar[0][1]-0.11)-2*(height-factor+0.005)*np.floor(i/num_cols)-height+factor
+    
+    importance_time_vector = importance_maps['time']
+    importance_neuron_vector = importance_maps['neurons']
+    cbaxes = f.add_axes([0.1,reference-0.3,0.4,0.25]) 
+    plt.errorbar(np.arange(num_bins), np.mean(importance_time_vector,axis=0), yerr=np.std(importance_time_vector,axis=0)/np.sqrt(importance_time_vector.shape[0]))
+    plt.ylabel('average importance (a.u.)')
+    plt.xlabel('time (ms)')
+    plt.title('importance of different time periods')
+    plt.xlim(-1,64)
+    plt.text(0.04,reference-0.025, 'D', fontsize=14, transform=plt.gcf().transFigure)
+    cbaxes = f.add_axes([0.57,reference-0.3,0.4,0.25]) 
+    plt.bar(np.arange(num_neurons), np.mean(importance_neuron_vector,axis=0), yerr=np.std(importance_neuron_vector,axis=0)/np.sqrt(importance_neuron_vector.shape[0]))
+    plt.xlabel('neurons')
+    plt.title('importance of different neurons')
+    plt.xlim(-1,33)
+    plt.text(0.55,reference-0.025, 'E', fontsize=14, transform=plt.gcf().transFigure)
+    f.savefig(sample_dir+'figure_5_reduced.svg',dpi=600, bbox_inches='tight')
+    plt.close(f)
+    
+    
     
 if __name__ == '__main__':
     plt.close('all')
@@ -297,6 +367,34 @@ if __name__ == '__main__':
           '_num_layers_' + num_layers + '_num_features_' + num_features + '_kernel_' + kernel +\
           '_iteration_' + iteration + '/'
     figure_2_4(num_samples=int(num_samples), num_neurons=int(num_neurons), num_bins=int(num_bins), folder=sample_dir,folder_fc='', fig_2_or_4=4)
+    
+    asdasdsda
+    
+    #FIGURE 5
+    dataset = 'packets'
+    num_samples = '8192'
+    num_neurons = '32'
+    num_bins = '64'
+    critic_iters = '5'
+    lambd = '10' 
+    num_layers = '2'
+    num_features = '128'
+    kernel = '5'
+    iteration = '21'
+    packet_prob = '0.1'
+    firing_rate = '0.1'
+    group_size = '8'
+
+    sample_dir = '/home/manuel/improved_wgan_training/samples conv/' + 'dataset_' + dataset + '_num_samples_' + str(num_samples) +\
+          '_num_neurons_' + str(num_neurons) + '_num_bins_' + str(num_bins) + '_packet_prob_' + str(packet_prob)\
+          + '_firing_rate_' + str(firing_rate) + '_group_size_' + str(group_size)  + '_critic_iters_' +\
+          str(critic_iters) + '_lambda_' + str(lambd) +\
+          '_num_layers_' + str(num_layers)  + '_num_features_' + str(num_features) + '_kernel_' + str(kernel) +\
+          '_iteration_' + iteration + '/'
+    figure_5(num_samples=int(num_samples), num_neurons=int(num_neurons), num_bins=int(num_bins), folder=sample_dir)
+    asdasds
+    
+    
     
     #FIGURE 2
     dataset = 'uniform'
