@@ -129,8 +129,8 @@ def main(_):
         samples = original_dataset['samples'].T
         samples = sim_pop_activity.spike_train_transient_packets(num_samples=1000, num_bins=FLAGS.num_bins, num_neurons=FLAGS.num_neurons, group_size=FLAGS.group_size,\
                                                                  prob_packets=FLAGS.packet_prob,firing_rates_mat=original_dataset['firing_rate_mat'], refr_per=FLAGS.ref_period,\
-                                                                 shuffled_index=original_dataset['shuffled_index'], limits=[16,32], groups=[1], folder=FLAGS.sample_dir).T
-        #my_cmap = plt.cm.gray
+                                                                 shuffled_index=original_dataset['shuffled_index'], limits=[0,64], groups=[0,1,2,3], folder=FLAGS.sample_dir).T
+        
         f1,sbplt1 = plt.subplots(num1,num2,figsize=(8, 8),dpi=250)
         matplotlib.rcParams.update({'font.size': 8})
         plt.subplots_adjust(left=left, bottom=bottom, right=right, top=top, wspace=wspace, hspace=hspace)

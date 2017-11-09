@@ -19,23 +19,27 @@ wspace = 0.4   # the amount of width reserved for blank space between subplots
 hspace = 0.4   # the amount of height reserved for white space between subplots
 
 def plot_filters(filters, sess, config, index):
-    for ind_layer in range(len(filters)):
+    for ind_layer in range(1):#len(filters)):
         filter_temp = filters[ind_layer].eval(session=sess)
-        my_cmap = plt.cm.gray
+        filter_aux = filter_temp[:,:,0]
+        filter_aux = filter_aux[:,:].T
+        
         num_filters = filter_temp.shape[2]
-        num_rows = int(np.ceil(np.sqrt(num_filters)))
         num_cols = int(np.ceil(np.sqrt(num_filters)))
         #print(np.corrcoef(all_filters.T))
         
-        f,sbplt = plt.subplots(num_rows,num_cols,figsize=(8, 8),dpi=250)
+        height = 1/16
+        width = 1/16
+        factor = 0.052
+        f = plt.figure(figsize=(8, 8),dpi=250)
         matplotlib.rcParams.update({'font.size': 8})
-        plt.subplots_adjust(left=left, bottom=bottom, right=right, top=top, wspace=wspace, hspace=hspace)   
-        for ind_f in range(num_filters):
-            filter_aux = filter_temp[:,:,ind_f]
+        for i in range(num_filters):
+            cbaxes = f.add_axes([0.01+(i%num_cols)*(width-factor), 0.97-height*np.floor(i/num_cols), width, height]) 
+            filter_aux = filter_temp[:,:,i]
             filter_aux = filter_aux[:,:].T
             filter_aux = filter_aux[index,:]
-            sbplt[int(np.floor(ind_f/num_rows))][ind_f%num_cols].imshow(filter_aux, interpolation='nearest', cmap = my_cmap)#,clim=(np.min(filter_temp.flatten()), np.max(filter_temp.flatten())))
-            sbplt[int(np.floor(ind_f/num_rows))][ind_f%num_cols].axis('off')
+            cbaxes.imshow(filter_aux,interpolation='nearest',cmap='gray')#,clim=[0,np.max(filter_temp.flatten())]
+            cbaxes.axis('off')  
           
           
         f.savefig(config.sample_dir+'filters_layer_' + str(ind_layer) + '.svg',dpi=600, bbox_inches='tight')

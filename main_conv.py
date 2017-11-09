@@ -148,7 +148,16 @@ def main(_):
         if not wgan.load(FLAGS.training_stage):
             raise Exception("[!] Train a model first, then run test mode")      
 
-
+    
+    original_dataset = np.load(FLAGS.sample_dir+ '/stats_real.npz')
+    if FLAGS.dataset=='retina':
+        index = np.arange(FLAGS.num_neurons)
+    else:
+        index = np.argsort(original_dataset['shuffled_index'])
+    print('get filters -----------------------------------')
+    filters = wgan.get_filters(num_samples=64)
+    visualize_filters_and_units.plot_filters(filters, sess, FLAGS, index)
+    asdasdasd
     #get generated samples and their statistics
     fake_samples = wgan.get_samples(num_samples=FLAGS.num_samples)
     fake_samples = fake_samples.eval(session=sess)
@@ -160,11 +169,7 @@ def main(_):
         analysis.evaluate_approx_distribution(X=fake_samples.T, folder=FLAGS.sample_dir, num_samples_theoretical_distr=2**21,num_bins=FLAGS.num_bins, num_neurons=FLAGS.num_neurons,\
                             group_size=FLAGS.group_size,refr_per=FLAGS.ref_period)
 
-    original_dataset = np.load(FLAGS.sample_dir+ '/stats_real.npz')
-    if FLAGS.dataset=='retina':
-        index = np.arange(FLAGS.num_neurons)
-    else:
-        index = np.argsort(original_dataset['shuffled_index'])
+    
     #get filters
     print('get activations -----------------------------------')
     output,units,inputs = wgan.get_units(num_samples=2**13)  
@@ -173,9 +178,7 @@ def main(_):
     elif FLAGS.architecture=='fc':
         visualize_filters_and_units.plot_untis_rf(units, output, inputs, sess, FLAGS, index)
         
-    print('get filters -----------------------------------')
-    filters = wgan.get_filters(num_samples=64)
-    visualize_filters_and_units.plot_filters(filters, sess, FLAGS, index)
+    
     
     
     real_samples = original_dataset['samples']
