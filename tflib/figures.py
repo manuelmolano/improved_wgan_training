@@ -29,7 +29,7 @@ font_size = 14
 margin = 0.02
      
     
-def figure_2_4(num_samples, num_neurons, num_bins, folder, folder_fc, fig_2_or_4):
+def figure_2_3(num_samples, num_neurons, num_bins, folder, folder_fc, fig_2_or_4):
     original_data = np.load(folder + '/stats_real.npz')   
     mean_spike_count_real, autocorrelogram_mat_real, firing_average_time_course_real, cov_mat_real, k_probs_real, lag_cov_mat_real = \
     [original_data["mean"], original_data["acf"], original_data["firing_average_time_course"], original_data["cov_mat"], original_data["k_probs"], original_data["lag_cov_mat"]]
@@ -282,21 +282,21 @@ def figure_2_4(num_samples, num_neurons, num_bins, folder, folder_fc, fig_2_or_4
     plt.close(f)
     return points_colorbar, cbaxes, map_aux, maximo, minimo
 
-def figure_5(num_samples, num_neurons, num_bins, folder):
-    
+def figure_4(num_samples, num_neurons, num_bins, folder):
     colors = np.divide(np.array([(0, 0, 0), (128, 128, 128),(166,206,227),(31,120,180),(51,160,44),(251,154,153),(178,223,138)]),256)
     cm = LinearSegmentedColormap.from_list('my_map', colors, N=7)
     
     #original_data = np.load(folder + '/stats_real.npz') 
     importance_maps = np.load(folder+'importance_vectors.npz')
-    packet = np.load(folder+'packet.npz')
     f = plt.figure(figsize=(8, 10),dpi=250)
     matplotlib.rcParams.update({'font.size': 8})
     plt.subplots_adjust(left=left, bottom=bottom, right=right, top=top, wspace=wspace, hspace=hspace)
-    maximo = np.max(packet['packet'].flatten())
+    
     num_cols = 5
     num_rows = 5
     if num_rows==1:
+        packet = np.load(folder+'packet.npz')
+        maximo = np.max(packet['packet'].flatten())
         cbaxes = f.add_axes([0.1,0.85,0.4,0.25]) 
         plt.imshow(packet['packet'],interpolation='nearest',clim=[0,maximo],cmap=cm)
         plt.xlabel('time (ms)')
@@ -356,9 +356,9 @@ def figure_5(num_samples, num_neurons, num_bins, folder):
         plt.title('importance of different neurons')
         plt.xlim(-1,33)
         plt.text(0.55,reference-0.025, 'E', fontsize=14, transform=plt.gcf().transFigure)
-        f.savefig(sample_dir+'figure_5_reduced.svg',dpi=600, bbox_inches='tight')
+        f.savefig(sample_dir+'figure_4_reduced.svg',dpi=600, bbox_inches='tight')
     else:
-        f.savefig(sample_dir+'figure_5_many_samples.svg',dpi=600, bbox_inches='tight')
+        f.savefig(sample_dir+'figure_4_many_samples.svg',dpi=600, bbox_inches='tight')
     plt.close(f)
     
     
@@ -366,7 +366,28 @@ def figure_5(num_samples, num_neurons, num_bins, folder):
 if __name__ == '__main__':
     plt.close('all')
     
-     #FIGURE 5
+      #FIGURE 4 tests with retina
+    dataset = 'retina'
+    num_samples = '8192'
+    num_neurons = '50'
+    num_bins = '32'
+    critic_iters = '5'
+    lambd = '10' 
+    num_layers = '2'
+    num_features = '128'
+    kernel = '5'
+    iteration = '21'
+   
+
+    sample_dir = '/home/manuel/improved_wgan_training/samples conv/' + 'dataset_' + dataset + '_num_samples_' + str(num_samples) +\
+            '_num_neurons_' + str(num_neurons) + '_num_bins_' + str(num_bins)\
+            + '_critic_iters_' + str(critic_iters) + '_lambda_' + str(lambd) +\
+            '_num_layers_' + str(num_layers)  + '_num_features_' + str(num_features) + '_kernel_' + str(kernel) +\
+            '_iteration_' + iteration + '/'
+    figure_4(num_samples=int(num_samples), num_neurons=int(num_neurons), num_bins=int(num_bins), folder=sample_dir)
+    asdasd
+    
+     #FIGURE 4
 #    dataset = 'packets'
 #    num_samples = '8192'
 #    num_neurons = '32'
@@ -387,9 +408,9 @@ if __name__ == '__main__':
 #          str(critic_iters) + '_lambda_' + str(lambd) +\
 #          '_num_layers_' + str(num_layers)  + '_num_features_' + str(num_features) + '_kernel_' + str(kernel) +\
 #          '_iteration_' + iteration + '/'
-#    figure_5(num_samples=int(num_samples), num_neurons=int(num_neurons), num_bins=int(num_bins), folder=sample_dir)
+#    figure_4(num_samples=int(num_samples), num_neurons=int(num_neurons), num_bins=int(num_bins), folder=sample_dir)
 #    asdasd
-#     #FIGURE 4
+#     #FIGURE 3
 #    dataset = 'retina'
 #    num_samples = '8192'
 #    num_neurons = '50'
@@ -405,7 +426,7 @@ if __name__ == '__main__':
 #          + '_critic_iters_' + critic_iters + '_lambda_' + lambd +\
 #          '_num_layers_' + num_layers + '_num_features_' + num_features + '_kernel_' + kernel +\
 #          '_iteration_' + iteration + '/'
-#    figure_2_4(num_samples=int(num_samples), num_neurons=int(num_neurons), num_bins=int(num_bins), folder=sample_dir,folder_fc='', fig_2_or_4=4)
+#    figure_2_3(num_samples=int(num_samples), num_neurons=int(num_neurons), num_bins=int(num_bins), folder=sample_dir,folder_fc='', fig_2_or_4=4)
 #    
 #    
 #    
@@ -437,7 +458,7 @@ if __name__ == '__main__':
 #          '_group_size_' + group_size + '_critic_iters_' + critic_iters + '_lambda_' + lambd + '_num_units_' + num_units +\
 #          '_iteration_' + iteration + '/'
 #          
-#    points_colorbar, cbaxes, map_aux, maximo, minimo= figure_2_4(num_samples=int(num_samples), num_neurons=int(num_neurons), num_bins=int(num_bins), folder=sample_dir, folder_fc=sample_dir_fc, fig_2_or_4=2)
+#    points_colorbar, cbaxes, map_aux, maximo, minimo= figure_2_3(num_samples=int(num_samples), num_neurons=int(num_neurons), num_bins=int(num_bins), folder=sample_dir, folder_fc=sample_dir_fc, fig_2_or_4=2)
 #    asdasd
     
     
@@ -446,34 +467,34 @@ if __name__ == '__main__':
     
     #adasdasdasd
    #FIGURE 2 (32*256)
-    dataset = 'uniform'
-    num_samples = '8192'
-    num_neurons = '32'
-    num_bins = '256'
-    ref_period = '2'
-    firing_rate = '0.25'
-    correlation = '0.3'
-    group_size = '2'
-    critic_iters = '5'
-    lambd = '10' 
-    num_layers = '2'
-    num_features = '128'
-    kernel = '5'
-    iteration = '20'
-    num_units = '310'
-    sample_dir = '/home/manuel/improved_wgan_training/samples conv/' + 'dataset_' + dataset + '_num_samples_' + num_samples +\
-          '_num_neurons_' + num_neurons + '_num_bins_' + num_bins\
-          + '_ref_period_' + ref_period + '_firing_rate_' + firing_rate + '_correlation_' + correlation +\
-          '_group_size_' + group_size + '_critic_iters_' + critic_iters + '_lambda_' + lambd +\
-          '_num_layers_' + num_layers + '_num_features_' + num_features + '_kernel_' + kernel +\
-          '_iteration_' + iteration + '/'
-    sample_dir_fc = '/home/manuel/improved_wgan_training/samples fc/' + 'dataset_' + dataset + '_num_samples_' + num_samples +\
-          '_num_neurons_' + num_neurons + '_num_bins_' + num_bins\
-          + '_ref_period_' + ref_period + '_firing_rate_' + firing_rate + '_correlation_' + correlation +\
-          '_group_size_' + group_size + '_critic_iters_' + critic_iters + '_lambda_' + lambd + '_num_units_' + num_units +\
-          '_iteration_' + iteration + '/'
-          
-    points_colorbar, cbaxes, map_aux, maximo, minimo= figure_2_4(num_samples=int(num_samples), num_neurons=int(num_neurons), num_bins=int(num_bins), folder=sample_dir, folder_fc=sample_dir_fc, fig_2_or_4=2)
+#    dataset = 'uniform'
+#    num_samples = '8192'
+#    num_neurons = '32'
+#    num_bins = '256'
+#    ref_period = '2'
+#    firing_rate = '0.25'
+#    correlation = '0.3'
+#    group_size = '2'
+#    critic_iters = '5'
+#    lambd = '10' 
+#    num_layers = '2'
+#    num_features = '128'
+#    kernel = '5'
+#    iteration = '20'
+#    num_units = '310'
+#    sample_dir = '/home/manuel/improved_wgan_training/samples conv/' + 'dataset_' + dataset + '_num_samples_' + num_samples +\
+#          '_num_neurons_' + num_neurons + '_num_bins_' + num_bins\
+#          + '_ref_period_' + ref_period + '_firing_rate_' + firing_rate + '_correlation_' + correlation +\
+#          '_group_size_' + group_size + '_critic_iters_' + critic_iters + '_lambda_' + lambd +\
+#          '_num_layers_' + num_layers + '_num_features_' + num_features + '_kernel_' + kernel +\
+#          '_iteration_' + iteration + '/'
+#    sample_dir_fc = '/home/manuel/improved_wgan_training/samples fc/' + 'dataset_' + dataset + '_num_samples_' + num_samples +\
+#          '_num_neurons_' + num_neurons + '_num_bins_' + num_bins\
+#          + '_ref_period_' + ref_period + '_firing_rate_' + firing_rate + '_correlation_' + correlation +\
+#          '_group_size_' + group_size + '_critic_iters_' + critic_iters + '_lambda_' + lambd + '_num_units_' + num_units +\
+#          '_iteration_' + iteration + '/'
+#          
+#    points_colorbar, cbaxes, map_aux, maximo, minimo= figure_2_3(num_samples=int(num_samples), num_neurons=int(num_neurons), num_bins=int(num_bins), folder=sample_dir, folder_fc=sample_dir_fc, fig_2_or_4=2)
 
     
     
