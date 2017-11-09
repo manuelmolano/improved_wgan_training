@@ -614,7 +614,8 @@ def merge_iterations(mat,parameters,leyenda):
     return mean_mat, std_mat, unique_param, leyenda_red
 
 
-def compute_num_variables(num_bins=256, num_neurons=32, num_features=128, num_layers=2, kernel=5, num_units=490):
+def compute_num_variables(num_bins=256, num_neurons=32, num_features=128, kernel=5, num_units=490):
+    num_layers = 2
     num_features *= 2
     print('conv')
     print(((num_neurons*num_features*kernel + num_features) + (num_features*2*num_features*kernel + 2*num_features) + (2*num_features*num_bins/num_layers**2) + 1) +\
@@ -624,7 +625,7 @@ def compute_num_variables(num_bins=256, num_neurons=32, num_features=128, num_la
     print(((num_neurons*num_bins*num_units) + 3*(num_units**2) + 4*(num_units) + num_units + 1) + \
           ((128*num_units) + 3*(num_units**2) + 4*(num_units) + (num_units*num_bins*num_neurons) + (num_bins*num_neurons)))
 if __name__ == '__main__':
-    compute_num_variables(num_bins=256, num_neurons=16, num_features=128, num_layers=2, kernel=5, num_units=500)
+    compute_num_variables(num_bins=496, num_neurons=16, num_features=64, kernel=4, num_units=310)
     asdasd
     folder = '/home/manuel/improved_wgan_training/samples conv/dataset_uniform_num_samples_8192_num_neurons_16_num_bins_128_ref_period_2_firing_rate_0.25_correlation_0.3_group_size_2_critic_iters_5_lambda_10_num_layers_2_num_features_128_kernel_5_iteration_20/'
     samples = np.load(folder + 'samples_fake.npz')['samples']
