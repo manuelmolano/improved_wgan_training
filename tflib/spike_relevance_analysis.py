@@ -23,7 +23,7 @@ from tensorflow.python.ops import gen_nn_ops
 import os
 import pprint
 from model_conv import WGAN_conv
-from tflib import sim_pop_activity#analysis, retinal_data, visualize_filters_and_units, sim_pop_activity
+from tflib import sim_pop_activity, retinal_data#, visualize_filters_and_units, sim_pop_activity
 import numpy as np
 #from utils import pp, get_samples_autocorrelogram, get_samples
 import matplotlib.pyplot as plt
@@ -80,32 +80,49 @@ def main(_):
     pp.pprint(flags.FLAGS.__flags)
     #folders
     if FLAGS.dataset=='uniform':
-        FLAGS.sample_dir = 'samples ' + FLAGS.architecture + '/' + 'dataset_' + FLAGS.dataset + '_num_samples_' + str(FLAGS.num_samples) +\
-        '_num_neurons_' + str(FLAGS.num_neurons) + '_num_bins_' + str(FLAGS.num_bins)\
-        + '_ref_period_' + str(FLAGS.ref_period) + '_firing_rate_' + str(FLAGS.firing_rate) + '_correlation_' + str(FLAGS.correlation) +\
-        '_group_size_' + str(FLAGS.group_size)  + '_critic_iters_' + str(FLAGS.critic_iters) + '_lambda_' + str(FLAGS.lambd) +\
-        '_num_layers_' + str(FLAGS.num_layers)  + '_num_features_' + str(FLAGS.num_features) + '_kernel_' + str(FLAGS.kernel_width) +\
-        '_iteration_' + FLAGS.iteration + '/'
+        if FLAGS.architecture=='fc':
+            FLAGS.sample_dir = 'samples fc/' + 'dataset_' + FLAGS.dataset + '_num_samples_' + str(FLAGS.num_samples) +\
+            '_num_neurons_' + str(FLAGS.num_neurons) + '_num_bins_' + str(FLAGS.num_bins)\
+            + '_ref_period_' + str(FLAGS.ref_period) + '_firing_rate_' + str(FLAGS.firing_rate) + '_correlation_' + str(FLAGS.correlation) +\
+            '_group_size_' + str(FLAGS.group_size)  + '_critic_iters_' + str(FLAGS.critic_iters) + '_lambda_' + str(FLAGS.lambd) +\
+            '_num_units_' + str(FLAGS.num_units) +\
+            '_iteration_' + FLAGS.iteration + '/'
+        elif FLAGS.architecture=='conv':
+            FLAGS.sample_dir = 'samples conv/' + 'dataset_' + FLAGS.dataset + '_num_samples_' + str(FLAGS.num_samples) +\
+            '_num_neurons_' + str(FLAGS.num_neurons) + '_num_bins_' + str(FLAGS.num_bins)\
+            + '_ref_period_' + str(FLAGS.ref_period) + '_firing_rate_' + str(FLAGS.firing_rate) + '_correlation_' + str(FLAGS.correlation) +\
+            '_group_size_' + str(FLAGS.group_size)  + '_critic_iters_' + str(FLAGS.critic_iters) + '_lambda_' + str(FLAGS.lambd) +\
+            '_num_layers_' + str(FLAGS.num_layers)  + '_num_features_' + str(FLAGS.num_features) + '_kernel_' + str(FLAGS.kernel_width) +\
+            '_iteration_' + FLAGS.iteration + '/'
     elif FLAGS.dataset=='packets':
-        FLAGS.sample_dir = 'samples ' + FLAGS.architecture + '/' + 'dataset_' + FLAGS.dataset + '_num_samples_' + str(FLAGS.num_samples) +\
-        '_num_neurons_' + str(FLAGS.num_neurons) + '_num_bins_' + str(FLAGS.num_bins) + '_packet_prob_' + str(FLAGS.packet_prob)\
-        + '_firing_rate_' + str(FLAGS.firing_rate) + '_group_size_' + str(FLAGS.group_size)  + '_critic_iters_' +\
-        str(FLAGS.critic_iters) + '_lambda_' + str(FLAGS.lambd) +\
-        '_num_layers_' + str(FLAGS.num_layers)  + '_num_features_' + str(FLAGS.num_features) + '_kernel_' + str(FLAGS.kernel_width) +\
-        '_iteration_' + FLAGS.iteration + '/'
+        if FLAGS.architecture=='fc':
+            FLAGS.sample_dir = 'samples fc/' + 'dataset_' + FLAGS.dataset + '_num_samples_' + str(FLAGS.num_samples) +\
+            '_num_neurons_' + str(FLAGS.num_neurons) + '_num_bins_' + str(FLAGS.num_bins) + '_packet_prob_' + str(FLAGS.packet_prob)\
+            + '_firing_rate_' + str(FLAGS.firing_rate) + '_group_size_' + str(FLAGS.group_size)  + '_critic_iters_' +\
+            str(FLAGS.critic_iters) + '_lambda_' + str(FLAGS.lambd) + '_num_units_' + str(FLAGS.num_units) +\
+            '_iteration_' + FLAGS.iteration + '/'
+        elif FLAGS.architecture=='conv':
+            FLAGS.sample_dir = 'samples conv/' + 'dataset_' + FLAGS.dataset + '_num_samples_' + str(FLAGS.num_samples) +\
+            '_num_neurons_' + str(FLAGS.num_neurons) + '_num_bins_' + str(FLAGS.num_bins) + '_packet_prob_' + str(FLAGS.packet_prob)\
+            + '_firing_rate_' + str(FLAGS.firing_rate) + '_group_size_' + str(FLAGS.group_size)  + '_critic_iters_' +\
+            str(FLAGS.critic_iters) + '_lambda_' + str(FLAGS.lambd) +\
+            '_num_layers_' + str(FLAGS.num_layers)  + '_num_features_' + str(FLAGS.num_features) + '_kernel_' + str(FLAGS.kernel_width) +\
+            '_iteration_' + FLAGS.iteration + '/'
     elif FLAGS.dataset=='retina':
-        FLAGS.sample_dir = 'samples ' + FLAGS.architecture + '/' + 'dataset_' + FLAGS.dataset + '_instance_' + FLAGS.data_instance +\
-        '_num_neurons_' + str(FLAGS.num_neurons) + '_num_bins_' + str(FLAGS.num_bins) +\
-        '_critic_iters_' + str(FLAGS.critic_iters) + '_lambda_' + str(FLAGS.lambd) +\
-        '_num_layers_' + str(FLAGS.num_layers)  + '_num_features_' + str(FLAGS.num_features) + '_kernel_' + str(FLAGS.kernel_width) +\
-        '_iteration_' + FLAGS.iteration + '/'
+       if FLAGS.architecture=='fc':
+            FLAGS.sample_dir = 'samples fc/' + 'dataset_' + FLAGS.dataset  +\
+            '_num_neurons_' + str(FLAGS.num_neurons) + '_num_bins_' + str(FLAGS.num_bins)\
+            + '_critic_iters_' + str(FLAGS.critic_iters) + '_lambda_' + str(FLAGS.lambd) +\
+            '_num_units_' + str(FLAGS.num_units) +\
+            '_iteration_' + FLAGS.iteration + '/'
+       elif FLAGS.architecture=='conv':
+            FLAGS.sample_dir = 'samples conv/' + 'dataset_' + FLAGS.dataset + '_num_samples_' + str(FLAGS.num_samples) +\
+            '_num_neurons_' + str(FLAGS.num_neurons) + '_num_bins_' + str(FLAGS.num_bins)\
+            + '_critic_iters_' + str(FLAGS.critic_iters) + '_lambda_' + str(FLAGS.lambd) +\
+            '_num_layers_' + str(FLAGS.num_layers)  + '_num_features_' + str(FLAGS.num_features) + '_kernel_' + str(FLAGS.kernel_width) +\
+            '_iteration_' + FLAGS.iteration + '/'
       
     FLAGS.checkpoint_dir = FLAGS.sample_dir + 'checkpoint/'
-
-    if not os.path.exists(FLAGS.checkpoint_dir):
-        os.makedirs(FLAGS.checkpoint_dir)
-    if not os.path.exists(FLAGS.sample_dir):
-        os.makedirs(FLAGS.sample_dir)
 
 
     with tf.Session() as sess:
@@ -124,10 +141,11 @@ def main(_):
             
         num1 = 4
         num2 = 4
-        
-        original_dataset = np.load(FLAGS.sample_dir+ '/stats_real.npz')
-        samples = original_dataset['samples'].T
-        samples = sim_pop_activity.spike_train_transient_packets(num_samples=1000, num_bins=FLAGS.num_bins, num_neurons=FLAGS.num_neurons, group_size=FLAGS.group_size,\
+        if FLAGS.dataset=='retina':
+            samples = retinal_data.get_samples(num_bins=FLAGS.num_bins, num_neurons=FLAGS.num_neurons, instance=FLAGS.data_instance).T
+        else:
+            original_dataset = np.load(FLAGS.sample_dir+ '/stats_real.npz')
+            samples = sim_pop_activity.spike_train_transient_packets(num_samples=1000, num_bins=FLAGS.num_bins, num_neurons=FLAGS.num_neurons, group_size=FLAGS.group_size,\
                                                                  prob_packets=FLAGS.packet_prob,firing_rates_mat=original_dataset['firing_rate_mat'], refr_per=FLAGS.ref_period,\
                                                                  shuffled_index=original_dataset['shuffled_index'], limits=[16,32], groups=[0], folder=FLAGS.sample_dir).T
         
