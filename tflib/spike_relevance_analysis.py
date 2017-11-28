@@ -167,6 +167,7 @@ def main(_):
         importance_time_vector = np.zeros((num_samples,FLAGS.num_bins))
         importance_neuron_vector = np.zeros((num_samples,FLAGS.num_neurons))
         grad_maps = np.zeros((num_samples,FLAGS.num_neurons,FLAGS.num_bins))
+        activity_map = np.zeros((FLAGS.num_neurons,FLAGS.num_bins))
         samples_mat = samples[0:num_samples,:]
         for i in range(num_samples):
             start_time0 = time.time()
@@ -174,10 +175,12 @@ def main(_):
             grad_maps[i,:,:], _ = patterns_relevance(sample, FLAGS.num_neurons, wgan, sess, pattern_size, times)
             importance_time_vector[i,:] = np.mean(grad_maps[i,:,:],axis=0)#/max(np.mean(grads,axis=0))
             importance_neuron_vector[i,:]  = np.mean(grad_maps[i,:,:],axis=1)#/max(np.mean(grads,axis=1))
+            sample = sample.reshape(FLAGS.num_neurons,-1)
+            activity_map += sample
             print(str(i) + ' time ' + str(time.time() - start_time0))
 
         
-        importance_vectors = {'time':importance_time_vector,'neurons':importance_neuron_vector,'grad_maps':grad_maps,'samples':samples_mat}
+        importance_vectors = {'time':importance_time_vector,'neurons':importance_neuron_vector,'grad_maps':grad_maps,'samples':samples_mat, 'activity_map':activity_map}
         np.savez(FLAGS.sample_dir+'importance_vectors.npz',**importance_vectors)
         
 def spikes_relevance(sample, wgan, sess):
@@ -241,7 +244,7 @@ def patterns_relevance(sample_original, num_neurons, wgan, sess, pattern_size, t
             grad_map[ind_2,times[ind_1]:times[ind_1]+pattern_size]+grad[counter]*sample[ind_2,times[ind_1]:times[ind_1]+pattern_size]
             counting_map[ind_2,times[ind_1]:times[ind_1]+pattern_size] = counting_map[ind_2,times[ind_1]:times[ind_1]+pattern_size]+1
             counter += 1
-#    print(counting_map)
+    
     grad_map /= counting_map
     return grad_map, grad   
     

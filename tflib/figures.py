@@ -293,8 +293,8 @@ def figure_4(num_samples, num_neurons, num_bins, folder):
     plt.subplots_adjust(left=left, bottom=bottom, right=right, top=top, wspace=wspace, hspace=hspace)
     
     num_cols = 5
-    num_rows = 5
-    if num_rows==1:
+    num_rows = 1
+    if num_rows==1 and folder.find('retina')==-1:
         packet = np.load(folder+'packet.npz')
         maximo = np.max(packet['packet'].flatten())
         cbaxes = f.add_axes([0.1,0.85,0.4,0.25]) 
@@ -314,7 +314,7 @@ def figure_4(num_samples, num_neurons, num_bins, folder):
         plt.text(0.53,points_colorbar[0][1]-0.005, 'Importance Maps', ha='center', fontsize=14, transform=plt.gcf().transFigure)
         plt.text(0.04,points_colorbar[0][1]-0.005, 'c', fontsize=14, transform=plt.gcf().transFigure)
     else:
-        points_colorbar = np.array([[0.05,0.095],0,0])
+        points_colorbar = np.array([[0.01,0.095],0,0])
     #index = np.argsort(original_data['shuffled_index'])
    
     num_samples = num_cols*num_rows
@@ -325,20 +325,38 @@ def figure_4(num_samples, num_neurons, num_bins, folder):
         aux = np.random.choice(np.arange(num_samples),size=(num_samples,))
         grad_maps = importance_maps['grad_maps'][aux,:,:]
         samples = importance_maps['samples'][aux,:]
-    width = 0.17
-    height = width*num_bins/(3*num_neurons)
-    margin = width/10
-    factor = 0.045
+        
+    #panels position params
+    if folder.find('retina')!=-1:
+        width = 0.4
+        height = width*num_bins/(3*num_neurons)
+        margin = width/10
+        factor_width = 0.25
+        factor_height = 0
+    else:
+        width = 0.17
+        height = width*num_bins/(3*num_neurons)
+        margin = width/10
+        factor_width = 0
+        factor_height = 0.045
+        
     for i in range(num_samples):
-        cbaxes = f.add_axes([(points_colorbar[0][0]-0.03)+(i%num_cols)*(width+margin), (points_colorbar[0][1]-0.11)-2*(height-factor+0.005)*np.floor(i/num_cols), width, height]) 
+        pos_h = (points_colorbar[0][0]-0.03)+(i%num_cols)*(width-factor_width+margin)
+        pos_v = (points_colorbar[0][1]-0.11)-2*(height-factor_height+0.005)*np.floor(i/num_cols)
+        cbaxes = f.add_axes([pos_h, pos_v, width, height]) 
+        print(pos_h)
         sample = samples[i,:]
         sample = sample.reshape(num_neurons,num_bins)
         cbaxes.imshow(sample,interpolation='nearest',clim=[0,np.max(samples.flatten())],cmap='gray')
         cbaxes.axis('off')  
-        cbaxes = f.add_axes([(points_colorbar[0][0]-0.03)+(i%num_cols)*(width+margin), (points_colorbar[0][1]-0.11)-2*(height-factor+0.005)*np.floor(i/num_cols)-height+factor, width, height]) 
+        
+        pos_h = (points_colorbar[0][0]-0.03)+(i%num_cols)*(width-factor_width+margin)
+        pos_v = (points_colorbar[0][1]-0.11)-2*(height-factor_height+0.005)*np.floor(i/num_cols)-height+factor_height
+        cbaxes = f.add_axes([pos_h,pos_v, width, height]) 
+        print(pos_h)   
         cbaxes.imshow(grad_maps[i,:,:],interpolation='nearest', cmap = plt.cm.hot, clim=[0,np.max(grad_maps.flatten())])  
         cbaxes.axis('off')  
-        reference = (points_colorbar[0][1]-0.11)-2*(height-factor+0.005)*np.floor(i/num_cols)-height+factor
+        reference = (points_colorbar[0][1]-0.11)-2*(height-factor_height+0.005)*np.floor(i/num_cols)-height+factor_height
     
     if num_rows==1:
         importance_time_vector = importance_maps['time']
@@ -348,46 +366,40 @@ def figure_4(num_samples, num_neurons, num_bins, folder):
         plt.ylabel('average importance (a.u.)')
         plt.xlabel('time (ms)')
         plt.title('importance of different time periods')
-        plt.xlim(-1,64)
+        plt.xlim(-1,num_bins)
         plt.text(0.04,reference-0.025, 'D', fontsize=14, transform=plt.gcf().transFigure)
         cbaxes = f.add_axes([0.57,reference-0.3,0.4,0.25]) 
         plt.bar(np.arange(num_neurons), np.mean(importance_neuron_vector,axis=0), yerr=np.std(importance_neuron_vector,axis=0)/np.sqrt(importance_neuron_vector.shape[0]))
         plt.xlabel('neurons')
         plt.title('importance of different neurons')
-        plt.xlim(-1,33)
+        plt.xlim(-1,num_neurons+1)
         plt.text(0.55,reference-0.025, 'E', fontsize=14, transform=plt.gcf().transFigure)
         f.savefig(sample_dir+'figure_4_reduced.svg',dpi=600, bbox_inches='tight')
     else:
         f.savefig(sample_dir+'figure_4_many_samples.svg',dpi=600, bbox_inches='tight')
     plt.close(f)
-    
+    if folder.find('retina')!=-1:
+       activity_map = importance_maps['activity_map']
+       f = plt.figure(figsize=(8, 10),dpi=250)
+       cbaxes = f.add_axes([0.1,0.1,0.4,0.7]) 
+       plt.errorbar(np.arange(num_bins), np.mean(activity_map,axis=0), yerr=np.std(activity_map,axis=0)/np.sqrt(activity_map.shape[0]))
+       plt.ylabel('average importance (a.u.)')
+       plt.xlabel('time (ms)')
+       plt.title('activity of different time periods')
+       plt.xlim(-1,num_bins)
+       plt.text(0.04,reference-0.025, 'D', fontsize=14, transform=plt.gcf().transFigure)
+       cbaxes = f.add_axes([0.57,0.1,0.4,0.7]) 
+       plt.bar(np.arange(num_neurons), np.mean(activity_map,axis=1), yerr=np.std(activity_map,axis=1)/np.sqrt(activity_map.shape[1]))
+       plt.xlabel('neurons')
+       plt.title('activity of different neurons')
+       plt.xlim(-1,num_neurons+1)
+       plt.text(0.55,reference-0.025, 'E', fontsize=14, transform=plt.gcf().transFigure)
+       f.savefig(sample_dir+'average_activity.svg',dpi=600, bbox_inches='tight')
     
     
 if __name__ == '__main__':
     plt.close('all')
-    
-      #FIGURE 4 tests with retina
-    dataset = 'retina'
-    num_samples = '8192'
-    num_neurons = '50'
-    num_bins = '32'
-    critic_iters = '5'
-    lambd = '10' 
-    num_layers = '2'
-    num_features = '128'
-    kernel = '5'
-    iteration = '21'
-   
-
-    sample_dir = '/home/manuel/improved_wgan_training/samples conv/' + 'dataset_' + dataset + '_num_samples_' + str(num_samples) +\
-            '_num_neurons_' + str(num_neurons) + '_num_bins_' + str(num_bins)\
-            + '_critic_iters_' + str(critic_iters) + '_lambda_' + str(lambd) +\
-            '_num_layers_' + str(num_layers)  + '_num_features_' + str(num_features) + '_kernel_' + str(kernel) +\
-            '_iteration_' + iteration + '/'
-    figure_4(num_samples=int(num_samples), num_neurons=int(num_neurons), num_bins=int(num_bins), folder=sample_dir)
-    asdasd
-    
-     #FIGURE 4
+       #FIGURE 4
 #    dataset = 'packets'
 #    num_samples = '8192'
 #    num_neurons = '32'
@@ -410,6 +422,28 @@ if __name__ == '__main__':
 #          '_iteration_' + iteration + '/'
 #    figure_4(num_samples=int(num_samples), num_neurons=int(num_neurons), num_bins=int(num_bins), folder=sample_dir)
 #    asdasd
+      #FIGURE 4 tests with retina
+    dataset = 'retina'
+    num_samples = '8192'
+    num_neurons = '50'
+    num_bins = '32'
+    critic_iters = '5'
+    lambd = '10' 
+    num_layers = '2'
+    num_features = '128'
+    kernel = '5'
+    iteration = '22'
+   
+
+    sample_dir = '/home/manuel/improved_wgan_training/samples conv/' + 'dataset_' + dataset + '_num_samples_' + str(num_samples) +\
+            '_num_neurons_' + str(num_neurons) + '_num_bins_' + str(num_bins)\
+            + '_critic_iters_' + str(critic_iters) + '_lambda_' + str(lambd) +\
+            '_num_layers_' + str(num_layers)  + '_num_features_' + str(num_features) + '_kernel_' + str(kernel) +\
+            '_iteration_' + iteration + '/'
+    figure_4(num_samples=int(num_samples), num_neurons=int(num_neurons), num_bins=int(num_bins), folder=sample_dir)
+    asdasd
+    
+  
 #     #FIGURE 3
 #    dataset = 'retina'
 #    num_samples = '8192'
