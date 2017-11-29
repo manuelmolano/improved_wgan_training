@@ -400,7 +400,7 @@ class WGAN_conv(object):
   #get units STA from the discriminator
   def get_critics_output(self, samples):
       #aux = np.load(self.sample_dir+ '/stats_real.npz')
-      output,_,_ = self.Discriminator_sampler(samples.astype('float32'))
+      output,_,_ = self.Discriminator_sampler(samples)
       return output
    
   #this is to save the network parameters  

@@ -399,30 +399,64 @@ def figure_4(num_samples, num_neurons, num_bins, folder):
     
 if __name__ == '__main__':
     plt.close('all')
-       #FIGURE 4
-#    dataset = 'packets'
+    #FIGURE 2 (16*496)
+#    dataset = 'uniform'
 #    num_samples = '8192'
-#    num_neurons = '32'
-#    num_bins = '64'
+#    num_neurons = '16'
+#    num_bins = '496'
+#    ref_period = '2'
+#    firing_rate = '0.25'
+#    correlation = '0.3'
+#    group_size = '2'
 #    critic_iters = '5'
 #    lambd = '10' 
-#    num_layers = '2'
-#    num_features = '128'
-#    kernel = '5'
-#    iteration = '21'
-#    packet_prob = '0.1'
-#    firing_rate = '0.1'
-#    group_size = '8'
-#
-#    sample_dir = '/home/manuel/improved_wgan_training/samples conv/' + 'dataset_' + dataset + '_num_samples_' + str(num_samples) +\
-#          '_num_neurons_' + str(num_neurons) + '_num_bins_' + str(num_bins) + '_packet_prob_' + str(packet_prob)\
-#          + '_firing_rate_' + str(firing_rate) + '_group_size_' + str(group_size)  + '_critic_iters_' +\
-#          str(critic_iters) + '_lambda_' + str(lambd) +\
-#          '_num_layers_' + str(num_layers)  + '_num_features_' + str(num_features) + '_kernel_' + str(kernel) +\
+#    num_layers = '3'
+#    num_features = '64'
+#    kernel = '4'
+#    iteration = '20'
+#    num_units = '310'
+#    sample_dir = '/home/manuel/improved_wgan_training/samples conv/' + 'dataset_' + dataset + '_num_samples_' + num_samples +\
+#          '_num_neurons_' + num_neurons + '_num_bins_' + num_bins\
+#          + '_ref_period_' + ref_period + '_firing_rate_' + firing_rate + '_correlation_' + correlation +\
+#          '_group_size_' + group_size + '_critic_iters_' + critic_iters + '_lambda_' + lambd +\
+#          '_num_layers_' + num_layers + '_num_features_' + num_features + '_kernel_' + kernel +\
 #          '_iteration_' + iteration + '/'
-#    figure_4(num_samples=int(num_samples), num_neurons=int(num_neurons), num_bins=int(num_bins), folder=sample_dir)
-#    asdasd
-      #FIGURE 4 tests with retina
+#    sample_dir_fc = '/home/manuel/improved_wgan_training/samples fc/' + 'dataset_' + dataset + '_num_samples_' + num_samples +\
+#          '_num_neurons_' + num_neurons + '_num_bins_' + num_bins\
+#          + '_ref_period_' + ref_period + '_firing_rate_' + firing_rate + '_correlation_' + correlation +\
+#          '_group_size_' + group_size + '_critic_iters_' + critic_iters + '_lambda_' + lambd + '_num_units_' + num_units +\
+#          '_iteration_' + iteration + '/'
+#          
+#    points_colorbar, cbaxes, map_aux, maximo, minimo= figure_2_3(num_samples=int(num_samples), num_neurons=int(num_neurons), num_bins=int(num_bins), folder=sample_dir, folder_fc=sample_dir_fc, fig_2_or_4=2)
+#    asdasds
+    
+    
+    #FIGURE 4
+    dataset = 'packets'
+    num_samples = '8192'
+    num_neurons = '32'
+    num_bins = '64'
+    critic_iters = '5'
+    lambd = '10' 
+    num_layers = '2'
+    num_features = '128'
+    kernel = '5'
+    iteration = '21'
+    packet_prob = '0.1'
+    firing_rate = '0.1'
+    group_size = '8'
+
+    sample_dir = '/home/manuel/improved_wgan_training/samples conv/' + 'dataset_' + dataset + '_num_samples_' + str(num_samples) +\
+          '_num_neurons_' + str(num_neurons) + '_num_bins_' + str(num_bins) + '_packet_prob_' + str(packet_prob)\
+          + '_firing_rate_' + str(firing_rate) + '_group_size_' + str(group_size)  + '_critic_iters_' +\
+          str(critic_iters) + '_lambda_' + str(lambd) +\
+          '_num_layers_' + str(num_layers)  + '_num_features_' + str(num_features) + '_kernel_' + str(kernel) +\
+          '_iteration_' + iteration + '/'
+    figure_4(num_samples=int(num_samples), num_neurons=int(num_neurons), num_bins=int(num_bins), folder=sample_dir)
+    asdasd
+    
+    
+    #FIGURE 4 tests with retina
     dataset = 'retina'
     num_samples = '8192'
     num_neurons = '50'
@@ -432,7 +466,7 @@ if __name__ == '__main__':
     num_layers = '2'
     num_features = '128'
     kernel = '5'
-    iteration = '22'
+    iteration = '21'
    
 
     sample_dir = '/home/manuel/improved_wgan_training/samples conv/' + 'dataset_' + dataset + '_num_samples_' + str(num_samples) +\

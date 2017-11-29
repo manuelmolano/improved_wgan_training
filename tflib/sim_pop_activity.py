@@ -65,7 +65,7 @@ def spike_train_packets(num_bins=32, num_neurons=16, group_size=4, prob_packets=
     return result
    
 def spike_train_transient_packets(num_samples=2**13, num_bins=32, num_neurons=16, group_size=4, prob_packets=0.02,\
-                                  firing_rates_mat=np.zeros((16,1))+0.25, refr_per=2, shuffled_index=np.arange(32), limits=[16,32], groups=[1], folder=''):
+                                  firing_rates_mat=np.zeros((16,1))+0.25, refr_per=2, shuffled_index=np.arange(32), limits=[16,32], groups=[1], folder='', save_packet=False):
     already_plot = 0
     X = np.zeros((num_neurons*num_bins,num_samples))
     for ind in range(num_samples):
@@ -86,24 +86,25 @@ def spike_train_transient_packets(num_samples=2**13, num_bins=32, num_neurons=16
                 packets_activity[groups[ind_p]*group_size:(groups[ind_p]+1)*group_size,packets_timing[ind_t]:packets_timing[ind_t]+group_size] = (groups[ind_p]+2)*packet
                 if ind_p==0:
                     assert len(np.nonzero(packets_activity)[0])==8*(ind_t+1)
-                if already_plot==0 and len(packets_timing)==1:
+                if already_plot==0 and len(packets_timing)==1 and save_packet:
                     packet_aux = {'packet':packets_activity}
                     already_plot = 1
         
         if np.any(packets_activity>0):            
             sample[packets_activity>0] = packets_activity[packets_activity>0]#        sample[np.nonzero(packets_activity>0)] = packets_activity[np.nonzero(packets_activity>0)]
         
-        if already_plot==1:
+        if already_plot==1 and save_packet:
             packet_aux['sample'] = sample
 
         result = sample[shuffled_index,:] 
-        if already_plot==1:
+        if already_plot==1 and save_packet:
             packet_aux['result'] = result
             already_plot = 2
             
             
         X[:,ind] = result.reshape((num_neurons*num_bins,-1))[:,0]
-    np.savez(folder+'packet.npz',**packet_aux)
+    if save_packet:    
+        np.savez(folder+'packet.npz',**packet_aux)
     return X    
 
 

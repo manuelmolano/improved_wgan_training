@@ -145,10 +145,16 @@ def main(_):
             samples = retinal_data.get_samples(num_bins=FLAGS.num_bins, num_neurons=FLAGS.num_neurons, instance=FLAGS.data_instance).T
         else:
             original_dataset = np.load(FLAGS.sample_dir+ '/stats_real.npz')
+            _ = sim_pop_activity.spike_train_transient_packets(num_samples=1000, num_bins=FLAGS.num_bins, num_neurons=FLAGS.num_neurons, group_size=FLAGS.group_size,\
+                                                                 prob_packets=FLAGS.packet_prob,firing_rates_mat=original_dataset['firing_rate_mat'], refr_per=FLAGS.ref_period,\
+                                                                 shuffled_index=original_dataset['shuffled_index'], limits=[16,32], groups=[0,1,2,3], folder=FLAGS.sample_dir, save_packet=True).T
             samples = sim_pop_activity.spike_train_transient_packets(num_samples=1000, num_bins=FLAGS.num_bins, num_neurons=FLAGS.num_neurons, group_size=FLAGS.group_size,\
                                                                  prob_packets=FLAGS.packet_prob,firing_rates_mat=original_dataset['firing_rate_mat'], refr_per=FLAGS.ref_period,\
-                                                                 shuffled_index=original_dataset['shuffled_index'], limits=[16,32], groups=[0], folder=FLAGS.sample_dir).T
-        
+                                                                 shuffled_index=original_dataset['shuffled_index'], limits=[16,32], groups=[0], folder=FLAGS.sample_dir, save_packet=False).T
+
+        inputs = tf.placeholder(tf.float32, name='inputs_to_discriminator', shape=[None, FLAGS.num_neurons*FLAGS.num_bins]) 
+        score = wgan.get_critics_output(inputs)
+        #real samples    
         f1,sbplt1 = plt.subplots(num1,num2,figsize=(8, 8),dpi=250)
         matplotlib.rcParams.update({'font.size': 8})
         plt.subplots_adjust(left=left, bottom=bottom, right=right, top=top, wspace=wspace, hspace=hspace)
@@ -158,7 +164,7 @@ def main(_):
         f3,sbplt3 = plt.subplots(num1,num2,figsize=(8, 8),dpi=250)
         matplotlib.rcParams.update({'font.size': 8})
         plt.subplots_adjust(left=left, bottom=bottom, right=right, top=top, wspace=wspace, hspace=hspace)
-        num_samples = 200   
+        num_samples = 2000   
         step = 2
         pattern_size = 8
         times = step*np.arange(int(FLAGS.num_bins/step))
@@ -170,14 +176,15 @@ def main(_):
         activity_map = np.zeros((FLAGS.num_neurons,FLAGS.num_bins))
         samples_mat = samples[0:num_samples,:]
         for i in range(num_samples):
-            start_time0 = time.time()
             sample = samples[i,:]
-            grad_maps[i,:,:], _ = patterns_relevance(sample, FLAGS.num_neurons, wgan, sess, pattern_size, times)
+            time0 = time.time()
+            grad_maps[i,:,:], _ = patterns_relevance(sample, FLAGS.num_neurons, score, inputs, sess, pattern_size, times)
+            time1 = time.time()
             importance_time_vector[i,:] = np.mean(grad_maps[i,:,:],axis=0)#/max(np.mean(grads,axis=0))
             importance_neuron_vector[i,:]  = np.mean(grad_maps[i,:,:],axis=1)#/max(np.mean(grads,axis=1))
             sample = sample.reshape(FLAGS.num_neurons,-1)
             activity_map += sample
-            print(str(i) + ' time ' + str(time.time() - start_time0))
+            print(str(i) + ' time ' + str(time1 - time0))
 
         
         importance_vectors = {'time':importance_time_vector,'neurons':importance_neuron_vector,'grad_maps':grad_maps,'samples':samples_mat, 'activity_map':activity_map}
@@ -196,14 +203,15 @@ def spikes_relevance(sample, wgan, sess):
         
     return grad
         
-def patterns_relevance(sample_original, num_neurons, wgan, sess, pattern_size, times):
+def patterns_relevance(sample_original, num_neurons, score, inputs, sess, pattern_size, times):
     #start_time = time.time()
     num_sh = 5
     dim = sample_original.shape[0]
     sample = sample_original.copy()
     sample[sample>1] = 1
     sample = sample.reshape((1,sample.shape[0]))
-    score = wgan.get_critics_output(np.concatenate((sample,sample),axis=0))[0].eval(session=sess)
+    score_original = sess.run(score, feed_dict={inputs: np.concatenate((sample,sample),axis=0)})[0]
+    #score = wgan.get_critics_output(np.concatenate((sample,sample),axis=0))[0].eval(session=sess)
     sample = sample.reshape((num_neurons,-1))
     #print('time ' + str(time.time() - start_time))
     
@@ -230,7 +238,8 @@ def patterns_relevance(sample_original, num_neurons, wgan, sess, pattern_size, t
         #print('----')
         #assert np.all(aux[0:2]==aux2)
     aux = samples_shuffled.reshape((num_neurons*times.shape[0]*num_sh,dim))
-    grad = np.abs(score - wgan.get_critics_output(aux).eval(session=sess))
+    scores = sess.run(score, feed_dict={inputs: aux})
+    grad = np.abs(score_original - scores)
     grad = grad.reshape((num_sh,num_neurons*times.shape[0]))
         
       
