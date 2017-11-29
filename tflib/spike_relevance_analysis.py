@@ -141,14 +141,16 @@ def main(_):
             
         num1 = 4
         num2 = 4
+        num_samples = 2000
         if FLAGS.dataset=='retina':
             samples = retinal_data.get_samples(num_bins=FLAGS.num_bins, num_neurons=FLAGS.num_neurons, instance=FLAGS.data_instance).T
         else:
             original_dataset = np.load(FLAGS.sample_dir+ '/stats_real.npz')
-            _ = sim_pop_activity.spike_train_transient_packets(num_samples=1000, num_bins=FLAGS.num_bins, num_neurons=FLAGS.num_neurons, group_size=FLAGS.group_size,\
+            _ = sim_pop_activity.spike_train_transient_packets(num_samples=num_samples, num_bins=FLAGS.num_bins, num_neurons=FLAGS.num_neurons, group_size=FLAGS.group_size,\
                                                                  prob_packets=FLAGS.packet_prob,firing_rates_mat=original_dataset['firing_rate_mat'], refr_per=FLAGS.ref_period,\
-                                                                 shuffled_index=original_dataset['shuffled_index'], limits=[16,32], groups=[0,1,2,3], folder=FLAGS.sample_dir, save_packet=True).T
-            samples = sim_pop_activity.spike_train_transient_packets(num_samples=1000, num_bins=FLAGS.num_bins, num_neurons=FLAGS.num_neurons, group_size=FLAGS.group_size,\
+                                                                 shuffled_index=original_dataset['shuffled_index'], limits=[0,64], groups=[0,1,2,3], folder=FLAGS.sample_dir, save_packet=True).T
+            
+            samples = sim_pop_activity.spike_train_transient_packets(num_samples=num_samples, num_bins=FLAGS.num_bins, num_neurons=FLAGS.num_neurons, group_size=FLAGS.group_size,\
                                                                  prob_packets=FLAGS.packet_prob,firing_rates_mat=original_dataset['firing_rate_mat'], refr_per=FLAGS.ref_period,\
                                                                  shuffled_index=original_dataset['shuffled_index'], limits=[16,32], groups=[0], folder=FLAGS.sample_dir, save_packet=False).T
 
@@ -164,7 +166,7 @@ def main(_):
         f3,sbplt3 = plt.subplots(num1,num2,figsize=(8, 8),dpi=250)
         matplotlib.rcParams.update({'font.size': 8})
         plt.subplots_adjust(left=left, bottom=bottom, right=right, top=top, wspace=wspace, hspace=hspace)
-        num_samples = 2000   
+           
         step = 2
         pattern_size = 8
         times = step*np.arange(int(FLAGS.num_bins/step))
