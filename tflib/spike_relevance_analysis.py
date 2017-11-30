@@ -151,7 +151,7 @@ def main(_):
                                                                  shuffled_index=original_dataset['shuffled_index'], limits=[0,64], groups=[0,1,2,3], folder=FLAGS.sample_dir, save_packet=True).T
             
             samples = sim_pop_activity.spike_train_transient_packets(num_samples=num_samples, num_bins=FLAGS.num_bins, num_neurons=FLAGS.num_neurons, group_size=FLAGS.group_size,\
-                                                                 prob_packets=FLAGS.packet_prob,firing_rates_mat=original_dataset['firing_rate_mat'], refr_per=FLAGS.ref_period,\
+                                                                 prob_packets=0.1,firing_rates_mat=original_dataset['firing_rate_mat'], refr_per=FLAGS.ref_period,\
                                                                  shuffled_index=original_dataset['shuffled_index'], limits=[16,32], groups=[0], folder=FLAGS.sample_dir, save_packet=False).T
 
         inputs = tf.placeholder(tf.float32, name='inputs_to_discriminator', shape=[None, FLAGS.num_neurons*FLAGS.num_bins]) 
@@ -213,9 +213,7 @@ def patterns_relevance(sample_original, num_neurons, score, inputs, sess, patter
     sample[sample>1] = 1
     sample = sample.reshape((1,sample.shape[0]))
     score_original = sess.run(score, feed_dict={inputs: np.concatenate((sample,sample),axis=0)})[0]
-    #score = wgan.get_critics_output(np.concatenate((sample,sample),axis=0))[0].eval(session=sess)
     sample = sample.reshape((num_neurons,-1))
-    #print('time ' + str(time.time() - start_time))
     
 
     samples_shuffled = np.zeros((num_sh,num_neurons*times.shape[0],dim))
