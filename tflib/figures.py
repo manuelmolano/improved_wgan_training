@@ -322,7 +322,7 @@ def figure_4(num_samples, num_neurons, num_bins, folder):
         grad_maps = importance_maps['grad_maps'][[0,1,5,6,7],:,:]
         samples = importance_maps['samples'][[0,1,5,6,7],:]
     else:
-        aux = np.random.choice(np.arange(num_samples),size=(num_samples,))
+        aux = np.random.choice(np.arange(num_samples),size=(num_samples,))#range(num_samples)
         grad_maps = importance_maps['grad_maps'][aux,:,:]
         samples = importance_maps['samples'][aux,:]
         
@@ -344,7 +344,6 @@ def figure_4(num_samples, num_neurons, num_bins, folder):
         pos_h = (points_colorbar[0][0]-0.03)+(i%num_cols)*(width-factor_width+margin)
         pos_v = (points_colorbar[0][1]-0.11)-2*(height-factor_height+0.005)*np.floor(i/num_cols)
         cbaxes = f.add_axes([pos_h, pos_v, width, height]) 
-        print(pos_h)
         sample = samples[i,:]
         sample = sample.reshape(num_neurons,num_bins)
         cbaxes.imshow(sample,interpolation='nearest',clim=[0,np.max(samples.flatten())],cmap='gray')
@@ -353,7 +352,6 @@ def figure_4(num_samples, num_neurons, num_bins, folder):
         pos_h = (points_colorbar[0][0]-0.03)+(i%num_cols)*(width-factor_width+margin)
         pos_v = (points_colorbar[0][1]-0.11)-2*(height-factor_height+0.005)*np.floor(i/num_cols)-height+factor_height
         cbaxes = f.add_axes([pos_h,pos_v, width, height]) 
-        print(pos_h)   
         cbaxes.imshow(grad_maps[i,:,:],interpolation='nearest', cmap = plt.cm.hot, clim=[0,np.max(grad_maps.flatten())])  
         cbaxes.axis('off')  
         reference = (points_colorbar[0][1]-0.11)-2*(height-factor_height+0.005)*np.floor(i/num_cols)-height+factor_height
@@ -361,8 +359,11 @@ def figure_4(num_samples, num_neurons, num_bins, folder):
     if num_rows==1:
         importance_time_vector = importance_maps['time']
         importance_neuron_vector = importance_maps['neurons']
+        importance_time_vector_surr = importance_maps['time_surr']
+        importance_neuron_vector_surr = importance_maps['neurons_surr']
         cbaxes = f.add_axes([0.1,reference-0.3,0.4,0.25]) 
         plt.errorbar(np.arange(num_bins), np.mean(importance_time_vector,axis=0), yerr=np.std(importance_time_vector,axis=0)/np.sqrt(importance_time_vector.shape[0]))
+        plt.errorbar(np.arange(num_bins), np.mean(importance_time_vector_surr,axis=0), yerr=np.std(importance_time_vector_surr,axis=0)/np.sqrt(importance_time_vector_surr.shape[0]),color=(.7,.7,.7))
         plt.ylabel('average importance (a.u.)')
         plt.xlabel('time (ms)')
         plt.title('importance of different time periods')
@@ -370,6 +371,7 @@ def figure_4(num_samples, num_neurons, num_bins, folder):
         plt.text(0.04,reference-0.025, 'D', fontsize=14, transform=plt.gcf().transFigure)
         cbaxes = f.add_axes([0.57,reference-0.3,0.4,0.25]) 
         plt.bar(np.arange(num_neurons), np.mean(importance_neuron_vector,axis=0), yerr=np.std(importance_neuron_vector,axis=0)/np.sqrt(importance_neuron_vector.shape[0]))
+        plt.bar(np.arange(num_neurons), np.mean(importance_neuron_vector_surr,axis=0), yerr=np.std(importance_neuron_vector_surr,axis=0)/np.sqrt(importance_neuron_vector_surr.shape[0]),color=(.7,.7,.7))
         plt.xlabel('neurons')
         plt.title('importance of different neurons')
         plt.xlim(-1,num_neurons+1)

@@ -151,7 +151,7 @@ def main(_):
                                                                  shuffled_index=original_dataset['shuffled_index'], limits=[0,64], groups=[0,1,2,3], folder=FLAGS.sample_dir, save_packet=True).T
             
             samples = sim_pop_activity.spike_train_transient_packets(num_samples=num_samples, num_bins=FLAGS.num_bins, num_neurons=FLAGS.num_neurons, group_size=FLAGS.group_size,\
-                                                                 prob_packets=0.1,firing_rates_mat=original_dataset['firing_rate_mat'], refr_per=FLAGS.ref_period,\
+                                                                 prob_packets=0.2,firing_rates_mat=original_dataset['firing_rate_mat'], refr_per=FLAGS.ref_period,\
                                                                  shuffled_index=original_dataset['shuffled_index'], limits=[16,32], groups=[0], folder=FLAGS.sample_dir, save_packet=False).T
 
         inputs = tf.placeholder(tf.float32, name='inputs_to_discriminator', shape=[None, FLAGS.num_neurons*FLAGS.num_bins]) 
@@ -167,7 +167,7 @@ def main(_):
         matplotlib.rcParams.update({'font.size': 8})
         plt.subplots_adjust(left=left, bottom=bottom, right=right, top=top, wspace=wspace, hspace=hspace)
            
-        step = 2
+        step = 8
         pattern_size = 8
         times = step*np.arange(int(FLAGS.num_bins/step))
         times = np.delete(times,np.nonzero(times>FLAGS.num_bins-pattern_size))
@@ -176,6 +176,8 @@ def main(_):
         importance_neuron_vector = np.zeros((num_samples,FLAGS.num_neurons))
         grad_maps = np.zeros((num_samples,FLAGS.num_neurons,FLAGS.num_bins))
         activity_map = np.zeros((FLAGS.num_neurons,FLAGS.num_bins))
+        importance_time_vector_surr = np.zeros((num_samples,FLAGS.num_bins))
+        importance_neuron_vector_surr = np.zeros((num_samples,FLAGS.num_neurons))
         samples_mat = samples[0:num_samples,:]
         for i in range(num_samples):
             sample = samples[i,:]
@@ -184,12 +186,21 @@ def main(_):
             time1 = time.time()
             importance_time_vector[i,:] = np.mean(grad_maps[i,:,:],axis=0)#/max(np.mean(grads,axis=0))
             importance_neuron_vector[i,:]  = np.mean(grad_maps[i,:,:],axis=1)#/max(np.mean(grads,axis=1))
+            
+            
+            #compute surrogate data 
+            aux,_ = patterns_relevance(sample, FLAGS.num_neurons, score, inputs, sess, pattern_size, times, shuffle=True)
+            time1 = time.time()
+            importance_time_vector_surr[i,:] = np.mean(aux,axis=0)#/max(np.mean(grads,axis=0))
+            importance_neuron_vector_surr[i,:]  = np.mean(aux,axis=1)#/max(np.mean(grads,axis=1))
+            
+            
             sample = sample.reshape(FLAGS.num_neurons,-1)
             activity_map += sample
             print(str(i) + ' time ' + str(time1 - time0))
-
         
-        importance_vectors = {'time':importance_time_vector,'neurons':importance_neuron_vector,'grad_maps':grad_maps,'samples':samples_mat, 'activity_map':activity_map}
+        importance_vectors = {'time':importance_time_vector,'neurons':importance_neuron_vector,'grad_maps':grad_maps,'samples':samples_mat, 'activity_map':activity_map,\
+                              'time_surr':importance_time_vector_surr,'neurons_surr':importance_neuron_vector_surr}
         np.savez(FLAGS.sample_dir+'importance_vectors.npz',**importance_vectors)
         
 def spikes_relevance(sample, wgan, sess):
@@ -205,13 +216,19 @@ def spikes_relevance(sample, wgan, sess):
         
     return grad
         
-def patterns_relevance(sample_original, num_neurons, score, inputs, sess, pattern_size, times):
+def patterns_relevance(sample_original, num_neurons, score, inputs, sess, pattern_size, times, shuffle=False):
     #start_time = time.time()
     num_sh = 5
     dim = sample_original.shape[0]
     sample = sample_original.copy()
     sample[sample>1] = 1
-    sample = sample.reshape((1,sample.shape[0]))
+    if shuffle:
+       sample = sample.reshape((num_neurons,-1))
+       for ind_2 in range(num_neurons):
+           aux_pattern = sample[ind_2,:]
+           np.random.shuffle(aux_pattern.T)
+           
+    sample = sample.reshape((1,dim))
     score_original = sess.run(score, feed_dict={inputs: np.concatenate((sample,sample),axis=0)})[0]
     sample = sample.reshape((num_neurons,-1))
     
@@ -249,12 +266,13 @@ def patterns_relevance(sample_original, num_neurons, score, inputs, sess, patter
     counter = 0
     for ind_1 in range(times.shape[0]):
         for ind_2 in range(num_neurons):
-            grad_map[ind_2,times[ind_1]:times[ind_1]+pattern_size] = \
-            grad_map[ind_2,times[ind_1]:times[ind_1]+pattern_size]+grad[counter]*sample[ind_2,times[ind_1]:times[ind_1]+pattern_size]
-            counting_map[ind_2,times[ind_1]:times[ind_1]+pattern_size] = counting_map[ind_2,times[ind_1]:times[ind_1]+pattern_size]+1
+            index = np.arange(times[ind_1],times[ind_1]+pattern_size)
+            grad_map[ind_2,index] += grad[counter]*sample[ind_2,index]
+            counting_map[ind_2,index] += 1
             counter += 1
     
     grad_map /= counting_map
+    print(np.unique(counting_map))
     return grad_map, grad   
     
 if __name__ == '__main__':
