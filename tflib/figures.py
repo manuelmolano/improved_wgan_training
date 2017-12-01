@@ -287,7 +287,7 @@ def figure_4(num_samples, num_neurons, num_bins, folder):
     cm = LinearSegmentedColormap.from_list('my_map', colors, N=7)
     
     #original_data = np.load(folder + '/stats_real.npz') 
-    importance_maps = np.load(folder+'importance_vectors.npz')
+    importance_maps = np.load(folder+'importance_vectors_2_8_8000.npz')
     f = plt.figure(figsize=(8, 10),dpi=250)
     matplotlib.rcParams.update({'font.size': 8})
     plt.subplots_adjust(left=left, bottom=bottom, right=right, top=top, wspace=wspace, hspace=hspace)
@@ -371,33 +371,33 @@ def figure_4(num_samples, num_neurons, num_bins, folder):
         plt.text(0.04,reference-0.025, 'D', fontsize=14, transform=plt.gcf().transFigure)
         cbaxes = f.add_axes([0.57,reference-0.3,0.4,0.25]) 
         plt.bar(np.arange(num_neurons), np.mean(importance_neuron_vector,axis=0), yerr=np.std(importance_neuron_vector,axis=0)/np.sqrt(importance_neuron_vector.shape[0]))
-        plt.bar(np.arange(num_neurons), np.mean(importance_neuron_vector_surr,axis=0), yerr=np.std(importance_neuron_vector_surr,axis=0)/np.sqrt(importance_neuron_vector_surr.shape[0]),color=(.7,.7,.7))
+        plt.errorbar(np.arange(num_neurons)+0.5, np.mean(importance_neuron_vector_surr,axis=0), yerr=np.std(importance_neuron_vector_surr,axis=0)/np.sqrt(importance_neuron_vector_surr.shape[0]),color=(1,0,0))#,fill=False,edgecolor=(1,0,0))
         plt.xlabel('neurons')
         plt.title('importance of different neurons')
         plt.xlim(-1,num_neurons+1)
         plt.text(0.55,reference-0.025, 'E', fontsize=14, transform=plt.gcf().transFigure)
-        f.savefig(sample_dir+'figure_4_reduced.svg',dpi=600, bbox_inches='tight')
+        f.savefig(sample_dir+'figure_4_reduced_2_8_8000.svg',dpi=600, bbox_inches='tight')
     else:
-        f.savefig(sample_dir+'figure_4_many_samples.svg',dpi=600, bbox_inches='tight')
+        f.savefig(sample_dir+'figure_4_many_samples_2_8_8000.svg',dpi=600, bbox_inches='tight')
     plt.close(f)
-    if folder.find('retina')!=-1:
-       activity_map = importance_maps['activity_map']
-       f = plt.figure(figsize=(8, 10),dpi=250)
-       cbaxes = f.add_axes([0.1,0.1,0.4,0.7]) 
-       plt.errorbar(np.arange(num_bins), np.mean(activity_map,axis=0), yerr=np.std(activity_map,axis=0)/np.sqrt(activity_map.shape[0]))
-       plt.ylabel('average importance (a.u.)')
-       plt.xlabel('time (ms)')
-       plt.title('activity of different time periods')
-       plt.xlim(-1,num_bins)
-       plt.text(0.04,reference-0.025, 'D', fontsize=14, transform=plt.gcf().transFigure)
-       cbaxes = f.add_axes([0.57,0.1,0.4,0.7]) 
-       plt.bar(np.arange(num_neurons), np.mean(activity_map,axis=1), yerr=np.std(activity_map,axis=1)/np.sqrt(activity_map.shape[1]))
-       plt.xlabel('neurons')
-       plt.title('activity of different neurons')
-       plt.xlim(-1,num_neurons+1)
-       plt.text(0.55,reference-0.025, 'E', fontsize=14, transform=plt.gcf().transFigure)
-       f.savefig(sample_dir+'average_activity.svg',dpi=600, bbox_inches='tight')
-    
+
+    activity_map = importance_maps['activity_map']
+    f = plt.figure(figsize=(8, 10),dpi=250)
+    cbaxes = f.add_axes([0.1,0.1,0.4,0.7]) 
+    plt.errorbar(np.arange(num_bins), np.mean(activity_map,axis=0), yerr=np.std(activity_map,axis=0)/np.sqrt(activity_map.shape[0]))
+    plt.ylabel('average importance (a.u.)')
+    plt.xlabel('time (ms)')
+    plt.title('activity of different time periods')
+    plt.xlim(-1,num_bins)
+    plt.text(0.04,reference-0.025, 'D', fontsize=14, transform=plt.gcf().transFigure)
+    cbaxes = f.add_axes([0.57,0.1,0.4,0.7]) 
+    plt.bar(np.arange(num_neurons), np.mean(activity_map,axis=1), yerr=np.std(activity_map,axis=1)/np.sqrt(activity_map.shape[1]))
+    plt.xlabel('neurons')
+    plt.title('activity of different neurons')
+    plt.xlim(-1,num_neurons+1)
+    plt.text(0.55,reference-0.025, 'E', fontsize=14, transform=plt.gcf().transFigure)
+    f.savefig(sample_dir+'average_activity_2_8_8000.svg',dpi=600, bbox_inches='tight')
+
     
 if __name__ == '__main__':
     plt.close('all')
