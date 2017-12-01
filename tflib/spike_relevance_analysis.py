@@ -141,7 +141,7 @@ def main(_):
             
         num1 = 4
         num2 = 4
-        num_samples = 2000
+        num_samples = 8000
         if FLAGS.dataset=='retina':
             samples = retinal_data.get_samples(num_bins=FLAGS.num_bins, num_neurons=FLAGS.num_neurons, instance=FLAGS.data_instance).T
         else:
@@ -201,7 +201,7 @@ def main(_):
         
         importance_vectors = {'time':importance_time_vector,'neurons':importance_neuron_vector,'grad_maps':grad_maps,'samples':samples_mat, 'activity_map':activity_map,\
                               'time_surr':importance_time_vector_surr,'neurons_surr':importance_neuron_vector_surr}
-        np.savez(FLAGS.sample_dir+'importance_vectors.npz',**importance_vectors)
+        np.savez(FLAGS.sample_dir+'importance_vectors_'+str(step)+'_'+str(pattern_size)+'_'+str(num_samples)+'.npz',**importance_vectors)
         
 def spikes_relevance(sample, wgan, sess):
     sample = sample.reshape((sample.shape[0],1))
@@ -240,6 +240,7 @@ def patterns_relevance(sample_original, num_neurons, score, inputs, sess, patter
         for ind_1 in range(times.shape[0]):
             for ind_2 in range(num_neurons):
                 aux_sample = sample.copy()
+                #you have to do this slicing like that, otherwise you will create a copy and the shuffling will not affect the original matrix
                 aux_pattern = aux_sample[ind_2,times[ind_1]:times[ind_1]+pattern_size]
                 np.random.shuffle(aux_pattern.T)
                 samples_shuffled[ind_sh,counter,:] = aux_sample.flatten()
@@ -254,6 +255,8 @@ def patterns_relevance(sample_original, num_neurons, score, inputs, sess, patter
         #print(aux[4:8])
         #print('----')
         #assert np.all(aux[0:2]==aux2)
+    #assert np.sum(np.std(samples_shuffled[0,:,:],axis=0))!=0
+    
     aux = samples_shuffled.reshape((num_neurons*times.shape[0]*num_sh,dim))
     scores = sess.run(score, feed_dict={inputs: aux})
     grad = np.abs(score_original - scores)
@@ -266,13 +269,12 @@ def patterns_relevance(sample_original, num_neurons, score, inputs, sess, patter
     counter = 0
     for ind_1 in range(times.shape[0]):
         for ind_2 in range(num_neurons):
-            index = np.arange(times[ind_1],times[ind_1]+pattern_size)
-            grad_map[ind_2,index] += grad[counter]*sample[ind_2,index]
-            counting_map[ind_2,index] += 1
+            grad_map[ind_2,times[ind_1]:times[ind_1]+pattern_size] += grad[counter]*sample[ind_2,times[ind_1]:times[ind_1]+pattern_size]
+            counting_map[ind_2,times[ind_1]:times[ind_1]+pattern_size] += 1
             counter += 1
-    
+#    print('------------')
     grad_map /= counting_map
-    print(np.unique(counting_map))
+#    print(np.unique(counting_map))
     return grad_map, grad   
     
 if __name__ == '__main__':
